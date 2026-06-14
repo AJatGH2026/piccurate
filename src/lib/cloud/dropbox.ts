@@ -65,6 +65,13 @@ export async function dropboxAuth(scope: string): Promise<string> {
       scope,
       state,
       locale: currentLocale(),
+      // Force an explicit Dropbox sign-in every time. Without this, Dropbox
+      // silently reuses the browser's existing session + prior app approval,
+      // so a logged-in user is never asked which account to connect. Forcing
+      // re-auth guarantees each user links their OWN account (and makes the
+      // per-user nature visible). force_reapprove also re-shows the consent.
+      force_reauthentication: 'true',
+      force_reapprove: 'true',
     }).toString();
 
   const code = await popupOAuth(authUrl, state);
