@@ -72,6 +72,8 @@
     "tooMany": "You selected {count} photos, which exceeds the {limit} limit for the {tier} tier.",
     "upgradePrompt": "Upgrade to process more photos",
     "clearAll": "Clear all",
+    "someFailed": "{count} photo(s) couldn't be processed and won't be included.",
+    "retryFailed": "Retry {count} failed",
     "orImportFrom": "or import from",
     "importDropbox": "Import from Dropbox",
     "dropboxTitle": "Import from Dropbox",

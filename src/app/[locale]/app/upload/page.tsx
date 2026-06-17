@@ -29,7 +29,7 @@ export default function UploadPage() {
   const plan = PRICING_PLANS.find((p) => p.tier === currentTier)!;
   const maxPhotos = plan.photoLimit;
 
-  const { photos, isProcessing, processedCount, totalCount, addFiles, removePhoto, clearAll, error } =
+  const { photos, isProcessing, processedCount, totalCount, addFiles, removePhoto, retryFailed, failedCount, clearAll, error } =
     useUpload({ maxPhotos });
 
   const readyCount = photos.filter((p) => p.status === 'ready').length;
@@ -100,6 +100,19 @@ export default function UploadPage() {
           totalCount={totalCount}
           isProcessing={isProcessing}
         />
+
+        {/* Failed-conversion notice + retry (only the failed ones) */}
+        {failedCount > 0 && !isProcessing && (
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-lg bg-amber-50 text-amber-800 text-sm dark:bg-amber-900/20 dark:text-amber-300">
+            <span>{t('someFailed', { count: failedCount })}</span>
+            <button
+              onClick={retryFailed}
+              className="self-start sm:self-auto rounded-full bg-amber-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 transition-colors"
+            >
+              {t('retryFailed', { count: failedCount })}
+            </button>
+          </div>
+        )}
 
         {/* Photo grid */}
         <PhotoGrid photos={photos} onRemove={removePhoto} />

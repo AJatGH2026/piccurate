@@ -72,6 +72,8 @@
     "tooMany": "Du hast {count} Fotos ausgewählt — das überschreitet das Limit von {limit} für den {tier}-Tarif.",
     "upgradePrompt": "Upgrade für mehr Fotos",
     "clearAll": "Alle entfernen",
+    "someFailed": "{count} Foto(s) konnten nicht verarbeitet werden und werden nicht einbezogen.",
+    "retryFailed": "{count} erneut versuchen",
     "orImportFrom": "oder importieren aus",
     "importDropbox": "Aus Dropbox importieren",
     "dropboxTitle": "Aus Dropbox importieren",

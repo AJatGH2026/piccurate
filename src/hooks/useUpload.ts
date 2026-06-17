@@ -21,6 +21,8 @@ interface UseUploadReturn {
   totalCount: number;
   addFiles: (files: FileList | File[]) => void;
   removePhoto: (id: string) => void;
+  retryFailed: () => void;
+  failedCount: number;
   clearAll: () => void;
   error: string | null;
 }
@@ -35,6 +37,7 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
     (p) => p.status === 'ready' || p.status === 'uploading' || p.status === 'uploaded'
   ).length;
   const totalCount = photos.length;
+  const failedCount = photos.filter((p) => p.status === 'error').length;
   const isProcessing = photos.some(
     (p) => p.status === 'pending' || p.status === 'extracting' || p.status === 'generating'
   );
@@ -165,6 +168,23 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
     [photos.length, maxPhotos, processNext]
   );
 
+  // Re-process only the photos that failed (e.g. a flaky HEIC conversion).
+  // Resets them to 'pending' and re-enqueues just those — successful photos
+  // are untouched.
+  const retryFailed = useCallback(() => {
+    setError(null);
+    const failed = photos.filter((p) => p.status === 'error');
+    if (failed.length === 0) return;
+    const reEnqueued = failed.map((p) => ({ ...p, status: 'pending' as const, error: null }));
+    setPhotos((prev) =>
+      prev.map((p) => (p.status === 'error' ? { ...p, status: 'pending' as const, error: null } : p))
+    );
+    processingQueue.current.push(...reEnqueued);
+    for (let i = 0; i < MAX_CONCURRENT; i++) {
+      processNext();
+    }
+  }, [photos, processNext]);
+
   const removePhoto = useCallback((id: string) => {
     setPhotos((prev) => {
       const photo = prev.find((p) => p.id === id);
@@ -193,6 +213,8 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
     totalCount,
     addFiles,
     removePhoto,
+    retryFailed,
+    failedCount,
     clearAll,
     error,
   };
