@@ -58,7 +58,6 @@ interface PhotoStore {
 // nature → landscape merge (taxonomy decision)
 const mergeScene = (s: string): string => (s === 'nature' ? 'landscape' : s);
 
-const LANDSCAPE_SCENES = ['landscape', 'beach', 'mountain'];
 const ARCH_SCENES = ['building', 'interior', 'architecture', 'city'];
 
 // Motif criteria (sharpness is a quality modifier, not a motif).
@@ -80,16 +79,18 @@ type MotifKey = (typeof MOTIF_KEYS)[number];
  */
 function matchesMotif(p: ProcessedPhoto, key: MotifKey): boolean {
   const scene = mergeScene(p.sceneType);
-  const sec = p.secondary || [];
   switch (key) {
     case 'preferFaces':
       return p.faceCount > 0;
     case 'preferAnimals':
       return p.hasAnimal;
     case 'preferLandscapes':
-      return LANDSCAPE_SCENES.includes(scene) || sec.includes('beach') || sec.includes('mountain');
+      // Classic scenery only — beach is excluded to keep this clean.
+      return scene === 'landscape' || scene === 'mountain';
     case 'preferArchitecture':
-      return ARCH_SCENES.includes(scene) || sec.includes('city') || sec.includes('indoor');
+      // Primary building scenes only. (The secondary "indoor"/"city" tags
+      // pulled in restaurant food and indoor people, so they're not used.)
+      return ARCH_SCENES.includes(scene);
     case 'preferFood':
       return scene === 'food';
   }
@@ -244,25 +245,26 @@ function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig): Proce
   const reps = pool.filter((p) => repIds.has(p.id));
   reps.sort((a, b) => scored[b.id] - scored[a.id]);
 
+  // Upper bound applies in BOTH modes: at most N% of the pool.
+  const percentage = criteria.selectionPercentage || 8;
+  const cap = Math.max(1, Math.round(pool.length * (percentage / 100)));
+
   const exclusive = exclusiveMotifs(criteria);
   const exclusiveCustom = (criteria.customCriteria || []).filter((c) => c.weight >= 1);
   let selectedIds: Set<string>;
   if (exclusive.length > 0 || exclusiveCustom.length > 0) {
-    // Filter: only reps matching ANY maxed motif OR maxed custom term; take all.
-    selectedIds = new Set(
-      reps
-        .filter(
-          (p) =>
-            exclusive.some((k) => matchesMotif(p, k)) ||
-            exclusiveCustom.some((c) => matchesCustom(p, c.term))
-        )
-        .map((p) => p.id)
+    // Filter: only reps matching ANY maxed motif OR maxed custom term, then
+    // keep the best up to the cap (so "10" = only this motif, but still
+    // bounded by the maximum selection size — fewer if fewer match).
+    const eligible = reps.filter(
+      (p) =>
+        exclusive.some((k) => matchesMotif(p, k)) ||
+        exclusiveCustom.some((c) => matchesCustom(p, c.term))
     );
+    selectedIds = new Set(eligible.slice(0, cap).map((p) => p.id));
   } else {
-    // Balanced/biased: top N% of the pool as an upper bound.
-    const percentage = criteria.selectionPercentage || 8;
-    const selectCount = Math.max(1, Math.round(pool.length * (percentage / 100)));
-    selectedIds = new Set(reps.slice(0, selectCount).map((p) => p.id));
+    // Balanced/biased: top N% of the pool.
+    selectedIds = new Set(reps.slice(0, cap).map((p) => p.id));
   }
 
   return photos.map((p) => {
