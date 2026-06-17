@@ -119,17 +119,31 @@ export function DropboxImport({
     if (!token) return;
     const paths = Object.keys(selected);
     if (paths.length === 0) return;
-    const files: File[] = [];
+    const total = paths.length;
+    const files: File[] = new Array(total);
+    let done = 0;
+    const CONCURRENCY = 4; // bounded parallel downloads — matches the upload pipeline
+    setImporting(t('dbxImporting', { done: 0, total }));
     try {
-      for (let i = 0; i < paths.length; i++) {
-        const name = selected[paths[i]];
-        setImporting(t('dbxImporting', { done: i, total: paths.length }));
-        const blob = await dropboxDownload(token, paths[i]);
-        files.push(new File([blob], name, { type: blob.type || 'application/octet-stream' }));
-      }
+      // Worker-pool: each worker pulls the next index and downloads it.
+      let next = 0;
+      const worker = async () => {
+        while (true) {
+          const i = next++;
+          if (i >= total) return;
+          const p = paths[i];
+          const name = selected[p];
+          const blob = await dropboxDownload(token, p);
+          files[i] = new File([blob], name, { type: blob.type || 'application/octet-stream' });
+          done++;
+          setImporting(t('dbxImporting', { done, total }));
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker));
       onImport(files);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Import failed');
+      const msg = e instanceof Error ? (e.name === 'AbortError' ? 'Download timed out' : e.message) : 'Import failed';
+      setError(msg);
       setImporting(null);
     }
   };

@@ -132,10 +132,21 @@ export async function dropboxList(token: string, path: string): Promise<DropboxE
   return out;
 }
 
-/** Download a Dropbox file's bytes by path. */
+/** Download a Dropbox file's bytes by path. Times out after 60 s. */
 export async function dropboxDownload(token: string, path: string): Promise<Blob> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60_000);
+  try {
+    return await dropboxDownloadInner(token, path, controller.signal);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function dropboxDownloadInner(token: string, path: string, signal: AbortSignal): Promise<Blob> {
   const res = await fetch(DOWNLOAD, {
     method: 'POST',
+    signal,
     headers: { Authorization: `Bearer ${token}`, 'Dropbox-API-Arg': apiArg({ path }) },
   });
   if (!res.ok) throw new Error(`Download failed (${res.status})`);
