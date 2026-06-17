@@ -1,9 +1,10 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { usePhotoStore } from '@/hooks/usePhotoStore';
 import { enabledCloudProviders, type CloudProvider } from '@/lib/cloud';
+import { reverseGeocode } from '@/utils/geocode';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
@@ -24,6 +25,42 @@ export default function ResultsPage() {
   const selectedPhotos = photos.filter((p) => p.selected);
   const selectedCount = selectedPhotos.length;
   const totalCount = photos.length;
+
+  // Group the selected photos by day, with one representative GPS point each,
+  // for the trip overview (date + place name). Keyed on the stable store ref.
+  const dayGroups = useMemo(() => {
+    const m = new Map<string, { date: string; lat: number | null; lon: number | null; count: number }>();
+    for (const p of photos) {
+      if (!p.selected) continue;
+      const date = p.dateTaken ? new Date(p.dateTaken).toISOString().split('T')[0] : 'undated';
+      const g = m.get(date) || { date, lat: null, lon: null, count: 0 };
+      g.count++;
+      if (g.lat == null && p.latitude != null && p.longitude != null) {
+        g.lat = p.latitude;
+        g.lon = p.longitude;
+      }
+      m.set(date, g);
+    }
+    return [...m.values()].sort((a, b) => a.date.localeCompare(b.date));
+  }, [photos]);
+
+  // Resolve place names for the days that have GPS (cached, localized).
+  const [placeByDay, setPlaceByDay] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      for (const g of dayGroups) {
+        if (g.lat == null || g.lon == null) continue;
+        const label = await reverseGeocode(g.lat, g.lon, locale);
+        if (label && !cancelled) {
+          setPlaceByDay((prev) => (prev[g.date] === label ? prev : { ...prev, [g.date]: label }));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [dayGroups, locale]);
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -182,8 +219,28 @@ export default function ResultsPage() {
           </div>
         )}
 
+        {/* Trip overview: date + place name (where GPS is available) */}
+        {dayGroups.length > 0 && (
+          <div className="mt-8 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t('tripOverview')}</h2>
+            <ul className="mt-3 space-y-1.5">
+              {dayGroups.map((g) => (
+                <li key={g.date} className="flex items-baseline gap-2 text-sm">
+                  <span className="font-medium text-zinc-700 dark:text-zinc-300 tabular-nums">
+                    {g.date === 'undated' ? t('undatedLabel') : g.date}
+                  </span>
+                  {placeByDay[g.date] && (
+                    <span className="text-zinc-500">· 📍 {placeByDay[g.date]}</span>
+                  )}
+                  <span className="ml-auto text-xs text-zinc-400">{g.count}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Download card */}
-        <div className="mt-8 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6">
+        <div className="mt-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
             {t('download')}
           </h2>

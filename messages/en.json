@@ -160,6 +160,8 @@
     "photobookDesc": "Send your curated photos to CEWE and turn them into a beautiful photobook.",
     "photobookCta": "Open CEWE Photobook",
     "newJob": "Curate more photos",
+    "tripOverview": "Trip overview",
+    "undatedLabel": "Undated",
     "fullResNote": "{count} full-resolution photos as a ZIP archive",
     "downloadAction": "Download ZIP ({count} photos)",
     "zipFlat": "One folder",
