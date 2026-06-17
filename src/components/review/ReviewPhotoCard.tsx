@@ -13,6 +13,7 @@ interface ReviewPhotoCardProps {
   latitude: number | null;
   longitude: number | null;
   onToggle: () => void;
+  onEnlarge?: () => void;
 }
 
 const SCENE_COLORS: Record<string, string> = {
@@ -43,6 +44,7 @@ export function ReviewPhotoCard({
   latitude,
   longitude,
   onToggle,
+  onEnlarge,
 }: ReviewPhotoCardProps) {
   const badgeColor = SCENE_COLORS[sceneType || 'other'] || 'bg-zinc-400';
   const hasLocation = latitude != null && longitude != null;
@@ -81,6 +83,21 @@ export function ReviewPhotoCard({
       >
         {saved ? '🔒' : selected ? '✓' : ''}
       </div>
+
+      {/* Enlarge / preview button — visible on hover, doesn't toggle selection */}
+      {onEnlarge && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEnlarge();
+          }}
+          className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 bg-black/50 hover:bg-black/70 text-white w-6 h-6 rounded-full flex items-center justify-center text-[11px] transition-opacity"
+          title="Vergrößern"
+          aria-label="Vergrößern"
+        >
+          ⤢
+        </button>
+      )}
 
       {/* Scene type badge — always visible */}
       {sceneType && (

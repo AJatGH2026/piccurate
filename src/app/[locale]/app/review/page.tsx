@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { ReviewPhotoCard } from '@/components/review/ReviewPhotoCard';
+import { Lightbox } from '@/components/review/Lightbox';
 import { SelectionStats } from '@/components/review/SelectionStats';
 import { usePhotoStore } from '@/hooks/usePhotoStore';
 import Link from 'next/link';
@@ -15,9 +16,14 @@ export default function ReviewPage() {
   const router = useRouter();
   const locale = params.locale as string;
   const [showRejected, setShowRejected] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const photos = usePhotoStore((s) => s.photos);
   const toggleSelection = usePhotoStore((s) => s.toggleSelection);
+  const openLightbox = (id: string) => {
+    const idx = photos.findIndex((p) => p.id === id);
+    if (idx >= 0) setLightboxIndex(idx);
+  };
   const saveSelection = usePhotoStore((s) => s.saveSelection);
 
   const selectedPhotos = photos.filter((p) => p.selected);
@@ -120,6 +126,7 @@ export default function ReviewPage() {
                           latitude={photo.latitude}
                           longitude={photo.longitude}
                           onToggle={() => toggleSelection(photo.id)}
+                          onEnlarge={() => openLightbox(photo.id)}
                         />
                       ))}
                     </div>
@@ -144,6 +151,7 @@ export default function ReviewPage() {
                             latitude={photo.latitude}
                             longitude={photo.longitude}
                             onToggle={() => toggleSelection(photo.id)}
+                            onEnlarge={() => openLightbox(photo.id)}
                           />
                         ))}
                       </div>
@@ -210,6 +218,16 @@ export default function ReviewPage() {
           </div>
         </div>
       </main>
+
+      {lightboxIndex !== null && (
+        <Lightbox
+          photos={photos}
+          index={lightboxIndex}
+          onIndexChange={setLightboxIndex}
+          onToggle={toggleSelection}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
     </div>
   );
 }
