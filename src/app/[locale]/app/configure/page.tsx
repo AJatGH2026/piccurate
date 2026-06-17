@@ -20,9 +20,11 @@ export default function ConfigurePage() {
   const photos = usePhotoStore((s) => s.photos);
   const applyAnalysisResults = usePhotoStore((s) => s.applyAnalysisResults);
   const rerunSelection = usePhotoStore((s) => s.rerunSelection);
+  const analyzedCustomTerms = usePhotoStore((s) => s.analyzedCustomTerms);
   const savedCount = photos.filter((p) => p.saved).length;
-  const { criteria, toggleCriterion, setWeight, updateCriterion, reset } =
+  const { criteria, toggleCriterion, setWeight, updateCriterion, addCustom, removeCustom, setCustomWeight, reset } =
     useCriteria();
+  const [customInput, setCustomInput] = useState('');
 
   const criteriaItems = [
     { key: 'preferFaces' as const, label: t('faces'), desc: t('facesDesc') },
@@ -37,13 +39,18 @@ export default function ConfigurePage() {
   // is a quality modifier, not a motif filter).
   const motifItems = criteriaItems.filter((it) => it.key !== 'preferSharpness');
   const activeMotifs = motifItems.filter((it) => criteria[it.key].enabled);
-  const maxedMotifs = activeMotifs.filter((it) => criteria[it.key].weight >= 1);
+  const customList = criteria.customCriteria || [];
+  const activeLabels = [...activeMotifs.map((m) => m.label), ...customList.map((c) => c.term)];
+  const maxedLabels = [
+    ...activeMotifs.filter((it) => criteria[it.key].weight >= 1).map((m) => m.label),
+    ...customList.filter((c) => c.weight >= 1).map((c) => c.term),
+  ];
   const selectionMode =
-    activeMotifs.length === 0
+    activeLabels.length === 0
       ? t('modeBalanced')
-      : maxedMotifs.length > 0
-        ? t('modeOnly', { motifs: maxedMotifs.map((m) => m.label).join(', ') })
-        : t('modeEmphasis', { motifs: activeMotifs.map((m) => m.label).join(', ') });
+      : maxedLabels.length > 0
+        ? t('modeOnly', { motifs: maxedLabels.join(', ') })
+        : t('modeEmphasis', { motifs: activeLabels.join(', ') });
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -143,6 +150,71 @@ export default function ConfigurePage() {
           })}
         </div>
 
+        {/* Custom criteria (feature 5a) */}
+        <div className="mt-4 p-4 rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+          <h3 className="font-medium text-zinc-900 dark:text-zinc-100">{t('customTitle')}</h3>
+          <p className="text-sm text-zinc-500 mt-0.5">{t('customDesc')}</p>
+
+          {customList.length > 0 && (
+            <div className="mt-3 space-y-3">
+              {customList.map((c) => (
+                <div key={c.term} className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200 w-24 truncate">{c.term}</span>
+                  <span className="text-xs text-zinc-400">{t('low')}</span>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    step="1"
+                    value={Math.max(1, Math.round(c.weight * 10))}
+                    onChange={(e) => setCustomWeight(c.term, Number(e.target.value) / 10)}
+                    className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
+                  />
+                  <span className="text-xs text-zinc-400">{t('only')}</span>
+                  <span className="text-xs font-medium text-indigo-600 w-12 text-right">
+                    {c.weight >= 1 ? t('only') : `${Math.round(c.weight * 10)}/10`}
+                  </span>
+                  <button
+                    onClick={() => removeCustom(c.term)}
+                    className="text-zinc-400 hover:text-red-600 text-lg leading-none"
+                    aria-label="remove"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {customList.length < 5 && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                addCustom(customInput);
+                setCustomInput('');
+              }}
+              className="mt-3 flex gap-2"
+            >
+              <input
+                value={customInput}
+                onChange={(e) => setCustomInput(e.target.value)}
+                placeholder={t('customPlaceholder')}
+                className="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-1.5 text-sm"
+              />
+              <button
+                type="submit"
+                className="rounded-full bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
+              >
+                {t('customAdd')}
+              </button>
+            </form>
+          )}
+
+          {customList.length > 0 && (
+            <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">{t('customReanalyzeNote')}</p>
+          )}
+        </div>
+
         {/* Live selection-mode summary */}
         <div className="mt-4 p-3 rounded-xl bg-indigo-50 text-indigo-800 text-sm dark:bg-indigo-950/30 dark:text-indigo-200">
           {selectionMode}
@@ -206,10 +278,19 @@ export default function ConfigurePage() {
               setAnalyzing(true);
               setProgress(t('progressPreparing'));
               try {
-                // Only analyse photos that are neither saved (locked keepers) nor
-                // already analysed. Changing criteria alone needs no re-analysis —
-                // analysis is criteria-independent, so a re-run is then instant & free.
-                const toAnalyze = photos.filter((p) => !p.saved && !p.analyzed);
+                // Custom terms (feature 5a) are tagged DURING analysis, so if the
+                // set of terms changed since the last run, already-analysed photos
+                // must be re-analysed to pick them up. Otherwise analysis is
+                // criteria-independent and a re-run is instant & free.
+                const currentTerms = (criteria.customCriteria || [])
+                  .map((c) => c.term.toLowerCase().trim())
+                  .filter(Boolean)
+                  .sort();
+                const termsChanged =
+                  JSON.stringify(currentTerms) !== JSON.stringify([...analyzedCustomTerms].sort());
+                const customTerms = (criteria.customCriteria || []).map((c) => c.term);
+
+                const toAnalyze = photos.filter((p) => !p.saved && (!p.analyzed || termsChanged));
 
                 if (toAnalyze.length === 0) {
                   setProgress(t('progressRecomputing'));
@@ -235,6 +316,9 @@ export default function ConfigurePage() {
                       batch.map((p) => ({ filename: p.filename, dateTaken: p.dateTaken, cameraModel: p.cameraModel }))
                     )
                   );
+                  if (customTerms.length) {
+                    formData.append('customTerms', JSON.stringify(customTerms));
+                  }
                   for (const photo of batch) {
                     if (photo.thumbnailBlob) {
                       formData.append('thumbnails', photo.thumbnailBlob, photo.filename);

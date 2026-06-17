@@ -43,6 +43,18 @@ export async function POST(request: NextRequest) {
     const metadata: { filename: string; dateTaken: string | null; cameraModel: string | null }[] =
       JSON.parse(metaStr);
 
+    // Optional user-defined terms to additionally tag (feature 5a).
+    let customTerms: string[] = [];
+    const customStr = formData.get('customTerms') as string | null;
+    if (customStr) {
+      try {
+        const arr = JSON.parse(customStr);
+        if (Array.isArray(arr)) customTerms = arr.map((t) => String(t).trim()).filter(Boolean);
+      } catch {
+        /* ignore */
+      }
+    }
+
     const apiKey = process.env.ANTHROPIC_API_KEY;
     console.log('[Demo Analyze] API key present:', !!apiKey, 'length:', apiKey?.length);
 
@@ -80,6 +92,12 @@ export async function POST(request: NextRequest) {
       if (m.cameraModel) parts.push(m.cameraModel);
       prompt += `- ${parts.join(', ')}\n`;
     }
+    if (customTerms.length) {
+      prompt += `\n\nFor each photo, also determine which of these user-defined terms are clearly visible: ${customTerms
+        .map((t) => `"${t}"`)
+        .join(', ')}. Add a field "custom" to each object — an array of exactly the matching terms (verbatim term text; empty array if none). Judge by what is visibly present, regardless of the term's language.`;
+    }
+
     prompt += `\nReturn a JSON array of ${files.length} analysis objects.`;
 
     userContent.push({ type: 'text', text: prompt });

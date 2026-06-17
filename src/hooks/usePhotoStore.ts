@@ -31,6 +31,7 @@ export interface ProcessedPhoto {
   animalClarity: number;
   animalProximity: number;
   contentTags: string[];
+  customMatches: string[]; // user-defined terms found in this photo (lowercased)
   selected: boolean;
   saved: boolean; // user-locked keeper: stays selected, excluded from re-selection pool
   reasonTag: string | null;
@@ -40,6 +41,8 @@ export interface ProcessedPhoto {
 
 interface PhotoStore {
   photos: ProcessedPhoto[];
+  /** Custom terms present at the last analysis (to detect when re-analysis is needed). */
+  analyzedCustomTerms: string[];
   setPhotosFromUpload: (clientPhotos: ClientPhoto[]) => void;
   /** Apply AI results. If analyzedIds is given, results map to those photos (by id, in order); otherwise to all photos by index. */
   applyAnalysisResults: (results: AIAnalysis[], criteria: CriteriaConfig, analyzedIds?: string[]) => void;
@@ -97,6 +100,12 @@ function exclusiveMotifs(criteria: CriteriaConfig): MotifKey[] {
   return MOTIF_KEYS.filter((k) => criteria[k].enabled && criteria[k].weight >= 1);
 }
 
+/** Does a photo match a user-defined custom term (AI-tagged during analysis)? */
+function matchesCustom(p: ProcessedPhoto, term: string): boolean {
+  const t = term.toLowerCase().trim();
+  return !!t && (p.customMatches || []).includes(t);
+}
+
 /** Hamming distance between two 16-hex (64-bit) perceptual hashes. */
 function hamming(a: string | null, b: string | null): number {
   if (!a || !b || a.length !== b.length) return 99;
@@ -133,6 +142,12 @@ function computeScore(photo: ProcessedPhoto, criteria: CriteriaConfig): number {
     const c = criteria[key];
     if (c.enabled && matchesMotif(photo, key)) {
       score += c.weight * 10;
+    }
+  }
+  // User-defined custom criteria behave like motifs.
+  for (const cc of criteria.customCriteria || []) {
+    if (matchesCustom(photo, cc.term)) {
+      score += cc.weight * 10;
     }
   }
   return score;
@@ -230,11 +245,18 @@ function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig): Proce
   reps.sort((a, b) => scored[b.id] - scored[a.id]);
 
   const exclusive = exclusiveMotifs(criteria);
+  const exclusiveCustom = (criteria.customCriteria || []).filter((c) => c.weight >= 1);
   let selectedIds: Set<string>;
-  if (exclusive.length > 0) {
-    // Filter: only reps matching one of the maxed motifs (OR); take all.
+  if (exclusive.length > 0 || exclusiveCustom.length > 0) {
+    // Filter: only reps matching ANY maxed motif OR maxed custom term; take all.
     selectedIds = new Set(
-      reps.filter((p) => exclusive.some((k) => matchesMotif(p, k))).map((p) => p.id)
+      reps
+        .filter(
+          (p) =>
+            exclusive.some((k) => matchesMotif(p, k)) ||
+            exclusiveCustom.some((c) => matchesCustom(p, c.term))
+        )
+        .map((p) => p.id)
     );
   } else {
     // Balanced/biased: top N% of the pool as an upper bound.
@@ -256,6 +278,7 @@ function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig): Proce
 
 export const usePhotoStore = create<PhotoStore>((set, get) => ({
   photos: [],
+  analyzedCustomTerms: [],
 
   setPhotosFromUpload: (clientPhotos: ClientPhoto[]) => {
     const readyPhotos = clientPhotos.filter((p) => p.status === 'ready' && p.thumbnailUrl);
@@ -292,6 +315,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       animalClarity: 0,
       animalProximity: 0,
       contentTags: [],
+      customMatches: [],
       selected: false,
       saved: false,
       reasonTag: null,
@@ -321,6 +345,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
           animalClarity: r.animalAnalysis.clarityScore,
           animalProximity: r.animalAnalysis.proximityScore,
           contentTags: r.contentTags,
+          customMatches: r.customMatches || [],
           analyzed: true,
         };
       };
@@ -336,7 +361,10 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
         for (let i = 0; i < Math.min(results.length, photos.length); i++) apply(i, results[i]);
       }
 
-      return { photos: runSelection(photos, criteria) };
+      const analyzedCustomTerms = (criteria.customCriteria || [])
+        .map((c) => c.term.toLowerCase().trim())
+        .filter(Boolean);
+      return { photos: runSelection(photos, criteria), analyzedCustomTerms };
     });
   },
 

@@ -78,6 +78,33 @@ export function useCriteria() {
     []
   );
 
+  const addCustom = useCallback((term: string) => {
+    const t = term.trim();
+    if (!t) return;
+    setCriteria((prev) => {
+      const list = prev.customCriteria || [];
+      if (list.some((c) => c.term.toLowerCase() === t.toLowerCase())) return prev;
+      if (list.length >= 5) return prev; // keep it sane
+      return { ...prev, customCriteria: [...list, { term: t, weight: 0.5 }] };
+    });
+  }, []);
+
+  const removeCustom = useCallback((term: string) => {
+    setCriteria((prev) => ({
+      ...prev,
+      customCriteria: (prev.customCriteria || []).filter((c) => c.term !== term),
+    }));
+  }, []);
+
+  const setCustomWeight = useCallback((term: string, weight: number) => {
+    setCriteria((prev) => ({
+      ...prev,
+      customCriteria: (prev.customCriteria || []).map((c) =>
+        c.term === term ? { ...c, weight: Math.max(0.1, Math.min(1, weight)) } : c
+      ),
+    }));
+  }, []);
+
   const reset = useCallback(() => {
     setCriteria(DEFAULT_CRITERIA);
   }, []);
@@ -88,6 +115,9 @@ export function useCriteria() {
     updateCriterion,
     toggleCriterion,
     setWeight,
+    addCustom,
+    removeCustom,
+    setCustomWeight,
     reset,
     loaded,
   };
