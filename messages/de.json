@@ -82,7 +82,9 @@
     "dbxEmpty": "Keine Fotos oder Ordner hier.",
     "dbxSelectAll": "Alle {count} auswählen",
     "dbxDeselectAll": "Auswahl aufheben",
-    "dbxShiftHint": "Shift-Klick wählt einen Bereich"
+    "dbxShiftHint": "Shift-Klick wählt einen Bereich",
+    "dbxAllFailed": "Download von Dropbox fehlgeschlagen ({reason}). Bitte erneut versuchen.",
+    "dbxSomeFailed": "{count} von {total} Downloads fehlgeschlagen — die übrigen werden importiert."
   },
   "criteria": {
     "title": "Auswahlkriterien konfigurieren",

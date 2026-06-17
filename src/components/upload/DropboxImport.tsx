@@ -120,32 +120,51 @@ export function DropboxImport({
     const paths = Object.keys(selected);
     if (paths.length === 0) return;
     const total = paths.length;
-    const files: File[] = new Array(total);
+    const slots: (File | null)[] = new Array(total).fill(null);
+    const failures: { name: string; reason: string }[] = [];
     let done = 0;
     const CONCURRENCY = 4; // bounded parallel downloads — matches the upload pipeline
     setImporting(t('dbxImporting', { done: 0, total }));
-    try {
-      // Worker-pool: each worker pulls the next index and downloads it.
-      let next = 0;
-      const worker = async () => {
-        while (true) {
-          const i = next++;
-          if (i >= total) return;
-          const p = paths[i];
-          const name = selected[p];
+    setError(null);
+
+    // Worker-pool with per-file error tolerance — one failure won't abort
+    // the whole import; failed files are collected and reported afterwards.
+    let next = 0;
+    const worker = async () => {
+      while (true) {
+        const i = next++;
+        if (i >= total) return;
+        const p = paths[i];
+        const name = selected[p];
+        try {
           const blob = await dropboxDownload(token, p);
-          files[i] = new File([blob], name, { type: blob.type || 'application/octet-stream' });
-          done++;
-          setImporting(t('dbxImporting', { done, total }));
+          slots[i] = new File([blob], name, { type: blob.type || 'application/octet-stream' });
+        } catch (e) {
+          const reason =
+            e instanceof Error
+              ? e.name === 'AbortError'
+                ? 'timeout'
+                : e.message
+              : 'unknown';
+          failures.push({ name, reason });
         }
-      };
-      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker));
-      onImport(files);
-    } catch (e) {
-      const msg = e instanceof Error ? (e.name === 'AbortError' ? 'Download timed out' : e.message) : 'Import failed';
-      setError(msg);
+        done++;
+        setImporting(t('dbxImporting', { done, total }));
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker));
+
+    const files = slots.filter((f): f is File => f !== null);
+    if (files.length === 0) {
+      setError(t('dbxAllFailed', { reason: failures[0]?.reason || 'network' }));
       setImporting(null);
+      return;
     }
+    if (failures.length > 0) {
+      // Still pass the successful ones up; show a non-blocking warning here.
+      setError(t('dbxSomeFailed', { count: failures.length, total }));
+    }
+    onImport(files);
   };
 
   const selectedCount = Object.keys(selected).length;

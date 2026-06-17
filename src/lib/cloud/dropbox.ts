@@ -132,8 +132,24 @@ export async function dropboxList(token: string, path: string): Promise<DropboxE
   return out;
 }
 
-/** Download a Dropbox file's bytes by path. Times out after 60 s. */
+/**
+ * Download a Dropbox file's bytes by path. Times out after 60 s and retries
+ * once on transient network errors ("Failed to fetch" / TypeError), which can
+ * happen with several parallel connections.
+ */
 export async function dropboxDownload(token: string, path: string): Promise<Blob> {
+  try {
+    return await dropboxDownloadOnce(token, path);
+  } catch (e) {
+    // Retry once on a transient network error; surface real errors directly.
+    const transient = e instanceof TypeError;
+    if (!transient) throw e;
+    await new Promise((r) => setTimeout(r, 500));
+    return await dropboxDownloadOnce(token, path);
+  }
+}
+
+async function dropboxDownloadOnce(token: string, path: string): Promise<Blob> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 60_000);
   try {

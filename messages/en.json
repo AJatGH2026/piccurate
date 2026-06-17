@@ -82,7 +82,9 @@
     "dbxEmpty": "No photos or folders here.",
     "dbxSelectAll": "Select all {count}",
     "dbxDeselectAll": "Deselect all",
-    "dbxShiftHint": "Shift-click selects a range"
+    "dbxShiftHint": "Shift-click selects a range",
+    "dbxAllFailed": "Couldn't download from Dropbox ({reason}). Please retry.",
+    "dbxSomeFailed": "{count} of {total} downloads failed — importing the rest."
   },
   "criteria": {
     "title": "Configure selection criteria",
