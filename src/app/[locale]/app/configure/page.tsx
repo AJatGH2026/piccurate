@@ -215,11 +215,6 @@ export default function ConfigurePage() {
           )}
         </div>
 
-        {/* Live selection-mode summary */}
-        <div className="mt-4 p-3 rounded-xl bg-indigo-50 text-indigo-800 text-sm dark:bg-indigo-950/30 dark:text-indigo-200">
-          {selectionMode}
-        </div>
-
         {/* Selection percentage slider */}
         <div className="mt-4 p-4 rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
           <h3 className="font-medium text-zinc-900 dark:text-zinc-100">
@@ -264,6 +259,11 @@ export default function ConfigurePage() {
               {criteria.dedupSensitivity}
             </span>
           </div>
+        </div>
+
+        {/* Live selection-mode summary */}
+        <div className="mt-6 p-3 rounded-xl bg-indigo-50 text-indigo-800 text-sm dark:bg-indigo-950/30 dark:text-indigo-200">
+          {selectionMode}
         </div>
 
         {/* Continue button */}
