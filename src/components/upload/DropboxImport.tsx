@@ -123,7 +123,12 @@ export function DropboxImport({
     const slots: (File | null)[] = new Array(total).fill(null);
     const failures: { name: string; reason: string }[] = [];
     let done = 0;
-    const CONCURRENCY = 4; // bounded parallel downloads — matches the upload pipeline
+    // Sequential downloads — empirically the parallel variant triggered
+    // immediate "Failed to fetch" on every request (likely simultaneous CORS
+    // preflights racing against Dropbox's preflight handling). Sequential
+    // was slow but reliable, so we keep it and rely on the timeout/retry
+    // for robustness.
+    const CONCURRENCY = 1;
     setImporting(t('dbxImporting', { done: 0, total }));
     setError(null);
 
