@@ -60,6 +60,13 @@ const mergeScene = (s: string): string => (s === 'nature' ? 'landscape' : s);
 
 const ARCH_SCENES = ['building', 'interior', 'architecture', 'city'];
 
+// Drink keywords so coffee/cocktails/etc. count as "food & dining" even when
+// the AI's primary scene isn't "food" (matched as substrings in content tags).
+const DRINK_TAGS = [
+  'coffee', 'espresso', 'cappuccino', 'latte', 'tea', 'drink', 'beverage',
+  'cocktail', 'wine', 'beer', 'juice', 'cafe', 'café', 'smoothie', 'soda', 'bar',
+];
+
 // Motif criteria (sharpness is a quality modifier, not a motif).
 const MOTIF_KEYS = [
   'preferFaces',
@@ -91,8 +98,13 @@ function matchesMotif(p: ProcessedPhoto, key: MotifKey): boolean {
       // Primary building scenes only. (The secondary "indoor"/"city" tags
       // pulled in restaurant food and indoor people, so they're not used.)
       return ARCH_SCENES.includes(scene);
-    case 'preferFood':
-      return scene === 'food';
+    case 'preferFood': {
+      if (scene === 'food') return true;
+      // Coffee / drinks: catch via content tags (substring) — covers cases the
+      // AI labels as a non-food primary scene.
+      const tags = (p.contentTags || []).map((t) => t.toLowerCase());
+      return tags.some((t) => DRINK_TAGS.some((d) => t.includes(d)));
+    }
   }
 }
 

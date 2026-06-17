@@ -52,6 +52,61 @@ export default function ConfigurePage() {
         ? t('modeOnly', { motifs: maxedLabels.join(', ') })
         : t('modeEmphasis', { motifs: activeLabels.join(', ') });
 
+  // One toggle+slider card; reused for the motif criteria and for sharpness.
+  const renderCriterion = ({ key, label, desc }: (typeof criteriaItems)[number]) => {
+    const criterion = criteria[key];
+    if (typeof criterion !== 'object' || !('enabled' in criterion)) return null;
+    return (
+      <div
+        key={key}
+        className={`p-4 rounded-xl border transition-colors ${
+          criterion.enabled
+            ? 'border-indigo-200 bg-indigo-50/50 dark:border-indigo-800 dark:bg-indigo-950/30'
+            : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900'
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-medium text-zinc-900 dark:text-zinc-100">{label}</h3>
+            <p className="text-sm text-zinc-500 mt-0.5">{desc}</p>
+          </div>
+          <button
+            onClick={() => toggleCriterion(key)}
+            className={`relative w-11 h-6 rounded-full transition-colors ${
+              criterion.enabled ? 'bg-indigo-600' : 'bg-zinc-300 dark:bg-zinc-600'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow-sm ${
+                criterion.enabled ? 'translate-x-5' : ''
+              }`}
+            />
+          </button>
+        </div>
+        {criterion.enabled && (
+          <div className="mt-3 flex items-center gap-3">
+            <span className="text-xs text-zinc-400">{t('low')}</span>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              step="1"
+              value={Math.max(1, Math.round(criterion.weight * 10))}
+              onChange={(e) => setWeight(key, Number(e.target.value) / 10)}
+              className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
+            />
+            <span className="text-xs text-zinc-400">{key === 'preferSharpness' ? t('high') : t('only')}</span>
+            <span className="text-xs font-medium text-indigo-600 w-12 text-right">
+              {key !== 'preferSharpness' && criterion.weight >= 1
+                ? t('only')
+                : `${Math.round(criterion.weight * 10)}/10`}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
@@ -76,82 +131,13 @@ export default function ConfigurePage() {
           </button>
         </div>
 
-        {/* Criteria toggles + sliders */}
+        {/* Motif criteria: people, animals, landscapes, architecture, food */}
         <div className="mt-8 space-y-4">
-          {criteriaItems.map(({ key, label, desc }) => {
-            const criterion = criteria[key];
-            if (typeof criterion !== 'object' || !('enabled' in criterion)) return null;
-
-            return (
-              <div
-                key={key}
-                className={`p-4 rounded-xl border transition-colors ${
-                  criterion.enabled
-                    ? 'border-indigo-200 bg-indigo-50/50 dark:border-indigo-800 dark:bg-indigo-950/30'
-                    : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium text-zinc-900 dark:text-zinc-100">{label}</h3>
-                    <p className="text-sm text-zinc-500 mt-0.5">{desc}</p>
-                  </div>
-                  <button
-                    onClick={() => toggleCriterion(key)}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${
-                      criterion.enabled ? 'bg-indigo-600' : 'bg-zinc-300 dark:bg-zinc-600'
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow-sm ${
-                        criterion.enabled ? 'translate-x-5' : ''
-                      }`}
-                    />
-                  </button>
-                </div>
-                {criterion.enabled && key !== 'preferSharpness' && (
-                  <div className="mt-3 flex items-center gap-3">
-                    <span className="text-xs text-zinc-400">{t('low')}</span>
-                    <input
-                      type="range"
-                      min="1"
-                      max="10"
-                      step="1"
-                      value={Math.max(1, Math.round(criterion.weight * 10))}
-                      onChange={(e) => setWeight(key, Number(e.target.value) / 10)}
-                      className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
-                    />
-                    <span className="text-xs text-zinc-400">{t('only')}</span>
-                    <span className="text-xs font-medium text-indigo-600 w-12 text-right">
-                      {criterion.weight >= 1 ? t('only') : `${Math.round(criterion.weight * 10)}/10`}
-                    </span>
-                  </div>
-                )}
-                {criterion.enabled && key === 'preferSharpness' && (
-                  <div className="mt-3 flex items-center gap-3">
-                    <span className="text-xs text-zinc-400">{t('low')}</span>
-                    <input
-                      type="range"
-                      min="1"
-                      max="10"
-                      step="1"
-                      value={Math.max(1, Math.round(criterion.weight * 10))}
-                      onChange={(e) => setWeight(key, Number(e.target.value) / 10)}
-                      className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
-                    />
-                    <span className="text-xs text-zinc-400">{t('high')}</span>
-                    <span className="text-xs font-medium text-indigo-600 w-12 text-right">
-                      {Math.round(criterion.weight * 10)}/10
-                    </span>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {criteriaItems.filter((it) => it.key !== 'preferSharpness').map(renderCriterion)}
         </div>
 
-        {/* Custom criteria (feature 5a) */}
-        <div className="mt-4 p-4 rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+        {/* Custom criteria (feature 5a) — visually set apart (amber) */}
+        <div className="mt-4 p-4 rounded-xl border-2 border-amber-300 bg-amber-50/70 dark:border-amber-700/60 dark:bg-amber-950/20">
           <h3 className="font-medium text-zinc-900 dark:text-zinc-100">{t('customTitle')}</h3>
           <p className="text-sm text-zinc-500 mt-0.5">{t('customDesc')}</p>
 
@@ -215,7 +201,33 @@ export default function ConfigurePage() {
           )}
         </div>
 
-        {/* Selection percentage slider */}
+        {/* Sharpness (quality modifier, not a motif) */}
+        <div className="mt-4 space-y-4">
+          {renderCriterion(criteriaItems.find((it) => it.key === 'preferSharpness')!)}
+        </div>
+
+        {/* Dedup sensitivity slider */}
+        <div className="mt-4 p-4 rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+          <h3 className="font-medium text-zinc-900 dark:text-zinc-100">{t('dedup')}</h3>
+          <p className="text-sm text-zinc-500 mt-0.5">{t('dedupDesc')}</p>
+          <div className="mt-3 flex items-center gap-3">
+            <span className="text-xs text-zinc-400">{t('lenient')}</span>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              value={criteria.dedupSensitivity}
+              onChange={(e) => updateCriterion('dedupSensitivity', Number(e.target.value))}
+              className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
+            />
+            <span className="text-xs text-zinc-400">{t('strict')}</span>
+            <span className="text-xs font-medium text-indigo-600 w-8">
+              {criteria.dedupSensitivity}
+            </span>
+          </div>
+        </div>
+
+        {/* Maximum selection size */}
         <div className="mt-4 p-4 rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
           <h3 className="font-medium text-zinc-900 dark:text-zinc-100">
             {t('selectionPercentage')}
@@ -236,27 +248,6 @@ export default function ConfigurePage() {
             <span className="text-xs text-zinc-400">15%</span>
             <span className="text-xs font-medium text-indigo-600 w-8">
               {criteria.selectionPercentage}%
-            </span>
-          </div>
-        </div>
-
-        {/* Dedup sensitivity slider */}
-        <div className="mt-4 p-4 rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
-          <h3 className="font-medium text-zinc-900 dark:text-zinc-100">{t('dedup')}</h3>
-          <p className="text-sm text-zinc-500 mt-0.5">{t('dedupDesc')}</p>
-          <div className="mt-3 flex items-center gap-3">
-            <span className="text-xs text-zinc-400">{t('lenient')}</span>
-            <input
-              type="range"
-              min="1"
-              max="10"
-              value={criteria.dedupSensitivity}
-              onChange={(e) => updateCriterion('dedupSensitivity', Number(e.target.value))}
-              className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
-            />
-            <span className="text-xs text-zinc-400">{t('strict')}</span>
-            <span className="text-xs font-medium text-indigo-600 w-8">
-              {criteria.dedupSensitivity}
             </span>
           </div>
         </div>

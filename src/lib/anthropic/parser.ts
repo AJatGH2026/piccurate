@@ -31,8 +31,9 @@ const SCENE_TYPE_ALIASES: Record<string, SceneType> = {
   wildlife: 'animal', bird: 'animal', marine: 'animal', insect: 'animal', pet: 'animal',
   // people
   portrait: 'people', group: 'people', selfie: 'people', crowd: 'people',
-  // food
-  restaurant: 'food', drink: 'food', cafe: 'food',
+  // food (incl. drinks/beverages)
+  restaurant: 'food', drink: 'food', drinks: 'food', cafe: 'food', coffee: 'food',
+  beverage: 'food', tea: 'food', beer: 'food', wine: 'food', cocktail: 'food', bar: 'food',
   // city / street
   urban: 'city', skyline: 'city', nightlife: 'city', market: 'street', transportation: 'street', vehicle: 'street',
   // other
