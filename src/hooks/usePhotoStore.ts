@@ -58,6 +58,45 @@ const mergeScene = (s: string): string => (s === 'nature' ? 'landscape' : s);
 const LANDSCAPE_SCENES = ['landscape', 'beach', 'mountain'];
 const ARCH_SCENES = ['building', 'interior', 'architecture', 'city'];
 
+// Motif criteria (sharpness is a quality modifier, not a motif).
+const MOTIF_KEYS = [
+  'preferFaces',
+  'preferAnimals',
+  'preferLandscapes',
+  'preferArchitecture',
+  'preferFood',
+] as const;
+type MotifKey = (typeof MOTIF_KEYS)[number];
+
+/**
+ * Does a photo belong to a criterion's motif? Used both for biasing (1–9) and
+ * for exclusive filtering (slider at 10). People is keyed on faceCount (so a
+ * person in front of a building or a landscape counts, an isolated animal does
+ * not); landscape/architecture also accept relevant secondary tags to lift
+ * recall when the AI's primary scene is off.
+ */
+function matchesMotif(p: ProcessedPhoto, key: MotifKey): boolean {
+  const scene = mergeScene(p.sceneType);
+  const sec = p.secondary || [];
+  switch (key) {
+    case 'preferFaces':
+      return p.faceCount > 0;
+    case 'preferAnimals':
+      return p.hasAnimal;
+    case 'preferLandscapes':
+      return LANDSCAPE_SCENES.includes(scene) || sec.includes('beach') || sec.includes('mountain');
+    case 'preferArchitecture':
+      return ARCH_SCENES.includes(scene) || sec.includes('city') || sec.includes('indoor');
+    case 'preferFood':
+      return scene === 'food';
+  }
+}
+
+/** Motif criteria the user pushed to the maximum (slider 10 = weight 1.0). */
+function exclusiveMotifs(criteria: CriteriaConfig): MotifKey[] {
+  return MOTIF_KEYS.filter((k) => criteria[k].enabled && criteria[k].weight >= 1);
+}
+
 /** Hamming distance between two 16-hex (64-bit) perceptual hashes. */
 function hamming(a: string | null, b: string | null): number {
   if (!a || !b || a.length !== b.length) return 99;
@@ -79,30 +118,22 @@ function hamming(a: string | null, b: string | null): number {
  *    biases the ranking toward that category. Strong, monotonic effect.
  */
 function computeScore(photo: ProcessedPhoto, criteria: CriteriaConfig): number {
-  const scene = mergeScene(photo.sceneType);
-  let score = photo.albumScore * 2; // dominant keep-worthiness base
+  // Base = holistic keep-worthiness (album_score, ~0–10).
+  let score = photo.albumScore;
 
+  // Sharpness is a quality modifier, never a filter.
   if (criteria.preferSharpness.enabled) {
-    score += photo.sharpnessScore * criteria.preferSharpness.weight * 0.15;
+    score += photo.sharpnessScore * criteria.preferSharpness.weight * 0.5;
   }
-  if (criteria.preferFaces.enabled && photo.faceCount > 0 && (scene === 'people' || scene === 'street')) {
-    let f = 1;
-    if (photo.facesEyesOpen) f += 1;
-    if (photo.facesFacingCamera) f += 1;
-    if (photo.facesExpression === 'friendly') f += 1;
-    score += f * criteria.preferFaces.weight * 0.8;
-  }
-  if (criteria.preferAnimals.enabled && photo.hasAnimal && scene === 'animal') {
-    score += 3 * criteria.preferAnimals.weight * 0.8;
-  }
-  if (criteria.preferLandscapes.enabled && LANDSCAPE_SCENES.includes(scene)) {
-    score += 3 * criteria.preferLandscapes.weight * 0.8;
-  }
-  if (criteria.preferArchitecture.enabled && ARCH_SCENES.includes(scene)) {
-    score += 3 * criteria.preferArchitecture.weight * 0.8;
-  }
-  if (criteria.preferFood.enabled && scene === 'food') {
-    score += 3 * criteria.preferFood.weight * 0.8;
+
+  // Motif bias: a matching photo gets a STRONG, weight-scaled bonus
+  // (weight 0.1–1.0 → +1…+10 on a 0–10 base), so the sliders move the
+  // selection meaningfully. Non-matching photos get nothing.
+  for (const key of MOTIF_KEYS) {
+    const c = criteria[key];
+    if (c.enabled && matchesMotif(photo, key)) {
+      score += c.weight * 10;
+    }
   }
   return score;
 }
@@ -173,8 +204,13 @@ function detectSeries(photos: ProcessedPhoto[], criteria: CriteriaConfig): Proce
 }
 
 /**
- * Run selection: collapse each series to its best representative, then select
- * the top N% by preference score. Each series contributes at most one photo.
+ * Run selection. Always collapses each series to one best representative.
+ * Then, depending on the sliders:
+ *  - One or more motif sliders at MAX (10) → exclusive FILTER: keep only reps
+ *    matching ANY of those motifs (OR), and select (nearly) ALL of them —
+ *    the selectionPercentage cap is ignored ("≈100% of that motif").
+ *  - Otherwise → balanced/biased: rank reps by score and take the top N% as a
+ *    MAXIMUM (selectionPercentage). Sliders 1–9 bias the ranking toward a motif.
  */
 function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig): ProcessedPhoto[] {
   // Saved photos are locked keepers: always selected, excluded from the pool.
@@ -183,20 +219,29 @@ function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig): Proce
   const scored: Record<string, number> = {};
   for (const p of pool) scored[p.id] = computeScore(p, criteria);
 
-  // One representative per series (best in-series quality), within the pool
+  // One representative per series (best in-series quality), within the pool.
   const clusters = detectSeries(pool, criteria);
   const repIds = new Set<string>();
   for (const cl of clusters) {
     const rep = cl.slice().sort((a, b) => inSeriesScore(b) - inSeriesScore(a))[0];
     repIds.add(rep.id);
   }
-
-  // Rank representatives by preference score, take top N% of the (shrunken) pool
   const reps = pool.filter((p) => repIds.has(p.id));
   reps.sort((a, b) => scored[b.id] - scored[a.id]);
-  const percentage = criteria.selectionPercentage || 8;
-  const selectCount = Math.max(1, Math.round(pool.length * (percentage / 100)));
-  const selectedIds = new Set(reps.slice(0, selectCount).map((p) => p.id));
+
+  const exclusive = exclusiveMotifs(criteria);
+  let selectedIds: Set<string>;
+  if (exclusive.length > 0) {
+    // Filter: only reps matching one of the maxed motifs (OR); take all.
+    selectedIds = new Set(
+      reps.filter((p) => exclusive.some((k) => matchesMotif(p, k))).map((p) => p.id)
+    );
+  } else {
+    // Balanced/biased: top N% of the pool as an upper bound.
+    const percentage = criteria.selectionPercentage || 8;
+    const selectCount = Math.max(1, Math.round(pool.length * (percentage / 100)));
+    selectedIds = new Set(reps.slice(0, selectCount).map((p) => p.id));
+  }
 
   return photos.map((p) => {
     if (p.saved) return { ...p, selected: true }; // locked keeper stays in

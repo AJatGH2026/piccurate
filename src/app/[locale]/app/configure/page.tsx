@@ -33,6 +33,18 @@ export default function ConfigurePage() {
     { key: 'preferSharpness' as const, label: t('sharpness'), desc: t('sharpnessDesc') },
   ];
 
+  // Live summary of what the current sliders will do (motifs only; sharpness
+  // is a quality modifier, not a motif filter).
+  const motifItems = criteriaItems.filter((it) => it.key !== 'preferSharpness');
+  const activeMotifs = motifItems.filter((it) => criteria[it.key].enabled);
+  const maxedMotifs = activeMotifs.filter((it) => criteria[it.key].weight >= 1);
+  const selectionMode =
+    activeMotifs.length === 0
+      ? t('modeBalanced')
+      : maxedMotifs.length > 0
+        ? t('modeOnly', { motifs: maxedMotifs.map((m) => m.label).join(', ') })
+        : t('modeEmphasis', { motifs: activeMotifs.map((m) => m.label).join(', ') });
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
@@ -47,6 +59,7 @@ export default function ConfigurePage() {
           <div>
             <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{t('title')}</h1>
             <p className="mt-1 text-zinc-500">{t('subtitle')}</p>
+            <p className="mt-1 text-xs text-zinc-400">{t('sliderLegend')}</p>
           </div>
           <button
             onClick={reset}
@@ -89,20 +102,39 @@ export default function ConfigurePage() {
                     />
                   </button>
                 </div>
-                {criterion.enabled && (
+                {criterion.enabled && key !== 'preferSharpness' && (
                   <div className="mt-3 flex items-center gap-3">
-                    <span className="text-xs text-zinc-400 w-8">{t('low')}</span>
+                    <span className="text-xs text-zinc-400">{t('low')}</span>
                     <input
                       type="range"
-                      min="0"
-                      max="100"
-                      value={criterion.weight * 100}
-                      onChange={(e) => setWeight(key, Number(e.target.value) / 100)}
+                      min="1"
+                      max="10"
+                      step="1"
+                      value={Math.max(1, Math.round(criterion.weight * 10))}
+                      onChange={(e) => setWeight(key, Number(e.target.value) / 10)}
                       className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
                     />
-                    <span className="text-xs text-zinc-400 w-8">{t('high')}</span>
-                    <span className="text-xs font-medium text-indigo-600 w-8">
-                      {Math.round(criterion.weight * 100)}%
+                    <span className="text-xs text-zinc-400">{t('only')}</span>
+                    <span className="text-xs font-medium text-indigo-600 w-12 text-right">
+                      {criterion.weight >= 1 ? t('only') : `${Math.round(criterion.weight * 10)}/10`}
+                    </span>
+                  </div>
+                )}
+                {criterion.enabled && key === 'preferSharpness' && (
+                  <div className="mt-3 flex items-center gap-3">
+                    <span className="text-xs text-zinc-400">{t('low')}</span>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      step="1"
+                      value={Math.max(1, Math.round(criterion.weight * 10))}
+                      onChange={(e) => setWeight(key, Number(e.target.value) / 10)}
+                      className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
+                    />
+                    <span className="text-xs text-zinc-400">{t('high')}</span>
+                    <span className="text-xs font-medium text-indigo-600 w-12 text-right">
+                      {Math.round(criterion.weight * 10)}/10
                     </span>
                   </div>
                 )}
@@ -111,8 +143,13 @@ export default function ConfigurePage() {
           })}
         </div>
 
+        {/* Live selection-mode summary */}
+        <div className="mt-4 p-3 rounded-xl bg-indigo-50 text-indigo-800 text-sm dark:bg-indigo-950/30 dark:text-indigo-200">
+          {selectionMode}
+        </div>
+
         {/* Selection percentage slider */}
-        <div className="mt-6 p-4 rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+        <div className="mt-4 p-4 rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
           <h3 className="font-medium text-zinc-900 dark:text-zinc-100">
             {t('selectionPercentage')}
           </h3>
