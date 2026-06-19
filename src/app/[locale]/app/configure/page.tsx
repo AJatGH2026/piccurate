@@ -22,6 +22,10 @@ export default function ConfigurePage() {
   const rerunSelection = usePhotoStore((s) => s.rerunSelection);
   const analyzedCustomTerms = usePhotoStore((s) => s.analyzedCustomTerms);
   const savedCount = photos.filter((p) => p.saved).length;
+  // Custom terms are part of the job setup. Once at least one photo has been
+  // analysed, the set of terms is frozen — changing them would trigger a full
+  // (paid) re-analysis. For new terms the user must start a new job.
+  const hasAnalyzed = photos.some((p) => p.analyzed);
   const { criteria, toggleCriterion, setWeight, updateCriterion, addCustom, removeCustom, setCustomWeight, reset } =
     useCriteria();
   const [customInput, setCustomInput] = useState('');
@@ -142,37 +146,48 @@ export default function ConfigurePage() {
           <p className="text-sm text-zinc-500 mt-0.5">{t('customDesc')}</p>
 
           {customList.length > 0 && (
-            <div className="mt-3 space-y-3">
+            <div className="mt-3 space-y-4">
               {customList.map((c) => (
-                <div key={c.term} className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200 w-24 truncate">{c.term}</span>
-                  <span className="text-xs text-zinc-400">{t('low')}</span>
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    step="1"
-                    value={Math.max(1, Math.round(c.weight * 10))}
-                    onChange={(e) => setCustomWeight(c.term, Number(e.target.value) / 10)}
-                    className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
-                  />
-                  <span className="text-xs text-zinc-400">{t('only')}</span>
-                  <span className="text-xs font-medium text-indigo-600 w-12 text-right">
-                    {c.weight >= 1 ? t('only') : `${Math.round(c.weight * 10)}/10`}
-                  </span>
-                  <button
-                    onClick={() => removeCustom(c.term)}
-                    className="rounded-full border border-zinc-300 dark:border-zinc-600 px-3 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600 dark:hover:bg-red-950/30 transition-colors"
-                    aria-label={t('customRemove')}
-                  >
-                    {t('customRemove')}
-                  </button>
+                <div key={c.term} className="space-y-2">
+                  {/* Top row: term + remove (remove hidden once analysed) */}
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                      {c.term}
+                    </span>
+                    {!hasAnalyzed && (
+                      <button
+                        onClick={() => removeCustom(c.term)}
+                        className="flex-shrink-0 rounded-full border border-zinc-300 dark:border-zinc-600 px-3 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600 dark:hover:bg-red-950/30 transition-colors"
+                        aria-label={t('customRemove')}
+                      >
+                        {t('customRemove')}
+                      </button>
+                    )}
+                  </div>
+                  {/* Bottom row: slider takes the full width */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-zinc-400">{t('low')}</span>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      step="1"
+                      value={Math.max(1, Math.round(c.weight * 10))}
+                      onChange={(e) => setCustomWeight(c.term, Number(e.target.value) / 10)}
+                      className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
+                    />
+                    <span className="text-xs text-zinc-400">{t('only')}</span>
+                    <span className="text-xs font-medium text-indigo-600 w-12 text-right">
+                      {c.weight >= 1 ? t('only') : `${Math.round(c.weight * 10)}/10`}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
           )}
 
-          {customList.length < 7 && (
+          {/* Add-form only before the first analysis. */}
+          {!hasAnalyzed && customList.length < 7 && (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -196,9 +211,10 @@ export default function ConfigurePage() {
             </form>
           )}
 
-          {customList.length > 0 && (
-            <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">{t('customReanalyzeNote')}</p>
-          )}
+          {/* Status hint: either "set up first" or "locked after analysis". */}
+          <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
+            {hasAnalyzed ? t('customLockedNote') : t('customSetupHint')}
+          </p>
         </div>
 
         {/* Sharpness (quality modifier, not a motif) */}
