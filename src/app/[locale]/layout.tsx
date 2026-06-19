@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { Analytics } from '@vercel/analytics/next';
 import { routing } from '../../../i18n/routing';
 import { clientConfig } from '@/lib/config';
 import { Geist, Geist_Mono } from 'next/font/google';
@@ -63,6 +64,10 @@ export default async function LocaleLayout({ children, params }: Props) {
         <NextIntlClientProvider messages={messages}>
           {children}
         </NextIntlClientProvider>
+        {/* Vercel Web Analytics — cookieless page-view + funnel data.
+            Only fires on production builds under a Vercel deployment;
+            a no-op locally. Enable in the Vercel dashboard (Analytics tab). */}
+        <Analytics />
       </body>
     </html>
   );
