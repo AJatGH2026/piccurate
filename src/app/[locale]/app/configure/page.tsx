@@ -162,17 +162,17 @@ export default function ConfigurePage() {
                   </span>
                   <button
                     onClick={() => removeCustom(c.term)}
-                    className="text-zinc-400 hover:text-red-600 text-lg leading-none"
-                    aria-label="remove"
+                    className="rounded-full border border-zinc-300 dark:border-zinc-600 px-3 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600 dark:hover:bg-red-950/30 transition-colors"
+                    aria-label={t('customRemove')}
                   >
-                    ×
+                    {t('customRemove')}
                   </button>
                 </div>
               ))}
             </div>
           )}
 
-          {customList.length < 5 && (
+          {customList.length < 7 && (
             <form
               onSubmit={(e) => {
                 e.preventDefault();

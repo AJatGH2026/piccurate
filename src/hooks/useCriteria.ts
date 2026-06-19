@@ -84,7 +84,7 @@ export function useCriteria() {
     setCriteria((prev) => {
       const list = prev.customCriteria || [];
       if (list.some((c) => c.term.toLowerCase() === t.toLowerCase())) return prev;
-      if (list.length >= 5) return prev; // keep it sane
+      if (list.length >= 7) return prev; // upper bound (see pipeline §9.2)
       return { ...prev, customCriteria: [...list, { term: t, weight: 0.5 }] };
     });
   }, []);
