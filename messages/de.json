@@ -32,7 +32,7 @@
     "step1Title": "Hochladen",
     "step1Desc": "Zieh deine Fotos hierher oder verbinde Cloud-Anbieter (z. B. Dropbox, OneDrive, Google Photos, iCloud). Wir lesen nur Vorschaubilder — deine Originale bleiben auf deinem Gerät.",
     "step2Title": "KI analysiert",
-    "step2Desc": "Unsere KI bewertet Komposition, Gesichter, Landschaften, Tiere, Duplikate und mehr — in Sekunden — und schlägt eine Auswahl vor. Über verschiedene Kriterien kannst du eigene Schwerpunkte setzen.",
+    "step2Desc": "Unsere KI bewertet Komposition, Gesichter, Landschaften, Tiere, Duplikate und mehr — in Sekunden — und schlägt eine Auswahl vor. Eigene Kriterien (z. B. „Hund“) legst du einmal vor der Analyse fest; Schwerpunkte verschiebst du danach beliebig per Schieberegler.",
     "step3Title": "Prüfen & Anpassen",
     "step3Desc": "Die ausgewählten Fotos werden nach Datum sortiert. Du kannst sie bestätigen oder mit veränderten Kriterien neu auswählen — so lange, bis deine bevorzugte Auswahl steht.",
     "step4Title": "Herunterladen oder Drucken",
@@ -56,7 +56,8 @@
     "features": {
       "allCriteria": "Alle KI-Kriterien",
       "reviewAdjust": "Prüfen & Anpassen",
-      "downloadZip": "ZIP herunterladen"
+      "downloadZip": "ZIP herunterladen",
+      "customCriteria": "Eigene Kriterien (bis zu 7)"
     },
     "cta": "Jetzt starten",
     "oneTimeUse": "Einmalige Nutzung"

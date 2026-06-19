@@ -32,7 +32,7 @@
     "step1Title": "Upload",
     "step1Desc": "Drop your photos here or connect a cloud provider (e.g. Dropbox, OneDrive, Google Photos, iCloud). We only read thumbnails — your originals stay on your device.",
     "step2Title": "AI Analyses",
-    "step2Desc": "Our AI rates composition, faces, landscapes, animals, duplicates and more — in seconds — and proposes a selection. Set your own priorities with adjustable criteria.",
+    "step2Desc": "Our AI rates composition, faces, landscapes, animals, duplicates and more — in seconds — and proposes a selection. Add your own criteria (e.g. “dog”) once, before the analysis; afterwards just move the sliders to rebalance.",
     "step3Title": "Review & Adjust",
     "step3Desc": "Your selected photos are sorted by date. Confirm them, or re-select with different criteria — until your preferred set is ready.",
     "step4Title": "Download or Print",
@@ -56,7 +56,8 @@
     "features": {
       "allCriteria": "All AI criteria",
       "reviewAdjust": "Review & adjust",
-      "downloadZip": "Download ZIP"
+      "downloadZip": "Download ZIP",
+      "customCriteria": "Your own criteria (up to 7)"
     },
     "cta": "Get started",
     "oneTimeUse": "One-time use"

@@ -7,13 +7,15 @@ import Link from 'next/link';
 export default function PricingPage() {
   const t = useTranslations('pricing');
 
-  // For now every tier offers the same capabilities — the only difference is
-  // the photo volume (shown via photosUpTo). Possible future differentiators:
-  // AI model tier or processing speed (see product-pipeline.md §A).
+  // Photo volume is the primary tier differentiator; Custom Criteria (§5a) is
+  // a paid-only feature per the pricing plan (see product-pipeline.md §9.3).
+  // The technical enforcement is wired in at sales launch — until then the
+  // feature is open for testers but the pricing copy already says paid-only.
+  const baseFeatures = [t('features.allCriteria'), t('features.reviewAdjust'), t('features.downloadZip')];
   const plans = PRICING_PLANS.map((plan) => ({
     ...plan,
     highlight: plan.tier === 'medium',
-    features: [t('features.allCriteria'), t('features.reviewAdjust'), t('features.downloadZip')],
+    features: plan.tier === 'free' ? baseFeatures : [...baseFeatures, t('features.customCriteria')],
   }));
 
   return (

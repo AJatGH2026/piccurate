@@ -288,7 +288,7 @@ function PricingSection({ locale }: { locale: string }) {
       badge: null,
       photos: 1000,
       highlight: false,
-      features: ['allCriteria', 'reviewAdjust', 'downloadZip'],
+      features: ['allCriteria', 'reviewAdjust', 'downloadZip', 'customCriteria'],
       note: t('perUse'),
     },
     {
@@ -297,7 +297,7 @@ function PricingSection({ locale }: { locale: string }) {
       badge: null,
       photos: 2500,
       highlight: true,
-      features: ['allCriteria', 'reviewAdjust', 'downloadZip'],
+      features: ['allCriteria', 'reviewAdjust', 'downloadZip', 'customCriteria'],
       note: t('perUse'),
     },
     {
@@ -306,7 +306,7 @@ function PricingSection({ locale }: { locale: string }) {
       badge: null,
       photos: 5000,
       highlight: false,
-      features: ['allCriteria', 'reviewAdjust', 'downloadZip'],
+      features: ['allCriteria', 'reviewAdjust', 'downloadZip', 'customCriteria'],
       note: t('perUse'),
     },
   ];
