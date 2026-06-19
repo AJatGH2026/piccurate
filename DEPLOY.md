@@ -122,6 +122,28 @@ Jetzt, wo die URL bekannt ist:
 
 ---
 
+## Schritt 7b (optional, empfohlen) — Admin-Dashboard für Nutzungsstatistiken
+
+Damit du jederzeit nachvollziehen kannst, wie viele Fotos analysiert wurden
+(und was sie ungefähr gekostet haben), gibt es ein einfaches Dashboard unter
+**`https://<deine-url>/admin/stats`** — geschützt durch dasselbe Passwort wie
+der Rest der Seite.
+
+Das Dashboard braucht eine kleine Datenbank. Setup in **5 Minuten**:
+
+1. Vercel-Dashboard → dein Projekt → **Storage** → **Create Database**.
+2. **Upstash Redis** auswählen → gratis-Tier („Free") reicht locker
+   (~10 000 Operationen/Tag — wir brauchen ~10 pro Analyse).
+3. Beim Erstellen die Frage „mit Projekt verbinden?" mit **Ja** beantworten.
+   Vercel setzt automatisch die Env-Variablen `UPSTASH_REDIS_REST_URL` und
+   `UPSTASH_REDIS_REST_TOKEN` für dich.
+4. Einmal neu deployen (Deployments → ⋯ → Redeploy).
+
+Danach wird **jede** Analyse automatisch gezählt. Das Dashboard zeigt:
+Lifetime-Total + heute + letzte 7 Tage, plus eine grobe Kostenschätzung
+(Sonnet-4.6-Preise). Wenn du das Setup nicht machst, funktioniert die App
+ganz normal — nur das Dashboard meldet „noch nicht konfiguriert".
+
 ## Schritt 8 — Mit Testern teilen
 
 URL **und** Zugangsdaten (`SITE_USER` / `SITE_PASSWORD`) an die eingeladenen

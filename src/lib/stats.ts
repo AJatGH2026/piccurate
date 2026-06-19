@@ -1,0 +1,158 @@
+// Analysis-usage tracking for the admin dashboard. Writes counters to an
+// Upstash Redis store (set up via Vercel Marketplace). When the env vars are
+// missing, every call is a silent no-op — so production keeps working even
+// before stats are wired up.
+//
+// Counters use Redis INCRBY which is atomic, so concurrent analyses don't
+// stomp on each other. Per-day keys auto-expire after 90 days so the
+// database stays small.
+
+import { Redis } from '@upstash/redis';
+
+let client: Redis | null | undefined; // undefined = unchecked, null = unavailable
+
+function getClient(): Redis | null {
+  if (client !== undefined) return client;
+  // Standard Vercel/Upstash integration env vars.
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  if (!url || !token) {
+    client = null;
+    return null;
+  }
+  client = new Redis({ url, token });
+  return client;
+}
+
+function todayKey(): string {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+}
+
+const DAY_TTL_S = 90 * 24 * 3600;
+
+export interface AnalyzeEvent {
+  photos: number; // photos analysed in this single API call
+  inputTokens: number;
+  outputTokens: number;
+  model: string;
+}
+
+/** Record one analysis call. Never throws — failures are logged and swallowed. */
+export async function trackAnalyze(e: AnalyzeEvent): Promise<void> {
+  const r = getClient();
+  if (!r) return;
+  const day = todayKey();
+  try {
+    // Pipeline (one round-trip) keeps the latency floor low (~30-80 ms total).
+    const p = r.pipeline();
+    p.incrby('stats:photos:total', e.photos);
+    p.incrby('stats:jobs:total', 1);
+    p.incrby('stats:tokens:input:total', e.inputTokens);
+    p.incrby('stats:tokens:output:total', e.outputTokens);
+    p.incrby(`stats:photos:${day}`, e.photos);
+    p.incrby(`stats:jobs:${day}`, 1);
+    p.incrby(`stats:tokens:input:${day}`, e.inputTokens);
+    p.incrby(`stats:tokens:output:${day}`, e.outputTokens);
+    p.expire(`stats:photos:${day}`, DAY_TTL_S);
+    p.expire(`stats:jobs:${day}`, DAY_TTL_S);
+    p.expire(`stats:tokens:input:${day}`, DAY_TTL_S);
+    p.expire(`stats:tokens:output:${day}`, DAY_TTL_S);
+    await p.exec();
+  } catch (err) {
+    console.warn('[stats] track failed:', err instanceof Error ? err.message : err);
+  }
+}
+
+export interface StatsSnapshot {
+  configured: boolean;
+  lifetime: { photos: number; jobs: number; inputTokens: number; outputTokens: number; estCostEur: number };
+  today: { photos: number; jobs: number; inputTokens: number; outputTokens: number; estCostEur: number };
+  byDay: { date: string; photos: number; jobs: number; estCostEur: number }[];
+}
+
+// Sonnet 4.6 pricing (input $3 / output $15 per 1M). Used only for the est.
+// cost column on the dashboard. EUR fudge factor ≈ 0.92.
+const USD_PER_M_INPUT = 3;
+const USD_PER_M_OUTPUT = 15;
+const EUR_PER_USD = 0.92;
+
+function estCostEur(inputTokens: number, outputTokens: number): number {
+  const usd = (inputTokens / 1_000_000) * USD_PER_M_INPUT + (outputTokens / 1_000_000) * USD_PER_M_OUTPUT;
+  return Math.round(usd * EUR_PER_USD * 100) / 100;
+}
+
+const lastNDays = (n: number) =>
+  Array.from({ length: n }, (_, i) => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - i);
+    return d.toISOString().slice(0, 10);
+  });
+
+/** Read a snapshot for the admin dashboard. Returns zeros if not configured. */
+export async function readStats(days = 7): Promise<StatsSnapshot> {
+  const r = getClient();
+  if (!r) {
+    return {
+      configured: false,
+      lifetime: { photos: 0, jobs: 0, inputTokens: 0, outputTokens: 0, estCostEur: 0 },
+      today: { photos: 0, jobs: 0, inputTokens: 0, outputTokens: 0, estCostEur: 0 },
+      byDay: [],
+    };
+  }
+
+  const dayKeys = lastNDays(days);
+  // Lifetime + today + N days in one mget.
+  const keys = [
+    'stats:photos:total', 'stats:jobs:total', 'stats:tokens:input:total', 'stats:tokens:output:total',
+    ...dayKeys.flatMap((d) => [
+      `stats:photos:${d}`, `stats:jobs:${d}`, `stats:tokens:input:${d}`, `stats:tokens:output:${d}`,
+    ]),
+  ];
+
+  let values: (string | number | null)[] = [];
+  try {
+    values = (await r.mget(...keys)) as (string | number | null)[];
+  } catch (err) {
+    console.warn('[stats] read failed:', err instanceof Error ? err.message : err);
+    return {
+      configured: true,
+      lifetime: { photos: 0, jobs: 0, inputTokens: 0, outputTokens: 0, estCostEur: 0 },
+      today: { photos: 0, jobs: 0, inputTokens: 0, outputTokens: 0, estCostEur: 0 },
+      byDay: [],
+    };
+  }
+
+  const n = (v: string | number | null) => (v == null ? 0 : Number(v));
+
+  const lifetime = {
+    photos: n(values[0]),
+    jobs: n(values[1]),
+    inputTokens: n(values[2]),
+    outputTokens: n(values[3]),
+    estCostEur: estCostEur(n(values[2]), n(values[3])),
+  };
+
+  const byDay = dayKeys.map((date, i) => {
+    const base = 4 + i * 4;
+    const inputT = n(values[base + 2]);
+    const outputT = n(values[base + 3]);
+    return {
+      date,
+      photos: n(values[base]),
+      jobs: n(values[base + 1]),
+      estCostEur: estCostEur(inputT, outputT),
+    };
+  });
+
+  const today = byDay[0]
+    ? {
+        photos: byDay[0].photos,
+        jobs: byDay[0].jobs,
+        inputTokens: n(values[4 + 2]),
+        outputTokens: n(values[4 + 3]),
+        estCostEur: byDay[0].estCostEur,
+      }
+    : { photos: 0, jobs: 0, inputTokens: 0, outputTokens: 0, estCostEur: 0 };
+
+  return { configured: true, lifetime, today, byDay };
+}

@@ -15,6 +15,7 @@ const base = clientConfig.appUrl;
 // Non-content paths, for both locales.
 const DISALLOW = [
   '/api/',
+  '/admin/',
   '/en/app/',
   '/de/app/',
   '/en/auth/',

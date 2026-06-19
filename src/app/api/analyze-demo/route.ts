@@ -3,6 +3,7 @@ import AnthropicSDK from '@anthropic-ai/sdk';
 import { ANALYSIS_SYSTEM_PROMPT } from '@/lib/anthropic/prompts';
 import { parseAnalysisResponse } from '@/lib/anthropic/parser';
 import { rateLimit, clientIp } from '@/lib/rate-limit';
+import { trackAnalyze } from '@/lib/stats';
 
 // Per-IP guard against a client hammering this (paid) endpoint. Generous
 // enough for a real demo job sent in batches, but caps runaway loops. The
@@ -125,6 +126,20 @@ export async function POST(request: NextRequest) {
     console.log(
       `[Demo Analyze] Tokens — input: ${response.usage.input_tokens}, output: ${response.usage.output_tokens}`
     );
+
+    // Structured log line for quick log-based aggregation (fallback for when
+    // the persistent stats store isn't configured yet).
+    console.log(
+      `[STAT] photos=${files.length} input_tokens=${response.usage.input_tokens} output_tokens=${response.usage.output_tokens} model=${model}`
+    );
+
+    // Persistent usage tracking — no-op if Upstash isn't configured.
+    void trackAnalyze({
+      photos: files.length,
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+      model,
+    });
 
     const results = parseAnalysisResponse(textBlock.text, files.length);
 
