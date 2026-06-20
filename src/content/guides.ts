@@ -93,30 +93,30 @@ export const GUIDES: Guide[] = [
       description:
         'Eine praxiserprobte Methode, um aus Hunderten Urlaubsfotos eine kleine, starke Auswahl zu machen — ohne einen ganzen Abend an jedem Bild zu zweifeln.',
       intro: [
-        'Sie kommen mit 1.500 Fotos aus zwei Wochen Urlaub zurück und nehmen sich fest vor, etwas daraus zu machen. Dann liegt der Ordner monatelang unberührt, weil das Durchgehen Bild für Bild ermüdend ist und Sie ständig die Meinung ändern.',
-        'Die Lösung ist nicht mehr Disziplin, sondern eine wiederholbare Methode. Hier ist das Vorgehen, das professionelle Bildredakteure nutzen — übertragen auf ein normales Urlaubsarchiv — und wie Sie dasselbe in wenigen Minuten mit KI erledigen.',
+        'Du kommst mit 1.500 Fotos aus zwei Wochen Urlaub zurück und nimmst dir fest vor, etwas daraus zu machen. Dann liegt der Ordner monatelang unberührt, weil das Durchgehen Bild für Bild ermüdend ist und du ständig die Meinung änderst.',
+        'Die Lösung ist nicht mehr Disziplin, sondern eine wiederholbare Methode. Hier ist das Vorgehen, das professionelle Bildredakteure nutzen — übertragen auf ein normales Urlaubsarchiv — und wie du dasselbe in wenigen Minuten mit KI erledigst.',
       ],
       stepsHeading: 'Eine Methode in 5 Schritten',
       steps: [
         {
           title: 'Zuerst die klaren Ausschüsse aussortieren',
-          body: 'Gehen Sie einmal schnell durch und entfernen Sie nur die offensichtlich misslungenen Aufnahmen: unscharf, Augen zu, versehentlich ausgelöst, stark über- oder unterbelichtet. Bewerten Sie die Qualität noch nicht — löschen Sie nur das Unbrauchbare. Allein das entfernt oft ein Drittel.',
+          body: 'Geh einmal schnell durch und entferne nur die offensichtlich misslungenen Aufnahmen: unscharf, Augen zu, versehentlich ausgelöst, stark über- oder unterbelichtet. Bewerte die Qualität noch nicht — lösche nur das Unbrauchbare. Allein das entfernt oft ein Drittel.',
         },
         {
           title: 'Beinahe-Dubletten gruppieren und eine behalten',
-          body: 'Im Urlaub entstehen Serien: fünf fast identische Aufnahmen desselben Motivs. Sehen Sie sich jede Gruppe an und behalten Sie das eine stärkste Bild — am schärfsten, bester Gesichtsausdruck, bester Moment. Den Rest verwerfen.',
+          body: 'Im Urlaub entstehen Serien: fünf fast identische Aufnahmen desselben Motivs. Sieh dir jede Gruppe an und behalte das eine stärkste Bild — am schärfsten, bester Gesichtsausdruck, bester Moment. Den Rest verwerfen.',
         },
         {
           title: 'Nach der Erinnerung urteilen, nicht nach den Pixeln',
-          body: 'Fragen Sie sich beim Rest: „Holt mich dieses Bild in den Moment zurück?" Ein leicht unvollkommenes Foto eines echten Moments schlägt ein technisch perfektes Foto von nichts. Genau hier tut sich Software schwer — Ihr Urteil zählt am meisten.',
+          body: 'Frag dich beim Rest: „Holt mich dieses Bild in den Moment zurück?" Ein leicht unvollkommenes Foto eines echten Moments schlägt ein technisch perfektes Foto von nichts. Genau hier tut sich Software schwer — dein Urteil zählt am meisten.',
         },
         {
           title: 'Die Geschichte ausbalancieren',
-          body: 'Eine gute Auswahl deckt die Reise ab: Orte, Menschen, Essen, Details, die ruhigen Zwischenmomente. Wenn Sie vierzig Sonnenuntergänge und keine Menschen haben, kürzen Sie die Sonnenuntergänge. Ziel ist Abwechslung, nicht nur Ihre zehn besten Einzelbilder.',
+          body: 'Eine gute Auswahl deckt die Reise ab: Orte, Menschen, Essen, Details, die ruhigen Zwischenmomente. Wenn du vierzig Sonnenuntergänge und keine Menschen hast, kürze die Sonnenuntergänge. Ziel ist Abwechslung, nicht nur deine zehn besten Einzelbilder.',
         },
         {
           title: 'Eine Zielzahl festlegen und aufhören',
-          body: 'Legen Sie vorab fest, wie viele Sie möchten — 50 fürs Fotobuch, 20 für eine Diashow — und halten Sie sich daran. Eine fertige Auswahl von 50 schlägt einen unfertigen Stapel von 500. Ist die Zahl erreicht, sind Sie fertig.',
+          body: 'Leg vorab fest, wie viele du möchtest — 50 fürs Fotobuch, 20 für eine Diashow — und halte dich daran. Eine fertige Auswahl von 50 schlägt einen unfertigen Stapel von 500. Ist die Zahl erreicht, bist du fertig.',
         },
       ],
       faqHeading: 'Häufige Fragen',
@@ -127,15 +127,15 @@ export const GUIDES: Guide[] = [
         },
         {
           q: 'Soll ich die aussortierten Fotos löschen?',
-          a: 'Müssen Sie nicht. Bewahren Sie die Originale in einem Archiv auf und arbeiten Sie mit einer Kopie. Löschen ist optional; Ziel ist eine saubere, kleine Auswahl, die Sie tatsächlich nutzen — nicht das Freiräumen von Speicher.',
+          a: 'Musst du nicht. Bewahre die Originale in einem Archiv auf und arbeite mit einer Kopie. Löschen ist optional; Ziel ist eine saubere, kleine Auswahl, die du tatsächlich nutzt — nicht das Freiräumen von Speicher.',
         },
         {
           q: 'Kann KI die besten Urlaubsfotos für mich auswählen?',
-          a: 'KI ist sehr gut bei den mechanischen Schritten — unscharfe Bilder entfernen, Beinahe-Dubletten zusammenfassen, nach allgemeiner Qualität sortieren. Schwächer ist sie bei „holt mich das in die Erinnerung zurück". Am besten erledigt die KI den ersten Durchgang, die finale Entscheidung treffen Sie.',
+          a: 'KI ist sehr gut bei den mechanischen Schritten — unscharfe Bilder entfernen, Beinahe-Dubletten zusammenfassen, nach allgemeiner Qualität sortieren. Schwächer ist sie bei „holt mich das in die Erinnerung zurück". Am besten erledigt die KI den ersten Durchgang, die finale Entscheidung triffst du.',
         },
         {
           q: 'Wie hilft PicCurate dabei?',
-          a: 'PicCurate übernimmt die Schritte 1, 2 und 4 automatisch: Es bewertet jedes Foto, erkennt Serien und behält das jeweils beste, und gleicht die Auswahl aus. Danach erhalten Sie eine Vorauswahl zum Bestätigen oder Anpassen. Aus einer 1.500-Foto-Reise wird in wenigen Minuten eine prüfbare Auswahl.',
+          a: 'PicCurate übernimmt die Schritte 1, 2 und 4 automatisch: Es bewertet jedes Foto, erkennt Serien und behält das jeweils beste, und gleicht die Auswahl aus. Danach erhältst du eine Vorauswahl zum Bestätigen oder Anpassen. Aus einer 1.500-Foto-Reise wird in wenigen Minuten eine prüfbare Auswahl.',
         },
       ],
     },
@@ -198,47 +198,47 @@ export const GUIDES: Guide[] = [
       slug: 'fotos-fuers-fotobuch-vorbereiten',
       title: 'Fotos fürs Fotobuch vorbereiten — Schritt für Schritt',
       description:
-        'Urlaubsfotos einfach fürs Fotobuch fertig machen: wie viele Sie brauchen, wie Sie sie ordnen und wie Sie sie sauber an CEWE, Mixbook oder Shutterfly übergeben.',
+        'Urlaubsfotos einfach fürs Fotobuch fertig machen: wie viele du brauchst, wie du sie ordnest und wie du sie sauber an CEWE, Mixbook oder Shutterfly übergibst.',
       intro: [
-        'Fotobuch-Anbieter wie CEWE, Mixbook und Shutterfly möchten nicht, dass Sie 1.000 Fotos einzeln platzieren. Sie importieren ein Set — einen Ordner oder ein Cloud-Album — und befüllen die Seiten automatisch. Die eigentliche Arbeit passiert vor dem Buch-Editor: das richtige Set auswählen und ordnen.',
-        'So bereiten Sie ein Set vor, das sich sauber in jedes Fotobuch-Tool einfügt und sich von selbst zu einer stimmigen Geschichte füllt.',
+        'Fotobuch-Anbieter wie CEWE, Mixbook und Shutterfly möchten nicht, dass du 1.000 Fotos einzeln platzierst. Sie importieren ein Set — einen Ordner oder ein Cloud-Album — und befüllen die Seiten automatisch. Die eigentliche Arbeit passiert vor dem Buch-Editor: das richtige Set auswählen und ordnen.',
+        'So bereitest du ein Set vor, das sich sauber in jedes Fotobuch-Tool einfügt und sich von selbst zu einer stimmigen Geschichte füllt.',
       ],
       stepsHeading: 'Das Set vorbereiten',
       steps: [
         {
           title: 'Die richtige Anzahl für die Seitenzahl wählen',
-          body: 'Etwa 2–4 Fotos pro Seite funktionieren gut. Ein Buch mit 26 Seiten braucht rund 60–90 Bilder. Zu viele Fotos überfüllen beim Auto-Fill die Seiten, zu wenige lassen sie leer. Legen Sie zuerst die Buchgröße fest, dann die Anzahl.',
+          body: 'Etwa 2–4 Fotos pro Seite funktionieren gut. Ein Buch mit 26 Seiten braucht rund 60–90 Bilder. Zu viele Fotos überfüllen beim Auto-Fill die Seiten, zu wenige lassen sie leer. Leg zuerst die Buchgröße fest, dann die Anzahl.',
         },
         {
           title: 'Chronologisch ordnen',
-          body: 'Ein Urlaubsbuch liest sich am besten so, wie die Reise verlief. Achten Sie darauf, dass die Dateien nach Aufnahmedatum sortiert sind, nicht nach Dateiname — Handy- und Kameranamen entsprechen selten der Reihenfolge der Ereignisse, besonders bei zwei Geräten.',
+          body: 'Ein Urlaubsbuch liest sich am besten so, wie die Reise verlief. Achte darauf, dass die Dateien nach Aufnahmedatum sortiert sind, nicht nach Dateiname — Handy- und Kameranamen entsprechen selten der Reihenfolge der Ereignisse, besonders bei zwei Geräten.',
         },
         {
           title: 'Dateinamen in Datumsreihenfolge halten',
-          body: 'Die meisten Auto-Fill-Tools platzieren Fotos in Dateinamen-Reihenfolge. Wenn Sie die Dateien mit einem Datums-Präfix benennen (z. B. 2026-06-13_001.jpg), füllt sich das Buch in der richtigen Reihenfolge — ganz ohne manuelles Ziehen.',
+          body: 'Die meisten Auto-Fill-Tools platzieren Fotos in Dateinamen-Reihenfolge. Wenn du die Dateien mit einem Datums-Präfix benennst (z. B. 2026-06-13_001.jpg), füllt sich das Buch in der richtigen Reihenfolge — ganz ohne manuelles Ziehen.',
         },
         {
           title: 'Alles in einen flachen Ordner legen',
-          body: 'Auto-Fill funktioniert am besten aus einem einzigen Ordner mit JPEGs in voller Auflösung — keine verschachtelten Unterordner, keine Thumbnails. Exportieren Sie die Originale Ihrer gewählten Fotos an einen Ort.',
+          body: 'Auto-Fill funktioniert am besten aus einem einzigen Ordner mit JPEGs in voller Auflösung — keine verschachtelten Unterordner, keine Thumbnails. Exportiere die Originale deiner gewählten Fotos an einen Ort.',
         },
         {
           title: 'Per Ordner oder Cloud übergeben',
-          body: 'Laden Sie den Ordner direkt im Buch-Editor hoch oder verweisen Sie auf ein Cloud-Album (CEWE etwa importiert direkt aus Dropbox oder OneDrive). Dann erledigt Auto-Fill das Layout, und Sie verfeinern ein paar Doppelseiten.',
+          body: 'Lad den Ordner direkt im Buch-Editor hoch oder verweise auf ein Cloud-Album (CEWE etwa importiert direkt aus Dropbox oder OneDrive). Dann erledigt Auto-Fill das Layout, und du verfeinerst ein paar Doppelseiten.',
         },
       ],
       faqHeading: 'Häufige Fragen',
       faqs: [
         {
           q: 'Wie viele Fotos brauche ich für ein Fotobuch?',
-          a: 'Rechnen Sie mit etwa 2–4 Fotos pro Seite. Ein typisches Buch mit 26 Seiten nutzt 60–90 Bilder, ein größeres mit 50 Seiten 120–180. Gehen Sie von der Seitenzahl aus, statt zu schätzen.',
+          a: 'Rechne mit etwa 2–4 Fotos pro Seite. Ein typisches Buch mit 26 Seiten nutzt 60–90 Bilder, ein größeres mit 50 Seiten 120–180. Geh von der Seitenzahl aus, statt zu schätzen.',
         },
         {
           q: 'Welche Auflösung sollten die Fotos haben?',
-          a: 'Verwenden Sie die Originale in voller Auflösung, keine Thumbnails oder Social-Media-Downloads. Die meisten Druckereien wollen mindestens ~200 dpi in Druckgröße — das erreicht ein normales Handy- oder Kamerafoto leicht, eine verkleinerte Kopie druckt dagegen unscharf.',
+          a: 'Verwende die Originale in voller Auflösung, keine Thumbnails oder Social-Media-Downloads. Die meisten Druckereien wollen mindestens ~200 dpi in Druckgröße — das erreicht ein normales Handy- oder Kamerafoto leicht, eine verkleinerte Kopie druckt dagegen unscharf.',
         },
         {
           q: 'Muss ich jedes Foto manuell platzieren?',
-          a: 'Nein. CEWE, Mixbook und Shutterfly bieten alle Auto-Fill: Sie geben das Set, sie legen die Seiten der Reihe nach an, und Sie passen sie an. Die Auswahl und Reihenfolge ist die eigentliche Arbeit; die Platzierung läuft automatisch.',
+          a: 'Nein. CEWE, Mixbook und Shutterfly bieten alle Auto-Fill: Du gibst das Set, sie legen die Seiten der Reihe nach an, und du passt sie an. Die Auswahl und Reihenfolge ist die eigentliche Arbeit; die Platzierung läuft automatisch.',
         },
         {
           q: 'Wie passt PicCurate dazu?',
@@ -301,10 +301,10 @@ export const GUIDES: Guide[] = [
       slug: 'ki-fotoauswahl-erklaert',
       title: 'KI-Fotoauswahl: was das ist und wie es funktioniert',
       description:
-        'Verständlich erklärt: Wie KI-gestützte Fotoauswahl entscheidet, welche Bilder bleiben — was sie gut kann, wo sie an Grenzen stößt und wie Sie sie nutzen, ohne die Kontrolle abzugeben.',
+        'Verständlich erklärt: Wie KI-gestützte Fotoauswahl entscheidet, welche Bilder bleiben — was sie gut kann, wo sie an Grenzen stößt und wie du sie nutzt, ohne die Kontrolle abzugeben.',
       intro: [
-        'Fotoauswahl bedeutet, eine große Menge Bilder auf die Behalter zu reduzieren. „KI-Fotoauswahl" erledigt das mit Software, die Bilder für Sie bewertet und sortiert, statt jedes einzelne von Hand zu beurteilen.',
-        'Sie steckt zunehmend in Foto-Tools, weil das Problem alle betrifft: Mit dem Handy sind 1.000 Fotos schnell gemacht und mühsam zu sortieren. Hier ist, was die Technik tatsächlich leistet.',
+        'Fotoauswahl bedeutet, eine große Menge Bilder auf die Behalter zu reduzieren. „KI-Fotoauswahl" erledigt das mit Software, die Bilder für dich bewertet und sortiert, statt jedes einzelne von Hand zu beurteilen.',
+        'Die Technik steckt zunehmend in Foto-Tools, weil das Problem alle betrifft: Mit dem Handy sind 1.000 Fotos schnell gemacht und mühsam zu sortieren. Hier ist, was sie tatsächlich leistet.',
       ],
       stepsHeading: 'Wie KI-Auswahl funktioniert',
       steps: [
@@ -314,7 +314,7 @@ export const GUIDES: Guide[] = [
         },
         {
           title: 'Dubletten- und Serienerkennung',
-          body: 'Sie findet nahezu identische Aufnahmen (Serienbilder, wiederholte Motive) durch Bildvergleich und behält dann das jeweils beste statt aller. Das entfernt den Großteil der Redundanz.',
+          body: 'Die Software findet nahezu identische Aufnahmen (Serienbilder, wiederholte Motive) durch Bildvergleich und behält dann das jeweils beste statt aller. Das entfernt den Großteil der Redundanz.',
         },
         {
           title: 'Inhalts- und Gesichtsanalyse',
@@ -322,7 +322,7 @@ export const GUIDES: Guide[] = [
         },
         {
           title: 'Ganzheitliche Bewertung',
-          body: 'Die besten Tools fassen diese Signale zu einem einzigen „Würde man das behalten?"-Wert zusammen und zeigen die Top-Bilder, statt nur nach einer Regel zu filtern. Anschließend prüfen Sie die Vorauswahl.',
+          body: 'Die besten Tools fassen diese Signale zu einem einzigen „Würde man das behalten?"-Wert zusammen und zeigen die Top-Bilder, statt nur nach einer Regel zu filtern. Anschließend prüfst du die Vorauswahl.',
         },
       ],
       faqHeading: 'Häufige Fragen',
@@ -333,15 +333,15 @@ export const GUIDES: Guide[] = [
         },
         {
           q: 'Ist KI-Fotoauswahl genau?',
-          a: 'Bei technischer Qualität und Dubletten sehr. Beim subjektiv „besten" Bild ist sie gut, aber nicht perfekt — Geschmack und persönliche Bedeutung lassen sich schwer modellieren. Betrachten Sie sie als starken ersten Durchgang zur Vorauswahl, nicht als endgültiges Urteil.',
+          a: 'Bei technischer Qualität und Dubletten sehr. Beim subjektiv „besten" Bild ist sie gut, aber nicht perfekt — Geschmack und persönliche Bedeutung lassen sich schwer modellieren. Betrachte sie als starken ersten Durchgang zur Vorauswahl, nicht als endgültiges Urteil.',
         },
         {
           q: 'Löscht die KI meine Fotos?',
-          a: 'Gute Tools löschen nie etwas. Sie sortieren und treffen eine Vorauswahl; Sie behalten die volle Kontrolle, und die Originale bleiben unangetastet. PicCurate etwa schlägt immer nur eine Auswahl vor, die Sie bestätigen oder ändern.',
+          a: 'Gute Tools löschen nie etwas. Sie sortieren und treffen eine Vorauswahl; du behältst die volle Kontrolle, und die Originale bleiben unangetastet. PicCurate etwa schlägt immer nur eine Auswahl vor, die du bestätigst oder änderst.',
         },
         {
           q: 'Läuft KI-Auswahl auf meinem Gerät oder in der Cloud?',
-          a: 'Das hängt vom Tool ab. Manche laufen aus Datenschutzgründen vollständig auf dem Gerät, andere senden Bilder zur Analyse an einen Server. Wenn Ihnen Datenschutz wichtig ist, prüfen Sie vor dem Hochladen eines persönlichen Archivs, wo die Analyse stattfindet.',
+          a: 'Das hängt vom Tool ab. Manche laufen aus Datenschutzgründen vollständig auf dem Gerät, andere senden Bilder zur Analyse an einen Server. Wenn dir Datenschutz wichtig ist, prüfe vor dem Hochladen eines persönlichen Archivs, wo die Analyse stattfindet.',
         },
       ],
     },

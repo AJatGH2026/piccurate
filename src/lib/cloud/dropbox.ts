@@ -170,6 +170,49 @@ async function dropboxDownloadInner(token: string, path: string, signal: AbortSi
 }
 
 // ── Export (upload selection) ─────────────────────────────
+
+/** Single-file upload with 60 s timeout + one retry on transient TypeError. */
+async function uploadOne(token: string, name: string, blob: Blob): Promise<void> {
+  const arg = apiArg({
+    path: `/${SELECTION_FOLDER}/${name}`,
+    mode: 'add',
+    autorename: true,
+    mute: true,
+  });
+
+  const attempt = async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 60_000);
+    try {
+      const res = await fetch(UPLOAD, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Dropbox-API-Arg': arg,
+          'Content-Type': 'application/octet-stream',
+        },
+        body: blob,
+      });
+      if (!res.ok) {
+        const detail = await res.text().catch(() => '');
+        throw new Error(`Upload failed for ${name} (${res.status})${detail ? ` — ${detail.slice(0, 200)}` : ''}`);
+      }
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  try {
+    await attempt();
+  } catch (e) {
+    // Retry once on transient network failure (TypeError = "Failed to fetch").
+    if (!(e instanceof TypeError)) throw e;
+    await new Promise((r) => setTimeout(r, 500));
+    await attempt();
+  }
+}
+
 export const dropbox: CloudProvider = {
   id: 'dropbox',
   label: 'Dropbox',
@@ -179,26 +222,23 @@ export const dropbox: CloudProvider = {
   async uploadSelection(files: CloudFile[], onProgress?: (p: CloudProgress) => void) {
     const token = await dropboxAuth(DROPBOX_WRITE_SCOPE);
     let done = 0;
+    const failures: { name: string; reason: string }[] = [];
+    // Serial: parallel uploads previously caused "Failed to fetch" across
+    // every request via simultaneous CORS preflights (see import flow).
     for (const f of files) {
       onProgress?.({ done, total: files.length, current: f.name });
-      const arg = apiArg({
-        path: `/${SELECTION_FOLDER}/${f.name}`,
-        mode: 'add',
-        autorename: true,
-        mute: true,
-      });
-      const res = await fetch(UPLOAD, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Dropbox-API-Arg': arg,
-          'Content-Type': 'application/octet-stream',
-        },
-        body: f.blob,
-      });
-      if (!res.ok) throw new Error(`Upload failed for ${f.name} (${res.status})`);
-      done++;
+      try {
+        await uploadOne(token, f.name, f.blob);
+        done++;
+      } catch (e) {
+        const reason = e instanceof Error ? e.message : 'unknown';
+        failures.push({ name: f.name, reason });
+      }
       onProgress?.({ done, total: files.length, current: f.name });
+    }
+    if (done === 0 && failures.length > 0) {
+      // Surface the first failure verbatim so the UI shows something useful.
+      throw new Error(failures[0].reason);
     }
     return { folderName: SELECTION_FOLDER, uploaded: done };
   },
