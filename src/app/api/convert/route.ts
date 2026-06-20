@@ -39,7 +39,7 @@ async function tryVips(buffer: Buffer): Promise<Buffer | null> {
   // If an explicit path was given but vips.exe isn't there, disable permanently.
   if (process.env.VIPSTHUMBNAIL_PATH && !existsSync(VIPS_EXE)) {
     if (vipsAvailable === null) {
-      console.warn(`[Convert] vips.exe not found next to VIPSTHUMBNAIL_PATH (${VIPS_EXE}) — using WASM fallback`);
+      console.info(`[Convert] VIPSTHUMBNAIL_PATH set but ${VIPS_EXE} not present — using WASM HEIC decoder.`);
     }
     vipsAvailable = false;
     return null;
@@ -77,9 +77,10 @@ async function tryVips(buffer: Buffer): Promise<Buffer | null> {
   } catch (err) {
     const e = err as NodeJS.ErrnoException;
     if (e.code === 'ENOENT') {
-      // Binary not on PATH / not found — disable permanently, fall back.
+      // No vips binary available (typical on Linux/Vercel) — disable
+      // permanently and fall back to the WASM decoder. Expected, not an error.
       if (vipsAvailable === null) {
-        console.warn('[Convert] vips.exe not found — using WASM fallback. Set VIPSTHUMBNAIL_PATH to enable native decode.');
+        console.info('[Convert] No native vips binary on this runtime — using WASM HEIC decoder.');
       }
       vipsAvailable = false;
       return null;
