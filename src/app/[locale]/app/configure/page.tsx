@@ -111,6 +111,23 @@ export default function ConfigurePage() {
     );
   };
 
+  // Defensive guard: if the photo store is empty (e.g. the user reloaded this
+  // page, or navigated here directly), don't show the analyse UI — that would
+  // silently push to a "no photos to review" screen. Send them back to upload.
+  if (photos.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950 gap-4">
+        <p className="text-zinc-500">{t('noPhotosConfigure')}</p>
+        <Link
+          href={`/${locale}/app/upload`}
+          className="rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
+        >
+          {t('backToUpload')}
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">

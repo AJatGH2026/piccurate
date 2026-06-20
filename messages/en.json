@@ -132,7 +132,9 @@
     "high": "High",
     "lenient": "Lenient",
     "strict": "Strict",
-    "analysisFailed": "Analysis failed: {error}"
+    "analysisFailed": "Analysis failed: {error}",
+    "noPhotosConfigure": "No photos in memory. Please upload photos first.",
+    "backToUpload": "Go to upload"
   },
   "review": {
     "title": "Review your selection",

@@ -132,7 +132,9 @@
     "high": "Hoch",
     "lenient": "Nachsichtig",
     "strict": "Streng",
-    "analysisFailed": "Analyse fehlgeschlagen: {error}"
+    "analysisFailed": "Analyse fehlgeschlagen: {error}",
+    "noPhotosConfigure": "Keine Fotos im Speicher. Bitte zuerst Fotos hochladen.",
+    "backToUpload": "Zum Upload"
   },
   "review": {
     "title": "Deine Auswahl prüfen",
