@@ -182,7 +182,15 @@ export default function ResultsPage() {
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
-          <Link href={`/${locale}`} className="text-lg font-bold text-indigo-600">PicCurate</Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href={`/${locale}/app/review`}
+              className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1"
+            >
+              <span aria-hidden="true">←</span> {tc('back')}
+            </Link>
+            <Link href={`/${locale}`} className="text-lg font-bold text-indigo-600">PicCurate</Link>
+          </div>
           <span className="text-sm text-zinc-500">{tc('stepOf', { current: 4, total: 4 })}</span>
         </div>
       </header>

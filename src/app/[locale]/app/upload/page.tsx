@@ -35,6 +35,27 @@ export default function UploadPage() {
   const readyCount = photos.filter((p) => p.status === 'ready').length;
   const canContinue = readyCount > 0 && !isProcessing;
 
+  const goToConfigure = () => {
+    setPhotosFromUpload(photos);
+    router.push(`/${locale}/app/configure`);
+  };
+
+  // Reusable continue button — rendered twice on the upload page (above the
+  // grid and below it) so it stays reachable when many photos are present.
+  const continueButton = (
+    <button
+      disabled={!canContinue}
+      onClick={goToConfigure}
+      className={`rounded-full px-6 py-2.5 text-sm font-semibold transition-colors ${
+        canContinue
+          ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+          : 'bg-zinc-200 text-zinc-400 cursor-not-allowed dark:bg-zinc-800 dark:text-zinc-600'
+      }`}
+    >
+      {t('continue')} ({readyCount})
+    </button>
+  );
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Simple header */}
@@ -114,10 +135,16 @@ export default function UploadPage() {
           </div>
         )}
 
+        {/* Top continue button — visible as soon as photos exist, so it stays
+            reachable when the grid below grows long. */}
+        {photos.length > 0 && (
+          <div className="mt-4 flex justify-end">{continueButton}</div>
+        )}
+
         {/* Photo grid */}
         <PhotoGrid photos={photos} onRemove={removePhoto} />
 
-        {/* Actions */}
+        {/* Bottom actions */}
         {photos.length > 0 && (
           <div className="mt-6 flex items-center justify-between">
             <button
@@ -126,20 +153,7 @@ export default function UploadPage() {
             >
               {t('clearAll')}
             </button>
-            <button
-              disabled={!canContinue}
-              onClick={() => {
-                setPhotosFromUpload(photos);
-                router.push(`/${locale}/app/configure`);
-              }}
-              className={`rounded-full px-6 py-2.5 text-sm font-semibold transition-colors ${
-                canContinue
-                  ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                  : 'bg-zinc-200 text-zinc-400 cursor-not-allowed dark:bg-zinc-800 dark:text-zinc-600'
-              }`}
-            >
-              {t('continue')} ({readyCount})
-            </button>
+            {continueButton}
           </div>
         )}
       </main>
