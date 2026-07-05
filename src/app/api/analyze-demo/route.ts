@@ -107,7 +107,15 @@ export async function POST(request: NextRequest) {
       contents: [{ role: 'user', parts }],
       config: {
         systemInstruction: ANALYSIS_SYSTEM_PROMPT,
-        maxOutputTokens: 8192,
+        // Gemini 2.5 Flash has "thinking" enabled by default — thinking tokens
+        // count against maxOutputTokens and can starve the actual JSON output,
+        // causing "Unterminated string in JSON …" errors. We want plain
+        // structured output, no chain-of-thought needed → disable thinking.
+        thinkingConfig: { thinkingBudget: 0 },
+        // Comfortable ceiling for a 20-photo batch: ~150-200 tokens per photo
+        // × 20 ≈ 4k, plus headroom for edge cases.
+        maxOutputTokens: 16384,
+        responseMimeType: 'application/json',
       },
     });
 
