@@ -178,6 +178,8 @@ function HeroSection({ locale }: { locale: string }) {
               src={img(id, 400)}
               alt=""
               aria-hidden="true"
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover"
             />
           </div>
@@ -254,7 +256,7 @@ function ShowcaseSection() {
                     : 'opacity-50 saturate-50 hover:opacity-80'
                 }`}
               >
-                <img src={img(id, 400)} alt="" aria-hidden="true" className="h-full w-full object-cover" />
+                <img src={img(id, 400)} alt="" aria-hidden="true" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                 {sel && (
                   <span className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-white text-xs shadow">
                     ✓
