@@ -9,7 +9,14 @@ const EVAL_DIR = join(process.cwd(), '.eval');
 const REPORT = join(process.cwd(), 'public', 'eval', 'report.html');
 const SCENES = ['people', 'animal', 'flora', 'food', 'building', 'interior', 'signage', 'landscape', 'beach', 'mountain', 'city', 'street', 'other'];
 const SECONDARY = ['indoor', 'beach', 'mountain', 'city', 'goldenhour', 'night'];
-const MODELS = [{ key: 'haiku', label: 'Haiku 4.5' }, { key: 'sonnet', label: 'Sonnet 4.6' }, { key: 'opus', label: 'Opus 4.8' }];
+// Current comparison: Sonnet as the quality anchor plus the two cheap
+// candidates from July 2026. Haiku/Opus results from earlier runs still exist
+// in .eval/ but are excluded — the prompt/reference has moved on since.
+const MODELS = [
+  { key: 'sonnet', label: 'Sonnet 4.6' },
+  { key: 'gpt-4.1-mini', label: 'GPT-4.1 mini' },
+  { key: 'gemini-flash', label: 'Gemini 2.5 Flash' },
+];
 
 function pr(tp, fp, fn) {
   const p = tp + fp === 0 ? null : tp / (tp + fp);

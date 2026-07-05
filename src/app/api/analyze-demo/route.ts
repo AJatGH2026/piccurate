@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import AnthropicSDK from '@anthropic-ai/sdk';
+import { GoogleGenAI } from '@google/genai';
 import { ANALYSIS_SYSTEM_PROMPT } from '@/lib/anthropic/prompts';
 import { parseAnalysisResponse } from '@/lib/anthropic/parser';
 import { rateLimit, clientIp } from '@/lib/rate-limit';
@@ -7,7 +7,7 @@ import { trackAnalyze } from '@/lib/stats';
 
 // Per-IP guard against a client hammering this (paid) endpoint. Generous
 // enough for a real demo job sent in batches, but caps runaway loops. The
-// hard cost backstop remains the Anthropic spend limit. See §4.2.1.
+// hard cost backstop remains the provider's spend limit. See §4.2.1.
 const RL_LIMIT = 120; // requests
 const RL_WINDOW_MS = 60_000; // per minute
 
@@ -15,12 +15,15 @@ const RL_WINDOW_MS = 60_000; // per minute
  * POST /api/analyze-demo
  *
  * Demo-mode analysis endpoint — no auth or database required.
- * Accepts a batch of thumbnails as multipart/form-data and returns
- * AI analysis results directly.
+ * Backed by Google Gemini 2.5 Flash (chosen after a 381-photo eval:
+ * 42% album-score match vs. Sonnet 4.6's 34%, at 1/6 the cost). Prompt,
+ * parser, and taxonomy are the same as when it ran on Anthropic; only the
+ * SDK and request shape changed. See docs/product-pipeline.md §9.
  *
  * Form fields:
  * - thumbnails: JPEG files
  * - metadata: JSON string with [{filename, dateTaken, cameraModel}]
+ * - customTerms: (optional) JSON array of user-defined terms to tag
  */
 export async function POST(request: NextRequest) {
   try {
@@ -56,92 +59,72 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    console.log('[Demo Analyze] API key present:', !!apiKey, 'length:', apiKey?.length);
-
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey === 'placeholder') {
       return NextResponse.json(
-        { error: 'Anthropic API key not configured. Set ANTHROPIC_API_KEY in .env.local' },
+        { error: 'GEMINI_API_KEY is not configured on the server.' },
         { status: 500 }
       );
     }
 
-    const client = new AnthropicSDK({ apiKey });
-    const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
+    const client = new GoogleGenAI({ apiKey });
+    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
-    // Build message content: images + text prompt
-    const userContent: AnthropicSDK.ContentBlockParam[] = [];
-
+    // Build user content: images + trailing text prompt with per-photo metadata.
+    const parts: { inlineData?: { mimeType: string; data: string }; text?: string }[] = [];
     for (const file of files) {
       const buffer = Buffer.from(await file.arrayBuffer());
-      userContent.push({
-        type: 'image',
-        source: {
-          type: 'base64',
-          media_type: 'image/jpeg',
-          data: buffer.toString('base64'),
-        },
+      parts.push({
+        inlineData: { mimeType: 'image/jpeg', data: buffer.toString('base64') },
       });
     }
 
-    // Text prompt with metadata context
     let prompt = `Analyze these ${files.length} travel photos. Photos are numbered 0 through ${files.length - 1}.\n\nContext per photo:\n`;
     for (let i = 0; i < metadata.length; i++) {
       const m = metadata[i];
-      const parts = [`Photo ${i}`];
-      if (m.dateTaken) parts.push(`taken ${m.dateTaken.split('T')[0]}`);
-      if (m.cameraModel) parts.push(m.cameraModel);
-      prompt += `- ${parts.join(', ')}\n`;
+      const bits = [`Photo ${i}`];
+      if (m.dateTaken) bits.push(`taken ${m.dateTaken.split('T')[0]}`);
+      if (m.cameraModel) bits.push(m.cameraModel);
+      prompt += `- ${bits.join(', ')}\n`;
     }
     if (customTerms.length) {
       prompt += `\n\nFor each photo, also determine which of these user-defined terms are clearly visible: ${customTerms
         .map((t) => `"${t}"`)
         .join(', ')}. Add a field "custom" to each object — an array of exactly the matching terms (verbatim term text; empty array if none). Judge by what is visibly present, regardless of the term's language.`;
     }
-
     prompt += `\nReturn a JSON array of ${files.length} analysis objects.`;
+    parts.push({ text: prompt });
 
-    userContent.push({ type: 'text', text: prompt });
+    console.log(`[Demo Analyze] Sending ${files.length} photos to ${model}...`);
 
-    console.log(`[Demo Analyze] Sending ${files.length} photos to Claude...`);
-
-    const response = await client.messages.create({
+    const response = await client.models.generateContent({
       model,
-      max_tokens: 4096,
-      system: [
-        {
-          type: 'text',
-          text: ANALYSIS_SYSTEM_PROMPT,
-          cache_control: { type: 'ephemeral' },
-        },
-      ],
-      messages: [{ role: 'user', content: userContent }],
+      contents: [{ role: 'user', parts }],
+      config: {
+        systemInstruction: ANALYSIS_SYSTEM_PROMPT,
+        maxOutputTokens: 8192,
+      },
     });
 
-    const textBlock = response.content.find((b) => b.type === 'text');
-    if (!textBlock || textBlock.type !== 'text') {
+    const text = response.text;
+    if (!text) {
       throw new Error('No text response from AI');
     }
 
-    console.log(
-      `[Demo Analyze] Tokens — input: ${response.usage.input_tokens}, output: ${response.usage.output_tokens}`
-    );
+    // Gemini exposes usageMetadata (promptTokenCount / candidatesTokenCount).
+    const u = response.usageMetadata || {};
+    const inputTokens = u.promptTokenCount ?? 0;
+    const outputTokens = u.candidatesTokenCount ?? 0;
 
-    // Structured log line for quick log-based aggregation (fallback for when
-    // the persistent stats store isn't configured yet).
+    console.log(`[Demo Analyze] Tokens — input: ${inputTokens}, output: ${outputTokens}`);
     console.log(
-      `[STAT] photos=${files.length} input_tokens=${response.usage.input_tokens} output_tokens=${response.usage.output_tokens} model=${model}`
+      `[STAT] photos=${files.length} input_tokens=${inputTokens} output_tokens=${outputTokens} model=${model}`
     );
 
     // Persistent usage tracking — no-op if Upstash isn't configured.
-    void trackAnalyze({
-      photos: files.length,
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
-      model,
-    });
+    void trackAnalyze({ photos: files.length, inputTokens, outputTokens, model });
 
-    const results = parseAnalysisResponse(textBlock.text, files.length);
+    const results = parseAnalysisResponse(text, files.length);
 
     return NextResponse.json({ success: true, results });
   } catch (err) {

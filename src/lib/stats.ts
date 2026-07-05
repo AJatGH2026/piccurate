@@ -70,10 +70,11 @@ export interface StatsSnapshot {
   byDay: { date: string; photos: number; jobs: number; estCostEur: number }[];
 }
 
-// Sonnet 4.6 pricing (input $3 / output $15 per 1M). Used only for the est.
-// cost column on the dashboard. EUR fudge factor ≈ 0.92.
-const USD_PER_M_INPUT = 3;
-const USD_PER_M_OUTPUT = 15;
+// Gemini 2.5 Flash pricing (input $0.30 / output $2.50 per 1M) — matches the
+// production model in /api/analyze-demo. Used only for the est. cost column
+// on the /admin/stats dashboard. EUR fudge factor ≈ 0.92.
+const USD_PER_M_INPUT = 0.30;
+const USD_PER_M_OUTPUT = 2.50;
 const EUR_PER_USD = 0.92;
 
 function estCostEur(inputTokens: number, outputTokens: number): number {

@@ -139,7 +139,7 @@ async function main() {
   for (const m of order) (groupMembers[grp[m.id]] ||= []).push(m.id);
   const multi = Object.values(groupMembers).filter((x) => x.length >= 2);
 
-  for (const key of ['haiku', 'sonnet', 'opus']) {
+  for (const key of ['sonnet', 'gpt-4.1-mini', 'gemini-flash']) {
     const data = JSON.parse(await readFile(join(EVAL, `results-${key}.json`), 'utf-8')).results;
     const photos = order.map((m) => {
       const r = data[m.id] || {};

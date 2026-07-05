@@ -60,12 +60,13 @@ In Vercel: **Project → Settings → Environment Variables**. Diese eintragen
 
 | Name | Wert | Pflicht? | Geheim? |
 |------|------|----------|---------|
-| `ANTHROPIC_API_KEY` | dein Anthropic-API-Key (console.anthropic.com) | **ja** | **geheim** |
-| `ANTHROPIC_MODEL` | `claude-sonnet-4-6` | optional (Default vorhanden) | nein |
+| `GEMINI_API_KEY` | dein Google-AI-Studio-Key (aistudio.google.com/app/apikey) | **ja** | **geheim** |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | optional (Default vorhanden) | nein |
 | `NEXT_PUBLIC_APP_URL` | die Vercel-URL (nach 1. Deploy bekannt — siehe Schritt 5) | **ja** | nein |
 | `NEXT_PUBLIC_DROPBOX_APP_KEY` | dein Dropbox-App-Key | nur für Cloud-Import/-Export | nein (öffentlich) |
 | `SITE_USER` | z. B. `demo` | für das Zugangs-Gate | nein |
 | `SITE_PASSWORD` | ein selbst gewähltes Passwort | **für das Gate** | **geheim** |
+| `ANTHROPIC_API_KEY` | — | **nicht mehr nötig** (nur für Eval-Skripte) | — |
 
 **Nicht setzen / weglassen:**
 - `VIPSTHUMBNAIL_PATH` — der Windows-Pfad existiert auf dem Linux-Host nicht;
@@ -79,13 +80,15 @@ In Vercel: **Project → Settings → Environment Variables**. Diese eintragen
 
 ---
 
-## Schritt 4 — Kostendeckel bei Anthropic setzen (wichtig!)
+## Schritt 4 — Kostendeckel bei Google setzen (wichtig!)
 
-Der Analyse-Endpoint kostet pro Nutzung Anthropic-Guthaben. Auch mit Passwort-
-Gate gilt: **Spending-Limit setzen** als harte Obergrenze.
+Der Analyse-Endpoint kostet pro Nutzung Google-Cloud-Guthaben (Gemini 2.5
+Flash: ~$0.30 Input / $2.50 Output pro 1M Tokens — für PicCurate ca. $0.0005
+pro Foto). Auch mit Passwort-Gate gilt: **Budget-Alarm setzen** als harte
+Obergrenze.
 
-- console.anthropic.com → **Settings → Limits / Billing** → ein monatliches
-  Limit festlegen. So ist der maximale Schaden gedeckelt, egal was passiert.
+- Google Cloud Console → **Billing → Budgets & alerts** → neues Budget mit
+  Alarm bei 50 %/90 %/100 % des Monatsbetrages.
 
 ---
 
@@ -176,6 +179,6 @@ Vercel deployt jeden Push automatisch neu.
 - **Falsche Links in Sitemap/Cloud-Redirect?** `NEXT_PUBLIC_APP_URL` stimmt
   nicht mit der echten URL überein → korrigieren + neu deployen.
 - **Rate-Limit** auf `/api/analyze-demo` ist In-Memory (pro Server-Instanz,
-  best-effort) — der echte Kostendeckel ist das Anthropic-Spending-Limit.
+  best-effort) — der echte Kostendeckel ist das Google-Cloud-Budget.
 - **Kosten-/Missbrauchsschutz** insgesamt: siehe `docs/product-pipeline.md`
   §4.2.1 (Free-Tier-Blocker, noch nicht durchgesetzt).
