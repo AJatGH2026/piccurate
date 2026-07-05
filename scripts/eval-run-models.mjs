@@ -29,7 +29,10 @@ const MANIFEST = join(process.cwd(), 'public', 'eval', 'manifest.json');
 const THUMB_FS = join(process.cwd(), 'public');
 const EVAL_DIR = join(process.cwd(), '.eval');
 const BATCH = 20;
-const CONCURRENCY = Number(process.env.EVAL_CONCURRENCY || 5);
+const CONCURRENCY_DEFAULT = Number(process.env.EVAL_CONCURRENCY || 5);
+// Google Gemini free tier is 5 RPM for gemini-2.5-flash → run serial there.
+// Anthropic/OpenAI happily handle 5 in flight.
+const CONCURRENCY_BY_PROVIDER = { anthropic: CONCURRENCY_DEFAULT, openai: CONCURRENCY_DEFAULT, google: 1 };
 const LIMIT = process.env.EVAL_LIMIT ? Number(process.env.EVAL_LIMIT) : null;
 
 // Provider adapters (below). Prices in USD per 1M tokens; cache rates are
@@ -289,26 +292,41 @@ async function runPool(count, concurrency, worker) {
   await Promise.all(Array.from({ length: Math.min(concurrency, count) }, loop));
 }
 
+// Parse a "retry after N seconds" hint from a provider error (Google's 429
+// includes retryDelay: "38s"; OpenAI puts Retry-After in a header we don't
+// easily reach here — fall back to a fixed delay for those).
+function retryDelayMs(err) {
+  const msg = err?.message || '';
+  const m = msg.match(/retryDelay["':\s]+"?(\d+(?:\.\d+)?)s/i) || msg.match(/retry in (\d+(?:\.\d+)?)s/i);
+  if (m) return Math.ceil(Number(m[1]) * 1000);
+  // Any 429 without hint → assume 30s.
+  if (/429|rate[_-]?limit|RESOURCE_EXHAUSTED/i.test(msg)) return 30_000;
+  return 2_000;
+}
+
 async function runModel(model, manifest) {
   const adapter = providers[model.provider];
   const client = adapter.make();
-  console.log(`\n=== ${model.key}  (${model.provider}:${model.id}, concurrency ${CONCURRENCY}) ===`);
+  const concurrency = CONCURRENCY_BY_PROVIDER[model.provider] ?? CONCURRENCY_DEFAULT;
+  console.log(`\n=== ${model.key}  (${model.provider}:${model.id}, concurrency ${concurrency}) ===`);
   const results = {};
   const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
   const t0 = Date.now();
   const nBatches = Math.ceil(manifest.length / BATCH);
   let doneCount = 0;
 
-  await runPool(nBatches, CONCURRENCY, async (b) => {
+  await runPool(nBatches, concurrency, async (b) => {
     const batch = manifest.slice(b * BATCH, (b + 1) * BATCH);
     const userPrompt = buildUserPrompt(batch);
     let out;
-    for (let attempt = 0; attempt < 2; attempt++) {
+    const MAX_ATTEMPTS = 5;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       try { out = await adapter.runBatch(client, model, batch, userPrompt); break; }
       catch (err) {
-        console.warn(`  batch ${b + 1} attempt ${attempt + 1} failed: ${err.message}`);
-        if (attempt === 1) throw err;
-        await new Promise((r) => setTimeout(r, 2000));
+        const delay = retryDelayMs(err);
+        console.warn(`  batch ${b + 1} attempt ${attempt + 1} failed (retry in ${Math.round(delay / 1000)}s): ${err.message.slice(0, 200)}`);
+        if (attempt === MAX_ATTEMPTS - 1) throw err;
+        await new Promise((r) => setTimeout(r, delay));
       }
     }
     usage.input += out.usage.input;
