@@ -98,13 +98,26 @@ export function isHEIC(file: File): boolean {
   );
 }
 
+// Vercel's serverless functions cap the request body at 4.5 MB across all
+// plans. Modern iPhone HEICs regularly exceed that (5–15 MB is common), so
+// larger files bypass the server and are decoded entirely in the browser
+// via heic2any (libheif WASM). Slower per file but no size limit and no
+// server timeout risk.
+const VERCEL_BODY_LIMIT = 4 * 1024 * 1024; // 4 MB — leaves a small margin under Vercel's 4.5 MB
+
 /**
- * Convert a HEIC/HEIF file to JPEG thumbnail via the server-side /api/convert endpoint.
- * With ?thumbnail=1 (default), the server returns a 512×512 JPEG directly —
- * no further client-side resize needed. This avoids sending a multi-MB
- * full-resolution JPEG over the wire.
+ * Convert a HEIC/HEIF file to a JPEG (thumbnail by default).
+ *
+ * Small files → server-side (fast, uses native libvips / WASM depending on
+ * host). Large files → in-browser fallback (slower but works around Vercel's
+ * body-size cap that returns HTTP 413).
  */
 export async function convertHEICtoJPEG(file: File, thumbnail = true): Promise<Blob> {
+  // Big HEICs go straight to the browser fallback — no wasted server round trip.
+  if (file.size > VERCEL_BODY_LIMIT) {
+    return convertHEICInBrowser(file, thumbnail);
+  }
+
   const url = thumbnail ? '/api/convert?thumbnail=1' : '/api/convert?thumbnail=0';
   const response = await fetch(url, {
     method: 'POST',
@@ -113,13 +126,39 @@ export async function convertHEICtoJPEG(file: File, thumbnail = true): Promise<B
   });
 
   if (!response.ok) {
+    // 413 = Vercel's body limit hit us anyway (unlikely at this point since
+    // we pre-checked, but small margin errors happen). Fall back to browser.
+    if (response.status === 413) return convertHEICInBrowser(file, thumbnail);
     const err = await response.json().catch(() => ({ error: response.statusText }));
     throw new Error(`HEIC conversion failed: ${err.error || response.statusText}`);
   }
 
   const blob = await response.blob();
-  if (blob.size === 0) {
-    throw new Error('HEIC conversion produced empty result');
-  }
+  if (blob.size === 0) throw new Error('HEIC conversion produced empty result');
   return blob;
+}
+
+/**
+ * Decode a HEIC file entirely in the browser using libheif (WASM). The lib is
+ * ~300 KB gzipped, so we lazy-load it — only downloaded when a large HEIC
+ * actually needs it. Result is optionally resized to the standard thumbnail
+ * size via generateThumbnail (which shares the orientation-safe pipeline).
+ */
+async function convertHEICInBrowser(file: File, thumbnail: boolean): Promise<Blob> {
+  // heic2any is UMD; the default export is the async decoder function.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const heic2any = (await import('heic2any')).default as (opts: {
+    blob: Blob;
+    toType?: string;
+    quality?: number;
+  }) => Promise<Blob | Blob[]>;
+
+  const decoded = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
+  // Some heic2any versions return an array (multi-frame HEICs) — take the first.
+  const jpegBlob = Array.isArray(decoded) ? decoded[0] : decoded;
+  if (!jpegBlob || jpegBlob.size === 0) throw new Error('HEIC conversion produced empty result');
+
+  // Thumbnail? Resize + orientation-normalize via the existing pipeline.
+  if (thumbnail) return generateThumbnail(jpegBlob);
+  return jpegBlob;
 }
