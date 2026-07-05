@@ -231,7 +231,11 @@ function generateReasonTag(photo: ProcessedPhoto): string {
  * of clusters (each an array of photos). Falls back to singletons if no pHash.
  */
 function detectSeries(photos: ProcessedPhoto[], criteria: CriteriaConfig): ProcessedPhoto[][] {
-  const GAP_S = 10;
+  // Widened from 10s to 20s after tester feedback: burst shots often extend
+  // beyond 10s when the photographer repositions between frames. pHash still
+  // guards against false merges (visually distinct shots taken close in time
+  // stay separate).
+  const GAP_S = 20;
   const D = 6 + (criteria.dedupSensitivity || 8); // dedupSensitivity 1-10 → distance 7-16
   const sorted = [...photos].sort((a, b) => (a.dateTaken || '').localeCompare(b.dateTaken || ''));
   const clusters: ProcessedPhoto[][] = [];
