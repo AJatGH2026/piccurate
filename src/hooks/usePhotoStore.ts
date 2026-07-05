@@ -88,9 +88,14 @@ function matchesMotif(p: ProcessedPhoto, key: MotifKey): boolean {
   const scene = mergeScene(p.sceneType);
   switch (key) {
     case 'preferFaces':
-      return p.faceCount > 0;
+      // Any photo the model marked as people/street counts, even if the face
+      // detector didn't flag it (e.g. distant silhouettes, backs of heads).
+      return p.faceCount > 0 || scene === 'people' || scene === 'street';
     case 'preferAnimals':
-      return p.hasAnimal;
+      // Same story for animals: primary=animal is a stronger signal than
+      // animal_analysis.present, which Gemini leaves false surprisingly often
+      // even on obvious animal shots.
+      return p.hasAnimal || scene === 'animal';
     case 'preferLandscapes':
       // Classic scenery only — beach is excluded to keep this clean.
       return scene === 'landscape' || scene === 'mountain';

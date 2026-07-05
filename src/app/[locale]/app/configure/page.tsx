@@ -175,17 +175,6 @@ export default function ConfigurePage() {
               {criteria.selectionPercentage}%
             </span>
           </div>
-          {/* Live estimate — helps the user see whether the slider actually
-              matches the resulting selection size. Approx (ignores negative
-              custom-term pool filtering, but good enough as a sanity check). */}
-          {photos.length > 0 && (
-            <p className="mt-2 text-xs text-zinc-500">
-              {t('selectionEstimate', {
-                n: Math.max(1, Math.round(photos.filter((p) => !p.saved).length * (criteria.selectionPercentage / 100))),
-                total: photos.filter((p) => !p.saved).length,
-              })}
-            </p>
-          )}
         </div>
 
         {/* Sharpness — a frame parameter like size + duplicates, so no toggle
