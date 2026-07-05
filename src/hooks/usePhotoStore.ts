@@ -360,15 +360,19 @@ function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig, person
   const exclusivePersons = includePersons.filter((p) => p.weight >= 1);
   let selectedIds: Set<string>;
   if (exclusive.length > 0 || exclusiveCustom.length > 0 || exclusivePersons.length > 0) {
-    // Filter: only reps matching ANY maxed motif OR maxed positive custom term
-    // OR maxed reference person, then keep the best up to the cap.
+    // Filter mode ("only these"): take ALL reps matching ANY maxed motif OR
+    // maxed positive custom term OR maxed reference person. The N%-cap does
+    // NOT apply — an exclusive slider is an explicit "give me every photo
+    // with this attribute" ask; capping it would silently drop obvious
+    // matches, which surprised the user. Series-collapse still runs so
+    // burst duplicates don't flood the result.
     const eligible = reps.filter(
       (p) =>
         exclusive.some((k) => matchesMotif(p, k)) ||
         exclusiveCustom.some((c) => matchesCustom(p, c.term)) ||
         exclusivePersons.some((person) => matchesPerson(p, person.name))
     );
-    selectedIds = new Set(eligible.slice(0, cap).map((p) => p.id));
+    selectedIds = new Set(eligible.map((p) => p.id));
   } else {
     // Balanced/biased: top N% of the pool.
     selectedIds = new Set(reps.slice(0, cap).map((p) => p.id));
