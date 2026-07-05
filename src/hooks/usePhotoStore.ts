@@ -143,10 +143,9 @@ function computeScore(photo: ProcessedPhoto, criteria: CriteriaConfig): number {
   // Base = holistic keep-worthiness (album_score, ~0–10).
   let score = photo.albumScore;
 
-  // Sharpness is a quality modifier, never a filter.
-  if (criteria.preferSharpness.enabled) {
-    score += photo.sharpnessScore * criteria.preferSharpness.weight * 0.5;
-  }
+  // Sharpness is a frame parameter (no toggle in the UI, like size + dedup):
+  // always applied; strength controlled by the slider weight.
+  score += photo.sharpnessScore * criteria.preferSharpness.weight * 0.5;
 
   // Motif bias: a matching photo gets a STRONG, weight-scaled bonus
   // (weight 0.1–1.0 → +1…+10 on a 0–10 base), so the sliders move the

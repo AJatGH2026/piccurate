@@ -177,9 +177,28 @@ export default function ConfigurePage() {
           </div>
         </div>
 
-        {/* Sharpness (quality modifier, not a motif) */}
-        <div className="mt-4 space-y-4">
-          {renderCriterion(criteriaItems.find((it) => it.key === 'preferSharpness')!)}
+        {/* Sharpness — a frame parameter like size + duplicates, so no toggle
+            (visually consistent with the other two rails). Always applied;
+            the slider tunes how strongly sharp photos are preferred. */}
+        <div className="mt-4 p-4 rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+          <h3 className="font-medium text-zinc-900 dark:text-zinc-100">{t('sharpness')}</h3>
+          <p className="text-sm text-zinc-500 mt-0.5">{t('sharpnessDesc')}</p>
+          <div className="mt-3 flex items-center gap-3">
+            <span className="text-xs text-zinc-400">{t('low')}</span>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              step="1"
+              value={Math.max(1, Math.round(criteria.preferSharpness.weight * 10))}
+              onChange={(e) => setWeight('preferSharpness', Number(e.target.value) / 10)}
+              className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
+            />
+            <span className="text-xs text-zinc-400">{t('high')}</span>
+            <span className="text-xs font-medium text-indigo-600 w-8 text-right">
+              {Math.max(1, Math.round(criteria.preferSharpness.weight * 10))}
+            </span>
+          </div>
         </div>
 
         {/* Dedup sensitivity slider */}
