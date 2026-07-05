@@ -60,9 +60,14 @@ export async function POST(request: NextRequest) {
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
+    // Diagnostic: never log the key itself, but expose enough to distinguish
+    // "not set at all" from "set but on the wrong environment" in Vercel logs.
+    console.log(
+      `[Demo Analyze] GEMINI_API_KEY set: ${!!apiKey} length: ${apiKey?.length ?? 0} — NODE_ENV: ${process.env.NODE_ENV} VERCEL_ENV: ${process.env.VERCEL_ENV ?? '(local)'}`
+    );
     if (!apiKey || apiKey === 'placeholder') {
       return NextResponse.json(
-        { error: 'GEMINI_API_KEY is not configured on the server.' },
+        { error: 'GEMINI_API_KEY is not configured on the server. Check Vercel → Settings → Environment Variables (Production).' },
         { status: 500 }
       );
     }
