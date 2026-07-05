@@ -34,8 +34,8 @@
     "step2Title": "AI Analyses",
     "step2Desc": "Our AI rates composition, faces, landscapes, animals, duplicates and more — in seconds — and proposes a selection. Add your own criteria (e.g. “dog”) once, before the analysis; afterwards just move the sliders to rebalance.",
     "step3Title": "Review & Adjust",
-    "step3Desc": "Your selected photos are sorted by date. Confirm them, or re-select with different criteria — until your preferred set is ready.",
-    "step4Title": "Download or Print",
+    "step3Desc": "Based on your criteria and target count, the AI proposes a selection. Confirm the photos, re-select with different criteria, or add/remove individual shots — as long and as often as you like, until your preferred set is ready. The chosen photos are sorted by date and location.",
+    "step4Title": "Download and use",
     "step4Desc": "Download your selection as a ZIP to keep it locally or in the cloud. You can also use that set directly to create a photo book."
   },
   "showcase": {

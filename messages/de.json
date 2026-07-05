@@ -34,8 +34,8 @@
     "step2Title": "KI analysiert",
     "step2Desc": "Unsere KI bewertet Komposition, Gesichter, Landschaften, Tiere, Duplikate und mehr — in Sekunden — und schlägt eine Auswahl vor. Eigene Kriterien (z. B. „Hund“) legst du einmal vor der Analyse fest; Schwerpunkte verschiebst du danach beliebig per Schieberegler.",
     "step3Title": "Prüfen & Anpassen",
-    "step3Desc": "Die ausgewählten Fotos werden nach Datum sortiert. Du kannst sie bestätigen oder mit veränderten Kriterien neu auswählen — so lange, bis deine bevorzugte Auswahl steht.",
-    "step4Title": "Herunterladen oder Drucken",
+    "step3Desc": "Auf Basis deiner Kriterien und Mengeneinstellung macht KI einen Auswahlvorschlag. Du kannst die Fotos bestätigen, mit veränderten Kriterien neu auswählen, oder einzelne Fotos aus- oder abwählen — so lange und so viele, bis deine bevorzugte Auswahl steht. Dabei werden die ausgewählten Fotos nach Datum und Ort sortiert.",
+    "step4Title": "Herunterladen und Weiterverwenden",
     "step4Desc": "Lade deine Auswahl als ZIP herunter, um sie lokal oder in der Cloud zu speichern. Diese Auswahl kannst du dann direkt für ein Fotobuch verwenden."
   },
   "showcase": {

@@ -152,8 +152,59 @@ export default function ConfigurePage() {
           </button>
         </div>
 
+        {/* Maximum selection size */}
+        <div className="mt-8 p-4 rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+          <h3 className="font-medium text-zinc-900 dark:text-zinc-100">
+            {t('selectionPercentage')}
+          </h3>
+          <p className="text-sm text-zinc-500 mt-0.5">
+            {t('selectionPercentageDesc', { value: criteria.selectionPercentage })}
+          </p>
+          <div className="mt-3 flex items-center gap-3">
+            <span className="text-xs text-zinc-400">1%</span>
+            <input
+              type="range"
+              min="1"
+              max="30"
+              value={criteria.selectionPercentage}
+              onChange={(e) => updateCriterion('selectionPercentage', Number(e.target.value))}
+              className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
+            />
+            <span className="text-xs text-zinc-400">30%</span>
+            <span className="text-xs font-medium text-indigo-600 w-8">
+              {criteria.selectionPercentage}%
+            </span>
+          </div>
+        </div>
+
+        {/* Sharpness (quality modifier, not a motif) */}
+        <div className="mt-4 space-y-4">
+          {renderCriterion(criteriaItems.find((it) => it.key === 'preferSharpness')!)}
+        </div>
+
+        {/* Dedup sensitivity slider */}
+        <div className="mt-4 p-4 rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+          <h3 className="font-medium text-zinc-900 dark:text-zinc-100">{t('dedup')}</h3>
+          <p className="text-sm text-zinc-500 mt-0.5">{t('dedupDesc')}</p>
+          <div className="mt-3 flex items-center gap-3">
+            <span className="text-xs text-zinc-400">{t('lenient')}</span>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              value={criteria.dedupSensitivity}
+              onChange={(e) => updateCriterion('dedupSensitivity', Number(e.target.value))}
+              className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
+            />
+            <span className="text-xs text-zinc-400">{t('strict')}</span>
+            <span className="text-xs font-medium text-indigo-600 w-8">
+              {criteria.dedupSensitivity}
+            </span>
+          </div>
+        </div>
+
         {/* Motif criteria: people, animals, landscapes, architecture, food */}
-        <div className="mt-8 space-y-4">
+        <div className="mt-4 space-y-4">
           {criteriaItems.filter((it) => it.key !== 'preferSharpness').map(renderCriterion)}
         </div>
 
@@ -232,57 +283,6 @@ export default function ConfigurePage() {
           <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
             {hasAnalyzed ? t('customLockedNote') : t('customSetupHint')}
           </p>
-        </div>
-
-        {/* Sharpness (quality modifier, not a motif) */}
-        <div className="mt-4 space-y-4">
-          {renderCriterion(criteriaItems.find((it) => it.key === 'preferSharpness')!)}
-        </div>
-
-        {/* Dedup sensitivity slider */}
-        <div className="mt-4 p-4 rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
-          <h3 className="font-medium text-zinc-900 dark:text-zinc-100">{t('dedup')}</h3>
-          <p className="text-sm text-zinc-500 mt-0.5">{t('dedupDesc')}</p>
-          <div className="mt-3 flex items-center gap-3">
-            <span className="text-xs text-zinc-400">{t('lenient')}</span>
-            <input
-              type="range"
-              min="1"
-              max="10"
-              value={criteria.dedupSensitivity}
-              onChange={(e) => updateCriterion('dedupSensitivity', Number(e.target.value))}
-              className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
-            />
-            <span className="text-xs text-zinc-400">{t('strict')}</span>
-            <span className="text-xs font-medium text-indigo-600 w-8">
-              {criteria.dedupSensitivity}
-            </span>
-          </div>
-        </div>
-
-        {/* Maximum selection size */}
-        <div className="mt-4 p-4 rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
-          <h3 className="font-medium text-zinc-900 dark:text-zinc-100">
-            {t('selectionPercentage')}
-          </h3>
-          <p className="text-sm text-zinc-500 mt-0.5">
-            {t('selectionPercentageDesc', { value: criteria.selectionPercentage })}
-          </p>
-          <div className="mt-3 flex items-center gap-3">
-            <span className="text-xs text-zinc-400">5%</span>
-            <input
-              type="range"
-              min="5"
-              max="15"
-              value={criteria.selectionPercentage}
-              onChange={(e) => updateCriterion('selectionPercentage', Number(e.target.value))}
-              className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
-            />
-            <span className="text-xs text-zinc-400">15%</span>
-            <span className="text-xs font-medium text-indigo-600 w-8">
-              {criteria.selectionPercentage}%
-            </span>
-          </div>
         </div>
 
         {/* Live selection-mode summary */}

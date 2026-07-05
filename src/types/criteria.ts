@@ -20,7 +20,7 @@ export interface CriteriaConfig {
   preferSharpness: Criterion;
   /** User-defined terms the AI tags during analysis; behave like motif criteria. */
   customCriteria: CustomCriterion[];
-  /** Percentage of photos to select (5-15, default 8) */
+  /** Percentage of photos to select (1-30, default 8) */
   selectionPercentage: number;
   /** How aggressively to collapse near-duplicate series (1-10, default 8) */
   dedupSensitivity: number;
