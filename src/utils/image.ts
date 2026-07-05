@@ -139,23 +139,16 @@ export async function convertHEICtoJPEG(file: File, thumbnail = true): Promise<B
 }
 
 /**
- * Decode a HEIC file entirely in the browser using libheif (WASM). The lib is
- * ~300 KB gzipped, so we lazy-load it — only downloaded when a large HEIC
- * actually needs it. Result is optionally resized to the standard thumbnail
- * size via generateThumbnail (which shares the orientation-safe pipeline).
+ * Decode a HEIC file entirely in the browser using libheif-js via heic-to.
+ * The lib bundles an up-to-date libheif WASM (~400 KB gzipped), lazy-loaded
+ * — only downloaded when a large HEIC actually needs it. We picked heic-to
+ * over heic2any because the latter is unmaintained since 2021 and chokes on
+ * newer iOS HEIC encoding variants ("ERR_LIBHEIF format not supported").
  */
 async function convertHEICInBrowser(file: File, thumbnail: boolean): Promise<Blob> {
-  // heic2any is UMD; the default export is the async decoder function.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const heic2any = (await import('heic2any')).default as (opts: {
-    blob: Blob;
-    toType?: string;
-    quality?: number;
-  }) => Promise<Blob | Blob[]>;
-
-  const decoded = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
-  // Some heic2any versions return an array (multi-frame HEICs) — take the first.
-  const jpegBlob = Array.isArray(decoded) ? decoded[0] : decoded;
+  const { heicTo } = await import('heic-to');
+  const decoded = await heicTo({ blob: file, type: 'image/jpeg', quality: 0.85 });
+  const jpegBlob: Blob = decoded instanceof Blob ? decoded : new Blob([decoded]);
   if (!jpegBlob || jpegBlob.size === 0) throw new Error('HEIC conversion produced empty result');
 
   // Thumbnail? Resize + orientation-normalize via the existing pipeline.
