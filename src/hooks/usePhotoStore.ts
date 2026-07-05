@@ -231,12 +231,14 @@ function generateReasonTag(photo: ProcessedPhoto): string {
  * of clusters (each an array of photos). Falls back to singletons if no pHash.
  */
 function detectSeries(photos: ProcessedPhoto[], criteria: CriteriaConfig): ProcessedPhoto[][] {
-  // Widened from 10s to 20s after tester feedback: burst shots often extend
-  // beyond 10s when the photographer repositions between frames. pHash still
-  // guards against false merges (visually distinct shots taken close in time
-  // stay separate).
-  const GAP_S = 20;
-  const D = 6 + (criteria.dedupSensitivity || 8); // dedupSensitivity 1-10 → distance 7-16
+  // Both the time window AND the pHash distance now scale with the Duplicates
+  // slider — "lenient" means loose on both, "strict" means aggressive on both.
+  // Slider 1  → GAP_S =  0s, D =  7  (basically only exact duplicates)
+  // Slider 8  → GAP_S = 23s, D = 14  (default, roughly matches the old 20s)
+  // Slider 10 → GAP_S = 30s, D = 16  (aggressive burst collapsing)
+  const s = Math.max(1, Math.min(10, criteria.dedupSensitivity || 8));
+  const GAP_S = Math.round(((s - 1) * 30) / 9);
+  const D = 6 + s;
   const sorted = [...photos].sort((a, b) => (a.dateTaken || '').localeCompare(b.dateTaken || ''));
   const clusters: ProcessedPhoto[][] = [];
   let cur: ProcessedPhoto[] = [];

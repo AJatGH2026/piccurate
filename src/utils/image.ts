@@ -111,11 +111,19 @@ const VERCEL_BODY_LIMIT = 4 * 1024 * 1024; // 4 MB — leaves a small margin und
  * Small files → server-side (fast, uses native libvips / WASM depending on
  * host). Large files → in-browser fallback (slower but works around Vercel's
  * body-size cap that returns HTTP 413).
+ *
+ * `orientation` is the EXIF orientation of the source HEIC (from extractEXIF).
+ * Needed for the browser fallback: heic-to strips EXIF without baking the
+ * rotation into the pixels, so photos come out sideways otherwise.
  */
-export async function convertHEICtoJPEG(file: File, thumbnail = true): Promise<Blob> {
+export async function convertHEICtoJPEG(
+  file: File,
+  thumbnail = true,
+  orientation: number | null = null
+): Promise<Blob> {
   // Big HEICs go straight to the browser fallback — no wasted server round trip.
   if (file.size > VERCEL_BODY_LIMIT) {
-    return convertHEICInBrowser(file, thumbnail);
+    return convertHEICInBrowser(file, thumbnail, orientation);
   }
 
   const url = thumbnail ? '/api/convert?thumbnail=1' : '/api/convert?thumbnail=0';
@@ -128,7 +136,7 @@ export async function convertHEICtoJPEG(file: File, thumbnail = true): Promise<B
   if (!response.ok) {
     // 413 = Vercel's body limit hit us anyway (unlikely at this point since
     // we pre-checked, but small margin errors happen). Fall back to browser.
-    if (response.status === 413) return convertHEICInBrowser(file, thumbnail);
+    if (response.status === 413) return convertHEICInBrowser(file, thumbnail, orientation);
     const err = await response.json().catch(() => ({ error: response.statusText }));
     throw new Error(`HEIC conversion failed: ${err.error || response.statusText}`);
   }
@@ -144,14 +152,76 @@ export async function convertHEICtoJPEG(file: File, thumbnail = true): Promise<B
  * — only downloaded when a large HEIC actually needs it. We picked heic-to
  * over heic2any because the latter is unmaintained since 2021 and chokes on
  * newer iOS HEIC encoding variants ("ERR_LIBHEIF format not supported").
+ *
+ * Orientation: heic-to strips the EXIF orientation but doesn't bake the
+ * rotation into the pixels, so we do that manually here if the source HEIC
+ * had a non-trivial orientation. The result is an upright JPEG without EXIF
+ * — generateThumbnail's "from-image" auto-rotate is then a no-op.
  */
-async function convertHEICInBrowser(file: File, thumbnail: boolean): Promise<Blob> {
+async function convertHEICInBrowser(
+  file: File,
+  thumbnail: boolean,
+  orientation: number | null
+): Promise<Blob> {
   const { heicTo } = await import('heic-to');
   const decoded = await heicTo({ blob: file, type: 'image/jpeg', quality: 0.85 });
-  const jpegBlob: Blob = decoded instanceof Blob ? decoded : new Blob([decoded]);
+  let jpegBlob: Blob = decoded instanceof Blob ? decoded : new Blob([decoded]);
   if (!jpegBlob || jpegBlob.size === 0) throw new Error('HEIC conversion produced empty result');
 
-  // Thumbnail? Resize + orientation-normalize via the existing pipeline.
+  if (orientation && orientation > 1) {
+    jpegBlob = await rotateBlobByExif(jpegBlob, orientation);
+  }
+
+  // Thumbnail? Resize via the existing pipeline. Since we've already baked the
+  // rotation into the pixels, from-image finds no EXIF and stays a no-op.
   if (thumbnail) return generateThumbnail(jpegBlob);
   return jpegBlob;
+}
+
+/**
+ * Rotate an image blob according to an EXIF orientation value (2–8) and
+ * return a new JPEG blob with the rotation baked into pixels. Uses
+ * OffscreenCanvas when available, falls back to a document canvas.
+ */
+async function rotateBlobByExif(blob: Blob, orientation: number): Promise<Blob> {
+  // `none` = decode as-is, don't let the browser apply any EXIF (heic-to's
+  // output usually has none anyway, but be defensive).
+  const bmp = await createImageBitmap(blob, { imageOrientation: 'none' });
+  const swap = orientation >= 5 && orientation <= 8;
+  const w = bmp.width;
+  const h = bmp.height;
+  const cw = swap ? h : w;
+  const ch = swap ? w : h;
+
+  const canvas: OffscreenCanvas | HTMLCanvasElement =
+    typeof OffscreenCanvas !== 'undefined'
+      ? new OffscreenCanvas(cw, ch)
+      : Object.assign(document.createElement('canvas'), { width: cw, height: ch });
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
+  if (!ctx) throw new Error('Failed to get canvas context for rotation');
+
+  // Standard EXIF orientation → affine transform.
+  switch (orientation) {
+    case 2: ctx.transform(-1, 0, 0, 1, w, 0); break;                   // horizontal flip
+    case 3: ctx.transform(-1, 0, 0, -1, w, h); break;                  // rotate 180
+    case 4: ctx.transform(1, 0, 0, -1, 0, h); break;                   // vertical flip
+    case 5: ctx.transform(0, 1, 1, 0, 0, 0); break;                    // transpose
+    case 6: ctx.transform(0, 1, -1, 0, h, 0); break;                   // rotate 90 CW
+    case 7: ctx.transform(0, -1, -1, 0, h, w); break;                  // transverse
+    case 8: ctx.transform(0, -1, 1, 0, 0, w); break;                   // rotate 90 CCW
+    default: break;
+  }
+  ctx.drawImage(bmp, 0, 0);
+  bmp.close();
+
+  if (canvas instanceof OffscreenCanvas) {
+    return canvas.convertToBlob({ type: 'image/jpeg', quality: 0.85 });
+  }
+  return await new Promise<Blob>((resolve, reject) => {
+    (canvas as HTMLCanvasElement).toBlob(
+      (b) => (b ? resolve(b) : reject(new Error('Canvas toBlob returned null'))),
+      'image/jpeg',
+      0.85
+    );
+  });
 }

@@ -62,10 +62,12 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
       let thumbnailBlob: Blob;
 
       if (isHEIC(photo.file)) {
-        // HEIC fast path: server converts AND resizes to 512×512 in one call
+        // HEIC path: small files use the server (fast, sharp handles EXIF
+        // orientation itself). Large files fall back to the browser via
+        // heic-to, which strips EXIF without baking the rotation — we pass
+        // the extracted orientation through so it can be applied there.
         updatePhoto(photo.id, { status: 'generating', exif });
-        thumbnailBlob = await convertHEICtoJPEG(photo.file);
-        // Server already returns a 512×512 thumbnail — no client resize needed
+        thumbnailBlob = await convertHEICtoJPEG(photo.file, true, exif.orientation);
       } else {
         // JPEG/PNG/WebP: generate thumbnail client-side (fast, no server needed)
         updatePhoto(photo.id, { status: 'generating', exif });
