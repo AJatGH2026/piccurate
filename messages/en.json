@@ -106,6 +106,7 @@
     "diversityDesc": "Ensure a balanced mix of different scene types",
     "selectionPercentage": "Maximum selection size",
     "selectionPercentageDesc": "AI will choose between 1 and up to 30% of all photos.",
+    "selectionEstimate": "≈ {n} of {total} photos (before series collapse)",
     "only": "Only",
     "sliderLegend": "No slider: balanced · 1–9: more of that subject · 10: only that subject",
     "modeBalanced": "Currently: balanced selection (no criterion active).",
