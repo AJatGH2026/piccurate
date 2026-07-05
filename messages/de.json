@@ -118,6 +118,7 @@
     "customRemove": "Löschen",
     "customSetupHint": "Alle gewünschten Begriffe vor dem ersten „Analysieren“ festlegen — danach sind sie für diesen Lauf gesperrt.",
     "customLockedNote": "Eigene Kriterien sind nach der Analyse gesperrt. Für andere Begriffe einen neuen Job starten.",
+    "customFilterActive": "Ausschluss-Filter aktiv — Fotos mit diesem Inhalt werden immer entfernt, unabhängig von anderen Kriterien.",
     "dedup": "Duplikaterkennung",
     "dedupDesc": "Wie aggressiv ähnliche Fotos entfernt werden",
     "presets": "Schnellvorlagen",

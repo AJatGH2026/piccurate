@@ -119,6 +119,17 @@ function matchesCustom(p: ProcessedPhoto, term: string): boolean {
   return !!t && (p.customMatches || []).includes(t);
 }
 
+/**
+ * A custom term is treated as a NEGATIVE (exclusion) criterion if it begins
+ * with a linguistic "no/not/without" marker. The AI already tags such terms
+ * correctly (a photo matches "no snow" when no snow is visible), but the
+ * user's intent is stronger than "prefer": it's "never show me photos with
+ * snow". So we filter the pool on these BEFORE any other criterion runs.
+ */
+export function isNegativeCustom(term: string): boolean {
+  return /^\s*(no|not|kein|keine|ohne)\s+/i.test(term);
+}
+
 /** Hamming distance between two 16-hex (64-bit) perceptual hashes. */
 function hamming(a: string | null, b: string | null): number {
   if (!a || !b || a.length !== b.length) return 99;
@@ -156,8 +167,12 @@ function computeScore(photo: ProcessedPhoto, criteria: CriteriaConfig): number {
       score += c.weight * 10;
     }
   }
-  // User-defined custom criteria behave like motifs.
+  // User-defined POSITIVE custom criteria behave like motifs. Negative
+  // criteria (e.g. "no snow") are handled as a hard pool filter in
+  // runSelection — the scoring step never sees photos that carry the
+  // excluded content, so we can safely ignore negatives here.
   for (const cc of criteria.customCriteria || []) {
+    if (isNegativeCustom(cc.term)) continue;
     if (matchesCustom(photo, cc.term)) {
       score += cc.weight * 10;
     }
@@ -240,8 +255,22 @@ function detectSeries(photos: ProcessedPhoto[], criteria: CriteriaConfig): Proce
  *    MAXIMUM (selectionPercentage). Sliders 1–9 bias the ranking toward a motif.
  */
 function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig): ProcessedPhoto[] {
+  // Split custom criteria into positive (bias/filter) and negative (hard
+  // exclusion). Negatives are applied to the pool FIRST — they always win
+  // over any positive slider, regardless of its value.
+  const customs = criteria.customCriteria || [];
+  const negativeCustoms = customs.filter((c) => isNegativeCustom(c.term));
+  const positiveCustoms = customs.filter((c) => !isNegativeCustom(c.term));
+
   // Saved photos are locked keepers: always selected, excluded from the pool.
-  const pool = photos.filter((p) => !p.saved);
+  // Negative-criterion filter: a photo is kept in the pool only if every
+  // negative term matches it (i.e. the AI confirmed the excluded content is
+  // NOT visible). "no snow" + snow visible → out, unconditionally.
+  const pool = photos.filter((p) => {
+    if (p.saved) return false;
+    for (const nc of negativeCustoms) if (!matchesCustom(p, nc.term)) return false;
+    return true;
+  });
 
   const scored: Record<string, number> = {};
   for (const p of pool) scored[p.id] = computeScore(p, criteria);
@@ -261,11 +290,13 @@ function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig): Proce
   const cap = Math.max(1, Math.round(pool.length * (percentage / 100)));
 
   const exclusive = exclusiveMotifs(criteria);
-  const exclusiveCustom = (criteria.customCriteria || []).filter((c) => c.weight >= 1);
+  // Only positive customs can act as an exclusive filter — negatives already
+  // filtered the pool above.
+  const exclusiveCustom = positiveCustoms.filter((c) => c.weight >= 1);
   let selectedIds: Set<string>;
   if (exclusive.length > 0 || exclusiveCustom.length > 0) {
-    // Filter: only reps matching ANY maxed motif OR maxed custom term, then
-    // keep the best up to the cap (so "10" = only this motif, but still
+    // Filter: only reps matching ANY maxed motif OR maxed positive custom term,
+    // then keep the best up to the cap (so "10" = only this motif, but still
     // bounded by the maximum selection size — fewer if fewer match).
     const eligible = reps.filter(
       (p) =>

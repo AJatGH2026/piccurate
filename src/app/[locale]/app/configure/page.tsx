@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useCriteria } from '@/hooks/useCriteria';
-import { usePhotoStore } from '@/hooks/usePhotoStore';
+import { usePhotoStore, isNegativeCustom } from '@/hooks/usePhotoStore';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -234,42 +234,53 @@ export default function ConfigurePage() {
 
           {customList.length > 0 && (
             <div className="mt-3 space-y-4">
-              {customList.map((c) => (
-                <div key={c.term} className="space-y-2">
-                  {/* Top row: term + remove (remove hidden once analysed) */}
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
-                      {c.term}
-                    </span>
-                    {!hasAnalyzed && (
-                      <button
-                        onClick={() => removeCustom(c.term)}
-                        className="flex-shrink-0 rounded-full border border-zinc-300 dark:border-zinc-600 px-3 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600 dark:hover:bg-red-950/30 transition-colors"
-                        aria-label={t('customRemove')}
-                      >
-                        {t('customRemove')}
-                      </button>
+              {customList.map((c) => {
+                const negative = isNegativeCustom(c.term);
+                return (
+                  <div key={c.term} className="space-y-2">
+                    {/* Top row: term + remove (remove hidden once analysed) */}
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                        {negative && <span className="mr-1" aria-hidden="true">🚫</span>}
+                        {c.term}
+                      </span>
+                      {!hasAnalyzed && (
+                        <button
+                          onClick={() => removeCustom(c.term)}
+                          className="flex-shrink-0 rounded-full border border-zinc-300 dark:border-zinc-600 px-3 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600 dark:hover:bg-red-950/30 transition-colors"
+                          aria-label={t('customRemove')}
+                        >
+                          {t('customRemove')}
+                        </button>
+                      )}
+                    </div>
+                    {/* Bottom row: for negative terms show a filter note
+                        (slider has no effect); for positive terms the usual slider. */}
+                    {negative ? (
+                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                        {t('customFilterActive')}
+                      </p>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-zinc-400">{t('low')}</span>
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          step="1"
+                          value={Math.max(1, Math.round(c.weight * 10))}
+                          onChange={(e) => setCustomWeight(c.term, Number(e.target.value) / 10)}
+                          className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
+                        />
+                        <span className="text-xs text-zinc-400">{t('only')}</span>
+                        <span className="text-xs font-medium text-indigo-600 w-12 text-right">
+                          {c.weight >= 1 ? t('only') : `${Math.round(c.weight * 10)}/10`}
+                        </span>
+                      </div>
                     )}
                   </div>
-                  {/* Bottom row: slider takes the full width */}
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-zinc-400">{t('low')}</span>
-                    <input
-                      type="range"
-                      min="1"
-                      max="10"
-                      step="1"
-                      value={Math.max(1, Math.round(c.weight * 10))}
-                      onChange={(e) => setCustomWeight(c.term, Number(e.target.value) / 10)}
-                      className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
-                    />
-                    <span className="text-xs text-zinc-400">{t('only')}</span>
-                    <span className="text-xs font-medium text-indigo-600 w-12 text-right">
-                      {c.weight >= 1 ? t('only') : `${Math.round(c.weight * 10)}/10`}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
