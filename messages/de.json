@@ -112,7 +112,7 @@
     "modeEmphasis": "Betont: {motifs}.",
     "modeOnly": "Nur: {motifs} (bis zur maximalen Auswahlmenge).",
     "customTitle": "Eigene Kriterien",
-    "customDesc": "Eigene Begriffe (z. B. „Auto“, „Sonnenuntergang“, „Hund“) — bis zu 7.",
+    "customDesc": "Eigene Begriffe (z. B. „Auto“, „Hund“). Ausschlüsse funktionieren auch — etwa „kein Schnee“. Bis zu 7.",
     "customPlaceholder": "Kriterium",
     "customAdd": "Hinzufügen",
     "customRemove": "Löschen",
