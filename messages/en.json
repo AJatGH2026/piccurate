@@ -110,7 +110,7 @@
     "sliderLegend": "No slider: balanced · 1–9: more of that subject · 10: only that subject",
     "modeBalanced": "Currently: balanced selection (no criterion active).",
     "modeEmphasis": "Emphasis on: {motifs}.",
-    "modeOnly": "Only: {motifs} (up to the maximum selection size).",
+    "modeOnly": "Only: {motifs} — every matching photo (series are collapsed).",
     "customTitle": "Your own criteria",
     "customDesc": "Your own terms (e.g. “car”, “dog”). Exclusions work too — for example “no snow”. Up to 7.",
     "customPlaceholder": "Criterion",

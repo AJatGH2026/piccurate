@@ -360,17 +360,25 @@ function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig, person
   const exclusivePersons = includePersons.filter((p) => p.weight >= 1);
   let selectedIds: Set<string>;
   if (exclusive.length > 0 || exclusiveCustom.length > 0 || exclusivePersons.length > 0) {
-    // Filter: only reps matching ANY maxed motif OR maxed positive custom term
-    // OR maxed reference person, then keep the best up to the cap (so "10" =
-    // only this motif, but still bounded by the maximum selection size —
-    // fewer if fewer match).
+    // Filter mode ("only these"): take EVERY rep matching ANY maxed motif OR
+    // maxed positive custom term OR maxed reference person.
+    //
+    // The N%-cap deliberately does NOT apply here. Crucial subtlety: `cap` is
+    // computed on the post-exclusion pool, not the total photo count. When
+    // exclude-mode persons (or negative custom terms) remove most photos, the
+    // pool can shrink to a handful, so `round(pool * 30%)` collapses to 1 — and
+    // that silently truncated obviously-eligible matches (e.g. "only AK"
+    // returning 1 of 3 solo-AK photos on a trip full of the excluded people).
+    // An exclusive slider is an explicit "give me every photo with this" ask,
+    // so we honour all matches. Series-collapse still ran upstream, so bursts
+    // don't flood the result.
     const eligible = reps.filter(
       (p) =>
         exclusive.some((k) => matchesMotif(p, k)) ||
         exclusiveCustom.some((c) => matchesCustom(p, c.term)) ||
         exclusivePersons.some((person) => matchesPerson(p, person.name))
     );
-    selectedIds = new Set(eligible.slice(0, cap).map((p) => p.id));
+    selectedIds = new Set(eligible.map((p) => p.id));
   } else {
     // Balanced/biased: top N% of the pool.
     selectedIds = new Set(reps.slice(0, cap).map((p) => p.id));
