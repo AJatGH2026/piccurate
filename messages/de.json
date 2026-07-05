@@ -110,7 +110,7 @@
     "sliderLegend": "Kein Regler: ausgewogen · 1–9: mehr von dem Motiv · 10: nur dieses Motiv",
     "modeBalanced": "Aktuell: ausgewogene Auswahl (kein Kriterium aktiv).",
     "modeEmphasis": "Betont: {motifs}.",
-    "modeOnly": "Nur: {motifs} — alle passenden Fotos (Serien werden zusammengefasst).",
+    "modeOnly": "Nur: {motifs} (bis zur maximalen Auswahlmenge).",
     "customTitle": "Eigene Kriterien",
     "customDesc": "Eigene Begriffe (z. B. „Auto“, „Hund“). Ausschlüsse funktionieren auch — etwa „kein Schnee“. Bis zu 7.",
     "customPlaceholder": "Kriterium",
