@@ -376,6 +376,32 @@ function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig, person
     selectedIds = new Set(reps.slice(0, cap).map((p) => p.id));
   }
 
+  // TEMP DIAGNOSTIC (feature 5b): when reference persons are in play, dump the
+  // per-photo pipeline state to the browser console so we can see exactly where
+  // a photo is lost — pool → rep → selected. Remove once person selection is
+  // confirmed working.
+  if (persons.length > 0 && typeof window !== 'undefined') {
+    /* eslint-disable no-console */
+    console.groupCollapsed(
+      `[PicCurate] person diag — pool ${pool.length}, reps ${reps.length}, selected ${selectedIds.size}, cap ${cap}`
+    );
+    console.log('include:', includePersons.map((p) => `${p.name}@${Math.round(p.weight * 10)}`).join(', ') || '(none)');
+    console.log('exclude:', excludePersons.map((p) => p.name).join(', ') || '(none)');
+    console.table(
+      photos
+        .filter((p) => !p.saved)
+        .map((p) => ({
+          file: p.filename,
+          persons: (p.persons || []).join(',') || '—',
+          inPool: pool.some((x) => x.id === p.id),
+          isRep: repIds.has(p.id),
+          selected: selectedIds.has(p.id),
+        }))
+    );
+    console.groupEnd();
+    /* eslint-enable no-console */
+  }
+
   return photos.map((p) => {
     if (p.saved) return { ...p, selected: true }; // locked keeper stays in
     return {
