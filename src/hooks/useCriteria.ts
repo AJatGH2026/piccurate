@@ -14,13 +14,40 @@ export function useCriteria() {
   const [criteria, setCriteria] = useState<CriteriaConfig>(DEFAULT_CRITERIA);
   const [loaded, setLoaded] = useState(false);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount. Defensive merge: any Criterion key whose
+  // stored value isn't a proper { enabled, weight } object falls back to the
+  // default — otherwise a stale/corrupt entry (e.g. from an older schema)
+  // could sneak through and make renderCriterion() return null, hiding the
+  // whole card.
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored);
-        setCriteria({ ...DEFAULT_CRITERIA, ...parsed });
+        const parsed = JSON.parse(stored) as Partial<CriteriaConfig>;
+        const merged: CriteriaConfig = { ...DEFAULT_CRITERIA };
+        for (const k of Object.keys(DEFAULT_CRITERIA) as (keyof CriteriaConfig)[]) {
+          const defVal = DEFAULT_CRITERIA[k];
+          const storedVal = parsed[k];
+          if (storedVal === undefined) continue;
+          // Motif/sharpness criteria: only accept a { enabled, weight } object.
+          if (typeof defVal === 'object' && defVal !== null && 'enabled' in defVal) {
+            if (
+              typeof storedVal === 'object' &&
+              storedVal !== null &&
+              'enabled' in storedVal &&
+              'weight' in storedVal
+            ) {
+              (merged[k] as unknown) = storedVal;
+            }
+            continue;
+          }
+          // Scalar / array fields (selectionPercentage, dedupSensitivity,
+          // customCriteria): trust the stored value if types match.
+          if (typeof storedVal === typeof defVal) {
+            (merged[k] as unknown) = storedVal;
+          }
+        }
+        setCriteria(merged);
       }
     } catch {
       // Ignore parse errors
