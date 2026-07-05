@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useCriteria } from '@/hooks/useCriteria';
-import { usePhotoStore, isNegativeCustom } from '@/hooks/usePhotoStore';
+import { usePhotoStore, isNegativeCustom, stripNegativePrefix } from '@/hooks/usePhotoStore';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -336,13 +336,21 @@ export default function ConfigurePage() {
                 // set of terms changed since the last run, already-analysed photos
                 // must be re-analysed to pick them up. Otherwise analysis is
                 // criteria-independent and a re-run is instant & free.
+                // The AI is always asked "is X visible?", never the negation
+                // — a "no snow" term is sent to Gemini as just "snow", and
+                // the client interprets absence-of-tag as "keep" and
+                // presence-of-tag as "exclude". So we strip prefixes here
+                // both for the diff check and for what actually goes to the
+                // model.
                 const currentTerms = (criteria.customCriteria || [])
-                  .map((c) => c.term.toLowerCase().trim())
+                  .map((c) => stripNegativePrefix(c.term).toLowerCase().trim())
                   .filter(Boolean)
                   .sort();
                 const termsChanged =
                   JSON.stringify(currentTerms) !== JSON.stringify([...analyzedCustomTerms].sort());
-                const customTerms = (criteria.customCriteria || []).map((c) => c.term);
+                const customTerms = (criteria.customCriteria || [])
+                  .map((c) => stripNegativePrefix(c.term))
+                  .filter(Boolean);
 
                 const toAnalyze = photos.filter((p) => !p.saved && (!p.analyzed || termsChanged));
 

@@ -118,18 +118,29 @@ function exclusiveMotifs(criteria: CriteriaConfig): MotifKey[] {
   return MOTIF_KEYS.filter((k) => criteria[k].enabled && criteria[k].weight >= 1);
 }
 
-/** Does a photo match a user-defined custom term (AI-tagged during analysis)? */
+/**
+ * Strip a leading "no/not/kein/keine/ohne " from a term, leaving the bare
+ * attribute (e.g. "no snow" → "snow", "kein Schnee" → "Schnee"). Both the
+ * server-side Gemini prompt and the client-side matching operate on this
+ * positive form — the AI is always asked "is X visible?", never "is X not
+ * visible?", which makes its answer well-defined even when the attribute is
+ * irrelevant to a photo (e.g. sunglasses on a tiger picture).
+ */
+export function stripNegativePrefix(term: string): string {
+  return term.replace(/^\s*(no|not|kein|keine|ohne)\s+/i, '').trim();
+}
+
+/** Does a photo carry the (positive) attribute for a custom term? */
 function matchesCustom(p: ProcessedPhoto, term: string): boolean {
-  const t = term.toLowerCase().trim();
+  const t = stripNegativePrefix(term).toLowerCase().trim();
   return !!t && (p.customMatches || []).includes(t);
 }
 
 /**
  * A custom term is treated as a NEGATIVE (exclusion) criterion if it begins
- * with a linguistic "no/not/without" marker. The AI already tags such terms
- * correctly (a photo matches "no snow" when no snow is visible), but the
- * user's intent is stronger than "prefer": it's "never show me photos with
- * snow". So we filter the pool on these BEFORE any other criterion runs.
+ * with a linguistic "no/not/without" marker. Interpretation: exclude photos
+ * where the AI *positively* confirmed the attribute is visible. If the AI
+ * left the tag off (unclear or irrelevant), the photo is kept.
  */
 export function isNegativeCustom(term: string): boolean {
   return /^\s*(no|not|kein|keine|ohne)\s+/i.test(term);
@@ -274,12 +285,14 @@ function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig): Proce
   const positiveCustoms = customs.filter((c) => !isNegativeCustom(c.term));
 
   // Saved photos are locked keepers: always selected, excluded from the pool.
-  // Negative-criterion filter: a photo is kept in the pool only if every
-  // negative term matches it (i.e. the AI confirmed the excluded content is
-  // NOT visible). "no snow" + snow visible → out, unconditionally.
+  // Negative-criterion filter: exclude a photo only if the AI POSITIVELY
+  // confirmed the excluded attribute is visible. If the AI didn't tag it
+  // (unclear or irrelevant — e.g. "no sunglasses" on a tiger photo), the
+  // photo is kept. matchesCustom already strips the "no/kein/…" prefix, so
+  // it asks "is snow visible?" against the AI's positive answer.
   const pool = photos.filter((p) => {
     if (p.saved) return false;
-    for (const nc of negativeCustoms) if (!matchesCustom(p, nc.term)) return false;
+    for (const nc of negativeCustoms) if (matchesCustom(p, nc.term)) return false;
     return true;
   });
 
@@ -416,8 +429,10 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
         for (let i = 0; i < Math.min(results.length, photos.length); i++) apply(i, results[i]);
       }
 
+      // Store the POSITIVE form of each term — that's what Gemini sees and
+      // what shows up in customMatches. Diff check compares like with like.
       const analyzedCustomTerms = (criteria.customCriteria || [])
-        .map((c) => c.term.toLowerCase().trim())
+        .map((c) => stripNegativePrefix(c.term).toLowerCase().trim())
         .filter(Boolean);
       return { photos: runSelection(photos, criteria), analyzedCustomTerms };
     });
