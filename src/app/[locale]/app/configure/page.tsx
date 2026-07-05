@@ -29,6 +29,7 @@ export default function ConfigurePage() {
   const removePerson = usePhotoStore((s) => s.removePerson);
   const renamePerson = usePhotoStore((s) => s.renamePerson);
   const setPersonWeight = usePhotoStore((s) => s.setPersonWeight);
+  const setPersonMode = usePhotoStore((s) => s.setPersonMode);
   const savedCount = photos.filter((p) => p.saved).length;
   const personFileInputRef = useRef<HTMLInputElement | null>(null);
   const [personName, setPersonName] = useState('');
@@ -61,12 +62,16 @@ export default function ConfigurePage() {
   const activeLabels = [
     ...activeMotifs.map((m) => m.label),
     ...customList.map((c) => c.term),
-    ...persons.map((p) => p.name),
+    ...persons.map((p) => (p.mode === 'exclude' ? `🚫 ${p.name}` : p.name)),
   ];
   const maxedLabels = [
     ...activeMotifs.filter((it) => criteria[it.key].weight >= 1).map((m) => m.label),
     ...customList.filter((c) => c.weight >= 1).map((c) => c.term),
-    ...persons.filter((p) => p.weight >= 1).map((p) => p.name),
+    // Include-mode persons at max slider AND exclude-mode persons are both
+    // hard filters and show up in the "only" line.
+    ...persons
+      .filter((p) => p.mode === 'exclude' || p.weight >= 1)
+      .map((p) => (p.mode === 'exclude' ? `🚫 ${p.name}` : p.name)),
   ];
   const selectionMode =
     activeLabels.length === 0
@@ -346,57 +351,96 @@ export default function ConfigurePage() {
 
           {persons.length > 0 && (
             <div className="mt-3 space-y-4">
-              {persons.map((person) => (
-                <div key={person.id} className="flex items-start gap-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={person.thumbnailUrl}
-                    alt={person.name}
-                    className="w-16 h-16 rounded-lg object-cover border border-purple-300 dark:border-purple-700 flex-shrink-0"
-                  />
-                  <div className="flex-1 min-w-0 space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      {hasAnalyzed ? (
-                        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
-                          {person.name}
+              {persons.map((person) => {
+                const isExclude = person.mode === 'exclude';
+                return (
+                  <div key={person.id} className="flex items-start gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={person.thumbnailUrl}
+                      alt={person.name}
+                      className="w-16 h-16 rounded-lg object-cover border border-purple-300 dark:border-purple-700 flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-1 min-w-0 flex-1">
+                          {isExclude && <span aria-hidden="true">🚫</span>}
+                          {hasAnalyzed ? (
+                            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                              {person.name}
+                            </span>
+                          ) : (
+                            <input
+                              value={person.name}
+                              onChange={(e) => renamePerson(person.id, e.target.value)}
+                              className="flex-1 min-w-0 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-1 text-sm"
+                              aria-label={t('personName')}
+                            />
+                          )}
                         </span>
-                      ) : (
-                        <input
-                          value={person.name}
-                          onChange={(e) => renamePerson(person.id, e.target.value)}
-                          className="flex-1 min-w-0 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-1 text-sm"
-                          aria-label={t('personName')}
-                        />
-                      )}
-                      {!hasAnalyzed && (
+                        {!hasAnalyzed && (
+                          <button
+                            onClick={() => removePerson(person.id)}
+                            className="flex-shrink-0 rounded-full border border-zinc-300 dark:border-zinc-600 px-3 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600 dark:hover:bg-red-950/30 transition-colors"
+                            aria-label={t('customRemove')}
+                          >
+                            {t('customRemove')}
+                          </button>
+                        )}
+                      </div>
+                      {/* Mode toggle: include ↔ exclude. Segmented button — the
+                          active side gets the purple fill; the inactive side is
+                          a light outline so it stays clickable but subdued. */}
+                      <div className="inline-flex rounded-full border border-purple-300 dark:border-purple-700 overflow-hidden text-xs">
                         <button
-                          onClick={() => removePerson(person.id)}
-                          className="flex-shrink-0 rounded-full border border-zinc-300 dark:border-zinc-600 px-3 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600 dark:hover:bg-red-950/30 transition-colors"
-                          aria-label={t('customRemove')}
+                          onClick={() => setPersonMode(person.id, 'include')}
+                          className={`px-3 py-1 transition-colors ${
+                            !isExclude
+                              ? 'bg-purple-600 text-white'
+                              : 'text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40'
+                          }`}
                         >
-                          {t('customRemove')}
+                          {t('personModeInclude')}
                         </button>
+                        <button
+                          onClick={() => setPersonMode(person.id, 'exclude')}
+                          className={`px-3 py-1 transition-colors ${
+                            isExclude
+                              ? 'bg-purple-600 text-white'
+                              : 'text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40'
+                          }`}
+                        >
+                          {t('personModeExclude')}
+                        </button>
+                      </div>
+                      {/* Slider (include) OR filter-note (exclude) — same
+                          split we use for positive/negative custom terms. */}
+                      {isExclude ? (
+                        <p className="text-xs text-purple-700 dark:text-purple-300">
+                          {t('personFilterActive', { name: person.name })}
+                        </p>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-zinc-400">{t('low')}</span>
+                          <input
+                            type="range"
+                            min="1"
+                            max="10"
+                            step="1"
+                            value={Math.max(1, Math.round(person.weight * 10))}
+                            onChange={(e) => setPersonWeight(person.id, Number(e.target.value) / 10)}
+                            className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-purple-600"
+                          />
+                          <span className="text-xs text-zinc-400">{t('only')}</span>
+                          <span className="text-xs font-medium text-purple-600 w-12 text-right">
+                            {person.weight >= 1 ? t('only') : `${Math.round(person.weight * 10)}/10`}
+                          </span>
+                        </div>
                       )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-zinc-400">{t('low')}</span>
-                      <input
-                        type="range"
-                        min="1"
-                        max="10"
-                        step="1"
-                        value={Math.max(1, Math.round(person.weight * 10))}
-                        onChange={(e) => setPersonWeight(person.id, Number(e.target.value) / 10)}
-                        className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-purple-600"
-                      />
-                      <span className="text-xs text-zinc-400">{t('only')}</span>
-                      <span className="text-xs font-medium text-purple-600 w-12 text-right">
-                        {person.weight >= 1 ? t('only') : `${Math.round(person.weight * 10)}/10`}
-                      </span>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 

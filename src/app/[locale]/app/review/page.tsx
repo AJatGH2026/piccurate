@@ -19,7 +19,16 @@ export default function ReviewPage() {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const photos = usePhotoStore((s) => s.photos);
+  const persons = usePhotoStore((s) => s.persons);
   const toggleSelection = usePhotoStore((s) => s.toggleSelection);
+
+  // Map lowercased name → original-cased name so the person chips on the
+  // review cards show "Peter" (as typed by the user) rather than "peter"
+  // (as tagged by the LLM). Names of persons removed since analysis are
+  // absent from the map and therefore silently dropped from the chip list.
+  const personNameMap = new Map(persons.map((p) => [p.name.toLowerCase(), p.name]));
+  const displayPersons = (list: string[]) =>
+    list.map((n) => personNameMap.get(n)).filter((n): n is string => !!n);
   const openLightbox = (id: string) => {
     const idx = photos.findIndex((p) => p.id === id);
     if (idx >= 0) setLightboxIndex(idx);
@@ -125,6 +134,7 @@ export default function ReviewPage() {
                           contentTags={photo.contentTags}
                           latitude={photo.latitude}
                           longitude={photo.longitude}
+                          persons={displayPersons(photo.persons || [])}
                           onToggle={() => toggleSelection(photo.id)}
                           onEnlarge={() => openLightbox(photo.id)}
                         />
@@ -150,6 +160,7 @@ export default function ReviewPage() {
                             contentTags={photo.contentTags}
                             latitude={photo.latitude}
                             longitude={photo.longitude}
+                            persons={displayPersons(photo.persons || [])}
                             onToggle={() => toggleSelection(photo.id)}
                             onEnlarge={() => openLightbox(photo.id)}
                           />

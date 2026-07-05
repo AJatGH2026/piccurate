@@ -12,6 +12,8 @@ interface ReviewPhotoCardProps {
   contentTags: string[];
   latitude: number | null;
   longitude: number | null;
+  /** Names of reference persons the AI recognised in this photo (lowercased). */
+  persons?: string[];
   onToggle: () => void;
   onEnlarge?: () => void;
 }
@@ -43,6 +45,7 @@ export function ReviewPhotoCard({
   contentTags,
   latitude,
   longitude,
+  persons,
   onToggle,
   onEnlarge,
 }: ReviewPhotoCardProps) {
@@ -99,12 +102,24 @@ export function ReviewPhotoCard({
         </button>
       )}
 
-      {/* Scene type badge — always visible */}
-      {sceneType && (
-        <div className="absolute top-2 left-2 flex gap-1">
-          <span className={`${badgeColor} text-white text-[9px] px-1.5 py-0.5 rounded font-medium`}>
-            {sceneType}
-          </span>
+      {/* Scene type badge + person chips — always visible so you can tell
+          at a glance which reference person the AI recognised. */}
+      {(sceneType || (persons && persons.length > 0)) && (
+        <div className="absolute top-2 left-2 flex flex-wrap gap-1 max-w-[calc(100%-3.5rem)]">
+          {sceneType && (
+            <span className={`${badgeColor} text-white text-[9px] px-1.5 py-0.5 rounded font-medium`}>
+              {sceneType}
+            </span>
+          )}
+          {persons?.map((name) => (
+            <span
+              key={name}
+              className="bg-purple-600 text-white text-[9px] px-1.5 py-0.5 rounded font-medium"
+              title={`Erkannt: ${name}`}
+            >
+              👤 {name}
+            </span>
+          ))}
         </div>
       )}
 

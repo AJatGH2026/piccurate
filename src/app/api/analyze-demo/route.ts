@@ -96,57 +96,74 @@ export async function POST(request: NextRequest) {
     const client = new GoogleGenAI({ apiKey });
     const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
-    // Build user content. Order matters: reference photos of named persons
-    // (if any) come FIRST, then the batch of photos to analyse. The prompt
-    // makes the boundary explicit so the model never confuses them for
-    // analysis targets.
+    // Build user content — INTERLEAVED text+image. Every image is preceded
+    // by a text label ("Reference 1: Peter" / "Photo 3, taken 2024-05-15")
+    // so the model can never mix up references with analysis targets. This
+    // is a lot more reliable for Gemini than a plain image stack: without
+    // per-image labels, face matching was inconsistent (sometimes empty
+    // persons[] even for clear matches).
     const parts: { inlineData?: { mimeType: string; data: string }; text?: string }[] = [];
+
+    // Intro
     if (usePersons) {
+      parts.push({
+        text:
+          `You will see ${nPersons} REFERENCE photo${nPersons === 1 ? '' : 's'} of named person${nPersons === 1 ? '' : 's'} first, then ${files.length} travel photo${files.length === 1 ? '' : 's'} to analyze. ` +
+          `The reference photos are ONLY for face matching — do not include them in the output. ` +
+          `Return one JSON object per travel photo, in the order shown, wrapped in a JSON array.`,
+      });
       for (let i = 0; i < nPersons; i++) {
+        parts.push({ text: `--- Reference ${i + 1}: ${personNames[i]} ---` });
         const buffer = Buffer.from(await personRefs[i].arrayBuffer());
         parts.push({
           inlineData: { mimeType: 'image/jpeg', data: buffer.toString('base64') },
         });
       }
+      parts.push({
+        text: `--- End of reference photos. The following ${files.length} photo${files.length === 1 ? ' is' : 's are'} the travel photo${files.length === 1 ? '' : 's'} to analyze (Photo 0 through Photo ${files.length - 1}): ---`,
+      });
+    } else {
+      parts.push({
+        text: `Analyze these ${files.length} travel photo${files.length === 1 ? '' : 's'} (numbered 0 through ${files.length - 1}). Return one JSON object per photo in the order shown, wrapped in a JSON array.`,
+      });
     }
-    for (const file of files) {
-      const buffer = Buffer.from(await file.arrayBuffer());
+
+    // Each analysis photo is labelled with its index + per-photo context, then
+    // the image itself follows. Gemini sees the label immediately before the
+    // pixels — no ambiguity about which JSON entry belongs to which image.
+    for (let i = 0; i < files.length; i++) {
+      const m = metadata[i] || {};
+      const bits = [`Photo ${i}`];
+      if (m.dateTaken) bits.push(`taken ${m.dateTaken.split('T')[0]}`);
+      if (m.cameraModel) bits.push(m.cameraModel);
+      parts.push({ text: `[${bits.join(', ')}]` });
+      const buffer = Buffer.from(await files[i].arrayBuffer());
       parts.push({
         inlineData: { mimeType: 'image/jpeg', data: buffer.toString('base64') },
       });
     }
 
-    let prompt = '';
-    if (usePersons) {
-      prompt += `The first ${nPersons} image${nPersons === 1 ? '' : 's'} ${nPersons === 1 ? 'is a' : 'are'} REFERENCE photo${nPersons === 1 ? '' : 's'} of named person${nPersons === 1 ? '' : 's'} — DO NOT analyze ${nPersons === 1 ? 'it' : 'them'}. Use ${nPersons === 1 ? 'it' : 'them'} only for face matching:\n`;
-      for (let i = 0; i < nPersons; i++) {
-        prompt += `- Reference ${i + 1}: ${personNames[i]}\n`;
-      }
-      prompt += `\nThe remaining ${files.length} image${files.length === 1 ? '' : 's'} ${files.length === 1 ? 'is a' : 'are'} the travel photo${files.length === 1 ? '' : 's'} to analyze. `;
-    } else {
-      prompt += `Analyze these ${files.length} travel photos. `;
-    }
-    prompt += `Photos are numbered 0 through ${files.length - 1}.\n\nContext per photo:\n`;
-    for (let i = 0; i < metadata.length; i++) {
-      const m = metadata[i];
-      const bits = [`Photo ${i}`];
-      if (m.dateTaken) bits.push(`taken ${m.dateTaken.split('T')[0]}`);
-      if (m.cameraModel) bits.push(m.cameraModel);
-      prompt += `- ${bits.join(', ')}\n`;
-    }
+    // Trailing instructions: reinforce output schema for the extras
+    // (custom + persons). Keep this compact — the SYSTEM prompt already
+    // defines the full per-photo schema.
+    let closing = `\nRespond with a JSON array of ${files.length} objects — one per travel photo above, in the same order.`;
     if (customTerms.length) {
-      prompt += `\n\nFor each photo, also determine which of these user-defined terms are clearly visible: ${customTerms
-        .map((t) => `"${t}"`)
-        .join(', ')}. Add a field "custom" to each object — an array of exactly the matching terms (verbatim term text; empty array if none). Judge by what is visibly present, regardless of the term's language.`;
+      closing +=
+        `\n\nFor each photo, also determine which of these user-defined terms are clearly visible: ` +
+        customTerms.map((t) => `"${t}"`).join(', ') +
+        `. Add a "custom" field to each object — an array of the matching terms (verbatim; empty array if none). Judge by what is visibly present, regardless of the term's language.`;
     }
     if (usePersons) {
-      prompt += `\n\nFor each photo, also determine which of the reference persons (${personNames
-        .slice(0, nPersons)
-        .map((n) => `"${n}"`)
-        .join(', ')}) are visible. Add a field "persons" to each object — an array containing the exact names (as spelled above) of any reference persons you clearly recognise in the photo based on face similarity. Empty array if none. Be conservative: only include a name when the face is clearly the same person. Never invent names outside the reference list.`;
+      const names = personNames.slice(0, nPersons);
+      closing +=
+        `\n\nFACE MATCHING — for each travel photo, compare the visible faces (face structure, hair, apparent age, glasses, distinguishing features) against each reference photo. Add a "persons" field to every object — an array of names from the reference list (${names
+          .map((n) => `"${n}"`)
+          .join(', ')}) whose face clearly appears in that photo. ` +
+        `Use empty array [] when no reference person is recognisable. NEVER invent names outside the reference list. Be conservative but not timid: if two facial features clearly match (e.g. same face shape AND same glasses), include the name.` +
+        `\n\nExample output shape for a batch of 2 photos, references "${names[0]}"${names[1] ? ` and "${names[1]}"` : ''}: ` +
+        `[{...other fields..., "persons": ["${names[0]}"]}, {...other fields..., "persons": []}]`;
     }
-    prompt += `\nReturn a JSON array of ${files.length} analysis objects — one per photo TO ANALYZE, in the same order (do not include entries for the reference photos).`;
-    parts.push({ text: prompt });
+    parts.push({ text: closing });
 
     console.log(
       `[Demo Analyze] Sending ${files.length} photos to ${model}` +
@@ -190,6 +207,21 @@ export async function POST(request: NextRequest) {
     void trackAnalyze({ photos: files.length, inputTokens, outputTokens, model });
 
     const results = parseAnalysisResponse(text, files.length);
+
+    // Diagnostic: if references were sent but no photo came back with a
+    // "persons" hit, log a snippet of the raw response so we can inspect
+    // Gemini's actual reply and adjust the prompt if needed.
+    if (usePersons) {
+      const totalHits = results.reduce((n, r) => n + (r.persons?.length || 0), 0);
+      if (totalHits === 0) {
+        console.warn(
+          `[Demo Analyze] Face matching returned NO hits across ${files.length} photos ` +
+            `with ${nPersons} reference(s). First 500 chars of raw response: ${text.slice(0, 500)}`
+        );
+      } else {
+        console.log(`[Demo Analyze] Face matching: ${totalHits} name-hit(s) across ${files.length} photos.`);
+      }
+    }
 
     return NextResponse.json({ success: true, results });
   } catch (err) {

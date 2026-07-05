@@ -66,6 +66,7 @@ interface PhotoStore {
   removePerson: (id: string) => void;
   renamePerson: (id: string, name: string) => void;
   setPersonWeight: (id: string, weight: number) => void;
+  setPersonMode: (id: string, mode: 'include' | 'exclude') => void;
   clear: () => void;
 }
 
@@ -214,8 +215,10 @@ function computeScore(photo: ProcessedPhoto, criteria: CriteriaConfig, persons: 
     }
   }
   // Reference persons (feature 5b): identical bias mechanic — matching photos
-  // get a slider-scaled bonus, non-matches get nothing.
+  // get a slider-scaled bonus, non-matches get nothing. Exclude-mode persons
+  // never contribute a bonus (they filter the pool upstream instead).
   for (const person of persons) {
+    if (person.mode === 'exclude') continue;
     if (matchesPerson(photo, person.name)) {
       score += person.weight * 10;
     }
@@ -310,6 +313,10 @@ function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig, person
   const customs = criteria.customCriteria || [];
   const negativeCustoms = customs.filter((c) => isNegativeCustom(c.term));
   const positiveCustoms = customs.filter((c) => !isNegativeCustom(c.term));
+  // Persons split identically: exclude-mode acts as hard filter, include-mode
+  // drives bias/exclusive selection downstream.
+  const excludePersons = persons.filter((p) => p.mode === 'exclude');
+  const includePersons = persons.filter((p) => p.mode !== 'exclude');
 
   // Saved photos are locked keepers: always selected, excluded from the pool.
   // Negative-criterion filter: exclude a photo only if the AI POSITIVELY
@@ -317,9 +324,12 @@ function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig, person
   // (unclear or irrelevant — e.g. "no sunglasses" on a tiger photo), the
   // photo is kept. matchesCustom already strips the "no/kein/…" prefix, so
   // it asks "is snow visible?" against the AI's positive answer.
+  // Same semantics for exclude-mode persons: a photo is dropped only when
+  // the AI positively identified the named face.
   const pool = photos.filter((p) => {
     if (p.saved) return false;
     for (const nc of negativeCustoms) if (matchesCustom(p, nc.term)) return false;
+    for (const ep of excludePersons) if (matchesPerson(p, ep.name)) return false;
     return true;
   });
 
@@ -344,9 +354,10 @@ function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig, person
   // Only positive customs can act as an exclusive filter — negatives already
   // filtered the pool above.
   const exclusiveCustom = positiveCustoms.filter((c) => c.weight >= 1);
-  // Persons at max slider (weight ≥ 1.0) act as an exclusive OR-filter, same
-  // semantics as motifs / positive customs.
-  const exclusivePersons = persons.filter((p) => p.weight >= 1);
+  // Include-mode persons at max slider (weight ≥ 1.0) act as an exclusive
+  // OR-filter, same semantics as motifs / positive customs. Exclude-mode
+  // persons already left the pool above and are irrelevant here.
+  const exclusivePersons = includePersons.filter((p) => p.weight >= 1);
   let selectedIds: Set<string>;
   if (exclusive.length > 0 || exclusiveCustom.length > 0 || exclusivePersons.length > 0) {
     // Filter: only reps matching ANY maxed motif OR maxed positive custom term
@@ -520,7 +531,14 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
     if (state.persons.length >= MAX_PERSONS) return false;
     if (state.persons.some((p) => p.name.toLowerCase() === trimmed.toLowerCase())) return false;
     const thumbnailUrl = URL.createObjectURL(blob);
-    const person: Person = { id: uuidv4(), name: trimmed, weight: 0.5, thumbnailUrl, blob };
+    const person: Person = {
+      id: uuidv4(),
+      name: trimmed,
+      weight: 0.5,
+      mode: 'include',
+      thumbnailUrl,
+      blob,
+    };
     set({ persons: [...state.persons, person] });
     return true;
   },
@@ -549,6 +567,12 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       persons: state.persons.map((p) =>
         p.id === id ? { ...p, weight: Math.max(0.1, Math.min(1, weight)) } : p
       ),
+    }));
+  },
+
+  setPersonMode: (id, mode) => {
+    set((state) => ({
+      persons: state.persons.map((p) => (p.id === id ? { ...p, mode } : p)),
     }));
   },
 

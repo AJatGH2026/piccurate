@@ -21,6 +21,13 @@ export interface Person {
   id: string;
   name: string;
   weight: number; // 0.1–1.0 (slider 1–10); 1.0 = exclusive filter
+  /**
+   * "include": bias toward / only photos containing this person (slider drives strength).
+   * "exclude": hard filter — photos containing this person are removed from the pool,
+   *            regardless of any other criterion (analog to negative custom terms).
+   *            The slider is irrelevant in this mode.
+   */
+  mode: 'include' | 'exclude';
   thumbnailUrl: string; // blob URL for preview (revoked on removal)
   blob: Blob; // JPEG reference photo sent to the LLM at analysis time
 }
