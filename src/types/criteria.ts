@@ -10,6 +10,24 @@ export interface CustomCriterion {
   weight: number; // 0.1–1.0 (slider 1–10); 1.0 = exclusive filter
 }
 
+/**
+ * A named person identified by a reference photo. Session-only — the reference
+ * blob lives in the photo store, never in localStorage (biometric data /
+ * DSGVO Art. 9 must not be persisted client-side without an explicit consent
+ * gate we don't have yet). Selection reads name + weight; the blob is only
+ * needed when the analysis request is built.
+ */
+export interface Person {
+  id: string;
+  name: string;
+  weight: number; // 0.1–1.0 (slider 1–10); 1.0 = exclusive filter
+  thumbnailUrl: string; // blob URL for preview (revoked on removal)
+  blob: Blob; // JPEG reference photo sent to the LLM at analysis time
+}
+
+/** Max reference persons the user may define — enforced by the UI. */
+export const MAX_PERSONS = 4;
+
 /** Full criteria configuration for a curation job */
 export interface CriteriaConfig {
   preferFaces: Criterion;

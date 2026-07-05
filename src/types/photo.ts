@@ -44,6 +44,7 @@ export interface AIAnalysis {
   secondary: string[]; // place/time context tags: indoor, beach, mountain, city, goldenhour, night
   contentTags: string[]; // 3-5 descriptive tags
   customMatches: string[]; // user-defined terms the model found in this photo (lowercased)
+  persons: string[]; // names of reference persons the model recognised in this photo (lowercased)
 }
 
 /** A photo at various stages of processing */

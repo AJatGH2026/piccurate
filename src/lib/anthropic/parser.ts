@@ -90,6 +90,9 @@ const aiAnalysisSchema = z.object({
   // User-defined custom terms the model found in the photo (optional; only
   // present when custom criteria were sent with the request).
   custom: z.array(z.string()).optional().default([]),
+  // Names of reference persons the model recognised (optional; only present
+  // when reference photos were sent with the request).
+  persons: z.array(z.string()).optional().default([]),
 });
 
 const batchSchema = z.array(aiAnalysisSchema);
@@ -128,7 +131,7 @@ export function parseAnalysisResponse(
       aesthetic_score: 5, album_score: 5, sharpness_score: 5,
       face_analysis: { count: 0, eyes_open: true, facing_camera: true, expression: 'none' as const },
       animal_analysis: { present: false, clarity_score: 0, proximity_score: 0 },
-      scene_type: 'other' as const, secondary: [], content_tags: ['unanalyzed'], custom: [],
+      scene_type: 'other' as const, secondary: [], content_tags: ['unanalyzed'], custom: [], persons: [],
     };
     while (result.data.length < expectedCount) {
       result.data.push(defaultResult);
@@ -158,5 +161,6 @@ export function parseAnalysisResponse(
     secondary: item.secondary,
     contentTags: item.content_tags,
     customMatches: item.custom.map((s) => String(s).toLowerCase().trim()).filter(Boolean),
+    persons: item.persons.map((s) => String(s).toLowerCase().trim()).filter(Boolean),
   }));
 }

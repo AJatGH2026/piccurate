@@ -43,7 +43,18 @@ export default async function PrivacyPage({ params }: Props) {
         </ul>
 
         <h2>4. How We Process Your Photos</h2>
-        <p>Your photo thumbnails are sent to Anthropic (Claude AI) for quality analysis. Anthropic&apos;s data processing agreement ensures your images are not used for model training and are deleted after processing.</p>
+        <p>Your photo thumbnails are sent to a third-party LLM provider (currently Google — the underlying model may change over time; the substance of this section remains unchanged) for quality analysis. The provider&apos;s data processing agreement ensures your images are not used for model training and are deleted after processing.</p>
+
+        <h2>4a. Reference Photos of Named Persons (optional)</h2>
+        <p>If you use the optional &quot;Persons&quot; feature to filter your travel photos for specific people, you upload one reference photo per named person. These reference photos are transmitted to the same LLM provider together with the travel photos for face-matching purposes.</p>
+        <p>Reference photos <strong>constitute biometric data</strong> under Art. 9 GDPR and are therefore subject to a stricter regime:</p>
+        <ul>
+          <li>The feature is <strong>opt-in</strong>: reference photos are only processed if you actively upload them, and using the feature is entirely optional.</li>
+          <li>Reference photos are <strong>held only in your browser session</strong>. They are never persisted on our servers, never written to your browser&apos;s local storage, and are discarded when you close the tab or start a new job.</li>
+          <li>Reference photos are sent to the LLM provider <strong>only for the duration of the analysis</strong>. The provider does not train on this data and deletes it after processing under the applicable data processing agreement.</li>
+          <li>You must have the <strong>consent of any person</strong> whose reference photo you upload. You are the data controller for that upload; PicCurate acts as processor only for the technical transmission and result.</li>
+          <li>The feature is <strong>currently limited to four persons per job</strong>.</li>
+        </ul>
 
         <h2>5. Data Storage Location</h2>
         <p>All data is stored in the European Union (Frankfurt, Germany) via Cloudflare and Supabase.</p>
@@ -74,7 +85,7 @@ export default async function PrivacyPage({ params }: Props) {
           <tbody>
             <tr><td>Supabase</td><td>Database, authentication</td><td>EU (Frankfurt)</td></tr>
             <tr><td>Cloudflare</td><td>Temporary file storage, CDN</td><td>EU</td></tr>
-            <tr><td>Anthropic</td><td>AI photo analysis</td><td>US (with EU DPA)</td></tr>
+            <tr><td>Third-party LLM provider (currently Google)</td><td>AI photo analysis, including optional reference-photo face matching</td><td>US (with EU DPA)</td></tr>
             <tr><td>Stripe</td><td>Payment processing</td><td>EU/US</td></tr>
             <tr><td>Vercel</td><td>Web hosting</td><td>EU (Frankfurt)</td></tr>
           </tbody>

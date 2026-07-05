@@ -2,8 +2,9 @@
 
 import { create } from 'zustand';
 import type { ClientPhoto, AIAnalysis } from '@/types/photo';
-import type { CriteriaConfig } from '@/types/criteria';
-import { DEFAULT_CRITERIA } from '@/types/criteria';
+import type { CriteriaConfig, Person } from '@/types/criteria';
+import { DEFAULT_CRITERIA, MAX_PERSONS } from '@/types/criteria';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface ProcessedPhoto {
   id: string;
@@ -32,6 +33,7 @@ export interface ProcessedPhoto {
   animalProximity: number;
   contentTags: string[];
   customMatches: string[]; // user-defined terms found in this photo (lowercased)
+  persons: string[]; // reference-person names recognised in this photo (lowercased)
   selected: boolean;
   saved: boolean; // user-locked keeper: stays selected, excluded from re-selection pool
   reasonTag: string | null;
@@ -43,6 +45,13 @@ interface PhotoStore {
   photos: ProcessedPhoto[];
   /** Custom terms present at the last analysis (to detect when re-analysis is needed). */
   analyzedCustomTerms: string[];
+  /**
+   * Reference persons (feature 5b). Session-only — never persisted. Blob + name
+   * roundtrip to the LLM; slider weight drives selection bias/filter.
+   */
+  persons: Person[];
+  /** Person names present at the last analysis (lowercased, for the diff check). */
+  analyzedPersons: string[];
   setPhotosFromUpload: (clientPhotos: ClientPhoto[]) => void;
   /** Apply AI results. If analyzedIds is given, results map to those photos (by id, in order); otherwise to all photos by index. */
   applyAnalysisResults: (results: AIAnalysis[], criteria: CriteriaConfig, analyzedIds?: string[]) => void;
@@ -52,6 +61,11 @@ interface PhotoStore {
   saveSelection: () => void;
   /** Unlock a saved photo (and deselect it). */
   unlock: (id: string) => void;
+  /** Add a reference person. Returns false when the max (4) is reached or the name is a duplicate. */
+  addPerson: (name: string, blob: Blob) => boolean;
+  removePerson: (id: string) => void;
+  renamePerson: (id: string, name: string) => void;
+  setPersonWeight: (id: string, weight: number) => void;
   clear: () => void;
 }
 
@@ -146,6 +160,12 @@ export function isNegativeCustom(term: string): boolean {
   return /^\s*(no|not|kein|keine|ohne)\s+/i.test(term);
 }
 
+/** Does a photo contain a specific reference person? Matched by lowercased name. */
+function matchesPerson(p: ProcessedPhoto, name: string): boolean {
+  const n = name.toLowerCase().trim();
+  return !!n && (p.persons || []).includes(n);
+}
+
 /** Hamming distance between two 16-hex (64-bit) perceptual hashes. */
 function hamming(a: string | null, b: string | null): number {
   if (!a || !b || a.length !== b.length) return 99;
@@ -166,7 +186,7 @@ function hamming(a: string | null, b: string | null): number {
  *    no effect, so the default selection is pure album-quality; raising a slider
  *    biases the ranking toward that category. Strong, monotonic effect.
  */
-function computeScore(photo: ProcessedPhoto, criteria: CriteriaConfig): number {
+function computeScore(photo: ProcessedPhoto, criteria: CriteriaConfig, persons: Person[]): number {
   // Base = holistic keep-worthiness (album_score, ~0–10).
   let score = photo.albumScore;
 
@@ -191,6 +211,13 @@ function computeScore(photo: ProcessedPhoto, criteria: CriteriaConfig): number {
     if (isNegativeCustom(cc.term)) continue;
     if (matchesCustom(photo, cc.term)) {
       score += cc.weight * 10;
+    }
+  }
+  // Reference persons (feature 5b): identical bias mechanic — matching photos
+  // get a slider-scaled bonus, non-matches get nothing.
+  for (const person of persons) {
+    if (matchesPerson(photo, person.name)) {
+      score += person.weight * 10;
     }
   }
   return score;
@@ -276,7 +303,7 @@ function detectSeries(photos: ProcessedPhoto[], criteria: CriteriaConfig): Proce
  *  - Otherwise → balanced/biased: rank reps by score and take the top N% as a
  *    MAXIMUM (selectionPercentage). Sliders 1–9 bias the ranking toward a motif.
  */
-function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig): ProcessedPhoto[] {
+function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig, persons: Person[]): ProcessedPhoto[] {
   // Split custom criteria into positive (bias/filter) and negative (hard
   // exclusion). Negatives are applied to the pool FIRST — they always win
   // over any positive slider, regardless of its value.
@@ -297,7 +324,7 @@ function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig): Proce
   });
 
   const scored: Record<string, number> = {};
-  for (const p of pool) scored[p.id] = computeScore(p, criteria);
+  for (const p of pool) scored[p.id] = computeScore(p, criteria, persons);
 
   // One representative per series (best in-series quality), within the pool.
   const clusters = detectSeries(pool, criteria);
@@ -317,15 +344,18 @@ function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig): Proce
   // Only positive customs can act as an exclusive filter — negatives already
   // filtered the pool above.
   const exclusiveCustom = positiveCustoms.filter((c) => c.weight >= 1);
+  // Persons at max slider (weight ≥ 1.0) act as an exclusive OR-filter, same
+  // semantics as motifs / positive customs.
+  const exclusivePersons = persons.filter((p) => p.weight >= 1);
   let selectedIds: Set<string>;
-  if (exclusive.length > 0 || exclusiveCustom.length > 0) {
-    // Filter: only reps matching ANY maxed motif OR maxed positive custom term,
-    // then keep the best up to the cap (so "10" = only this motif, but still
-    // bounded by the maximum selection size — fewer if fewer match).
+  if (exclusive.length > 0 || exclusiveCustom.length > 0 || exclusivePersons.length > 0) {
+    // Filter: only reps matching ANY maxed motif OR maxed positive custom term
+    // OR maxed reference person, then keep the best up to the cap.
     const eligible = reps.filter(
       (p) =>
         exclusive.some((k) => matchesMotif(p, k)) ||
-        exclusiveCustom.some((c) => matchesCustom(p, c.term))
+        exclusiveCustom.some((c) => matchesCustom(p, c.term)) ||
+        exclusivePersons.some((person) => matchesPerson(p, person.name))
     );
     selectedIds = new Set(eligible.slice(0, cap).map((p) => p.id));
   } else {
@@ -347,6 +377,8 @@ function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig): Proce
 export const usePhotoStore = create<PhotoStore>((set, get) => ({
   photos: [],
   analyzedCustomTerms: [],
+  persons: [],
+  analyzedPersons: [],
 
   setPhotosFromUpload: (clientPhotos: ClientPhoto[]) => {
     const readyPhotos = clientPhotos.filter((p) => p.status === 'ready' && p.thumbnailUrl);
@@ -384,6 +416,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       animalProximity: 0,
       contentTags: [],
       customMatches: [],
+      persons: [],
       selected: false,
       saved: false,
       reasonTag: null,
@@ -414,6 +447,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
           animalProximity: r.animalAnalysis.proximityScore,
           contentTags: r.contentTags,
           customMatches: r.customMatches || [],
+          persons: r.persons || [],
           analyzed: true,
         };
       };
@@ -434,13 +468,20 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       const analyzedCustomTerms = (criteria.customCriteria || [])
         .map((c) => stripNegativePrefix(c.term).toLowerCase().trim())
         .filter(Boolean);
-      return { photos: runSelection(photos, criteria), analyzedCustomTerms };
+      // Same story for reference persons: track which names were sent to
+      // the model so a later add/remove/rename triggers a re-analysis.
+      const analyzedPersons = state.persons.map((p) => p.name.toLowerCase().trim()).filter(Boolean);
+      return {
+        photos: runSelection(photos, criteria, state.persons),
+        analyzedCustomTerms,
+        analyzedPersons,
+      };
     });
   },
 
   rerunSelection: (criteria: CriteriaConfig) => {
     set((state) => ({
-      photos: runSelection(state.photos, criteria),
+      photos: runSelection(state.photos, criteria, state.persons),
     }));
   },
 
@@ -472,5 +513,49 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
     }));
   },
 
-  clear: () => set({ photos: [] }),
+  addPerson: (name, blob) => {
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+    const state = get();
+    if (state.persons.length >= MAX_PERSONS) return false;
+    if (state.persons.some((p) => p.name.toLowerCase() === trimmed.toLowerCase())) return false;
+    const thumbnailUrl = URL.createObjectURL(blob);
+    const person: Person = { id: uuidv4(), name: trimmed, weight: 0.5, thumbnailUrl, blob };
+    set({ persons: [...state.persons, person] });
+    return true;
+  },
+
+  removePerson: (id) => {
+    set((state) => {
+      const target = state.persons.find((p) => p.id === id);
+      if (target) URL.revokeObjectURL(target.thumbnailUrl);
+      return { persons: state.persons.filter((p) => p.id !== id) };
+    });
+  },
+
+  renamePerson: (id, name) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    set((state) => {
+      // Reject duplicate names (case-insensitive), other than the current one.
+      const lower = trimmed.toLowerCase();
+      if (state.persons.some((p) => p.id !== id && p.name.toLowerCase() === lower)) return state;
+      return { persons: state.persons.map((p) => (p.id === id ? { ...p, name: trimmed } : p)) };
+    });
+  },
+
+  setPersonWeight: (id, weight) => {
+    set((state) => ({
+      persons: state.persons.map((p) =>
+        p.id === id ? { ...p, weight: Math.max(0.1, Math.min(1, weight)) } : p
+      ),
+    }));
+  },
+
+  clear: () => {
+    // Revoke any outstanding blob URLs for reference photos to release memory.
+    const { persons } = get();
+    for (const p of persons) URL.revokeObjectURL(p.thumbnailUrl);
+    set({ photos: [], persons: [], analyzedCustomTerms: [], analyzedPersons: [] });
+  },
 }));

@@ -3,9 +3,11 @@
 import { useTranslations } from 'next-intl';
 import { useCriteria } from '@/hooks/useCriteria';
 import { usePhotoStore, isNegativeCustom, stripNegativePrefix } from '@/hooks/usePhotoStore';
+import { MAX_PERSONS } from '@/types/criteria';
+import { generateThumbnail } from '@/utils/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 const BATCH_SIZE = 20;
 
@@ -21,7 +23,19 @@ export default function ConfigurePage() {
   const applyAnalysisResults = usePhotoStore((s) => s.applyAnalysisResults);
   const rerunSelection = usePhotoStore((s) => s.rerunSelection);
   const analyzedCustomTerms = usePhotoStore((s) => s.analyzedCustomTerms);
+  const persons = usePhotoStore((s) => s.persons);
+  const analyzedPersons = usePhotoStore((s) => s.analyzedPersons);
+  const addPerson = usePhotoStore((s) => s.addPerson);
+  const removePerson = usePhotoStore((s) => s.removePerson);
+  const renamePerson = usePhotoStore((s) => s.renamePerson);
+  const setPersonWeight = usePhotoStore((s) => s.setPersonWeight);
   const savedCount = photos.filter((p) => p.saved).length;
+  const personFileInputRef = useRef<HTMLInputElement | null>(null);
+  const [personName, setPersonName] = useState('');
+  const [pendingPersonBlob, setPendingPersonBlob] = useState<Blob | null>(null);
+  const [pendingPersonPreview, setPendingPersonPreview] = useState<string | null>(null);
+  const [personError, setPersonError] = useState<string | null>(null);
+  const [personProcessing, setPersonProcessing] = useState(false);
   // Custom terms are part of the job setup. Once at least one photo has been
   // analysed, the set of terms is frozen — changing them would trigger a full
   // (paid) re-analysis. For new terms the user must start a new job.
@@ -44,10 +58,15 @@ export default function ConfigurePage() {
   const motifItems = criteriaItems.filter((it) => it.key !== 'preferSharpness');
   const activeMotifs = motifItems.filter((it) => criteria[it.key].enabled);
   const customList = criteria.customCriteria || [];
-  const activeLabels = [...activeMotifs.map((m) => m.label), ...customList.map((c) => c.term)];
+  const activeLabels = [
+    ...activeMotifs.map((m) => m.label),
+    ...customList.map((c) => c.term),
+    ...persons.map((p) => p.name),
+  ];
   const maxedLabels = [
     ...activeMotifs.filter((it) => criteria[it.key].weight >= 1).map((m) => m.label),
     ...customList.filter((c) => c.weight >= 1).map((c) => c.term),
+    ...persons.filter((p) => p.weight >= 1).map((p) => p.name),
   ];
   const selectionMode =
     activeLabels.length === 0
@@ -315,6 +334,174 @@ export default function ConfigurePage() {
           </p>
         </div>
 
+        {/* Persons (feature 5b) — reference-photo-based face matching. Set
+            apart with a purple accent so it's visually distinct from both the
+            motif criteria (indigo) and the custom terms (amber). */}
+        <div className="mt-4 p-4 rounded-xl border-2 border-purple-300 bg-purple-50/70 dark:border-purple-700/60 dark:bg-purple-950/20">
+          <h3 className="font-medium text-zinc-900 dark:text-zinc-100">{t('personsTitle')}</h3>
+          <p className="text-sm text-zinc-500 mt-0.5">{t('personsDesc')}</p>
+          <p className="mt-2 text-xs text-purple-700 dark:text-purple-300">
+            {t('personsConsent')}
+          </p>
+
+          {persons.length > 0 && (
+            <div className="mt-3 space-y-4">
+              {persons.map((person) => (
+                <div key={person.id} className="flex items-start gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={person.thumbnailUrl}
+                    alt={person.name}
+                    className="w-16 h-16 rounded-lg object-cover border border-purple-300 dark:border-purple-700 flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      {hasAnalyzed ? (
+                        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                          {person.name}
+                        </span>
+                      ) : (
+                        <input
+                          value={person.name}
+                          onChange={(e) => renamePerson(person.id, e.target.value)}
+                          className="flex-1 min-w-0 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-1 text-sm"
+                          aria-label={t('personName')}
+                        />
+                      )}
+                      {!hasAnalyzed && (
+                        <button
+                          onClick={() => removePerson(person.id)}
+                          className="flex-shrink-0 rounded-full border border-zinc-300 dark:border-zinc-600 px-3 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600 dark:hover:bg-red-950/30 transition-colors"
+                          aria-label={t('customRemove')}
+                        >
+                          {t('customRemove')}
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-zinc-400">{t('low')}</span>
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        step="1"
+                        value={Math.max(1, Math.round(person.weight * 10))}
+                        onChange={(e) => setPersonWeight(person.id, Number(e.target.value) / 10)}
+                        className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-purple-600"
+                      />
+                      <span className="text-xs text-zinc-400">{t('only')}</span>
+                      <span className="text-xs font-medium text-purple-600 w-12 text-right">
+                        {person.weight >= 1 ? t('only') : `${Math.round(person.weight * 10)}/10`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add-form — only before the first analysis, and only up to MAX. */}
+          {!hasAnalyzed && persons.length < MAX_PERSONS && (
+            <div className="mt-4 space-y-2">
+              {pendingPersonPreview ? (
+                <div className="flex items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={pendingPersonPreview}
+                    alt={t('personsPreview')}
+                    className="w-16 h-16 rounded-lg object-cover border border-purple-300 dark:border-purple-700 flex-shrink-0"
+                  />
+                  <input
+                    autoFocus
+                    value={personName}
+                    onChange={(e) => setPersonName(e.target.value)}
+                    placeholder={t('personName')}
+                    className="flex-1 min-w-0 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-1.5 text-sm"
+                  />
+                  <button
+                    onClick={() => {
+                      if (!pendingPersonBlob) return;
+                      const ok = addPerson(personName, pendingPersonBlob);
+                      if (!ok) {
+                        setPersonError(t('personsAddFailed'));
+                        return;
+                      }
+                      if (pendingPersonPreview) URL.revokeObjectURL(pendingPersonPreview);
+                      setPendingPersonBlob(null);
+                      setPendingPersonPreview(null);
+                      setPersonName('');
+                      setPersonError(null);
+                    }}
+                    disabled={!personName.trim() || !pendingPersonBlob}
+                    className="rounded-full bg-purple-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {t('customAdd')}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (pendingPersonPreview) URL.revokeObjectURL(pendingPersonPreview);
+                      setPendingPersonBlob(null);
+                      setPendingPersonPreview(null);
+                      setPersonName('');
+                      setPersonError(null);
+                    }}
+                    className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                  >
+                    {tc('cancel')}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => personFileInputRef.current?.click()}
+                  disabled={personProcessing}
+                  className="rounded-full border border-purple-300 dark:border-purple-700 px-4 py-1.5 text-sm font-medium text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 disabled:opacity-50 disabled:cursor-wait transition-colors"
+                >
+                  {personProcessing ? t('personsProcessing') : t('personsAdd')}
+                </button>
+              )}
+              <input
+                ref={personFileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  e.target.value = ''; // allow re-picking the same file
+                  setPersonError(null);
+                  setPersonProcessing(true);
+                  try {
+                    // Downscale to a 512x512 JPEG right away: the reference
+                    // photo only needs to identify the face, and small
+                    // thumbnails keep the LLM prompt cheap.
+                    const thumb = await generateThumbnail(file);
+                    if (pendingPersonPreview) URL.revokeObjectURL(pendingPersonPreview);
+                    setPendingPersonBlob(thumb);
+                    setPendingPersonPreview(URL.createObjectURL(thumb));
+                  } catch (err) {
+                    console.error('Person thumbnail failed:', err);
+                    setPersonError(t('personsProcessFailed'));
+                  } finally {
+                    setPersonProcessing(false);
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {personError && (
+            <p className="mt-3 text-xs text-red-600 dark:text-red-400">{personError}</p>
+          )}
+
+          <p className="mt-3 text-xs text-purple-700 dark:text-purple-300">
+            {hasAnalyzed
+              ? t('personsLockedNote')
+              : persons.length >= MAX_PERSONS
+                ? t('personsMaxReached', { max: MAX_PERSONS })
+                : t('personsSetupHint', { max: MAX_PERSONS })}
+          </p>
+        </div>
+
         {/* Live selection-mode summary */}
         <div className="mt-6 p-3 rounded-xl bg-indigo-50 text-indigo-800 text-sm dark:bg-indigo-950/30 dark:text-indigo-200">
           {selectionMode}
@@ -352,7 +539,21 @@ export default function ConfigurePage() {
                   .map((c) => stripNegativePrefix(c.term))
                   .filter(Boolean);
 
-                const toAnalyze = photos.filter((p) => !p.saved && (!p.analyzed || termsChanged));
+                // Persons (feature 5b): same diff mechanic — a change in the
+                // set of reference persons forces re-analysis. Names are
+                // compared lowercased so casing edits don't retrigger.
+                const currentPersonNames = persons
+                  .map((p) => p.name.toLowerCase().trim())
+                  .filter(Boolean)
+                  .sort();
+                const personsChanged =
+                  JSON.stringify(currentPersonNames) !== JSON.stringify([...analyzedPersons].sort());
+                const personNames = persons.map((p) => p.name);
+                const personBlobs = persons.map((p) => p.blob);
+
+                const toAnalyze = photos.filter(
+                  (p) => !p.saved && (!p.analyzed || termsChanged || personsChanged)
+                );
 
                 if (toAnalyze.length === 0) {
                   setProgress(t('progressRecomputing'));
@@ -380,6 +581,15 @@ export default function ConfigurePage() {
                   );
                   if (customTerms.length) {
                     formData.append('customTerms', JSON.stringify(customTerms));
+                  }
+                  // Reference persons: names + JPEGs. Sent with every batch —
+                  // Gemini has no cross-request memory, so each request needs
+                  // to carry the references. Only marginally more tokens.
+                  if (personNames.length) {
+                    formData.append('personNames', JSON.stringify(personNames));
+                    for (let i = 0; i < personBlobs.length; i++) {
+                      formData.append('personRefs', personBlobs[i], `person-${i}.jpg`);
+                    }
                   }
                   for (const photo of batch) {
                     if (photo.thumbnailBlob) {
