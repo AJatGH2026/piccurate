@@ -105,7 +105,7 @@
     "diversity": "Inhaltsvielfalt",
     "diversityDesc": "Ausgewogene Mischung verschiedener Motivtypen sicherstellen",
     "selectionPercentage": "Maximale Auswahlmenge",
-    "selectionPercentageDesc": "Höchstens {value}% aller Fotos (gilt in jedem Modus)",
+    "selectionPercentageDesc": "KI wählt zwischen 1 und bis zu 30% aller Fotos aus.",
     "only": "Nur",
     "sliderLegend": "Kein Regler: ausgewogen · 1–9: mehr von dem Motiv · 10: nur dieses Motiv",
     "modeBalanced": "Aktuell: ausgewogene Auswahl (kein Kriterium aktiv).",

@@ -158,7 +158,7 @@ export default function ConfigurePage() {
             {t('selectionPercentage')}
           </h3>
           <p className="text-sm text-zinc-500 mt-0.5">
-            {t('selectionPercentageDesc', { value: criteria.selectionPercentage })}
+            {t('selectionPercentageDesc')}
           </p>
           <div className="mt-3 flex items-center gap-3">
             <span className="text-xs text-zinc-400">1%</span>
