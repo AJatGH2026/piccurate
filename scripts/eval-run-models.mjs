@@ -30,9 +30,11 @@ const THUMB_FS = join(process.cwd(), 'public');
 const EVAL_DIR = join(process.cwd(), '.eval');
 const BATCH = 20;
 const CONCURRENCY_DEFAULT = Number(process.env.EVAL_CONCURRENCY || 5);
-// Google Gemini free tier is 5 RPM for gemini-2.5-flash → run serial there.
-// Anthropic/OpenAI happily handle 5 in flight.
-const CONCURRENCY_BY_PROVIDER = { anthropic: CONCURRENCY_DEFAULT, openai: CONCURRENCY_DEFAULT, google: 1 };
+// Per-provider concurrency. With Google billing enabled the paid tier has
+// generous limits (~1k RPM), so 5 in flight is fine — the free tier caps at
+// 5 RPM per model, so if you don't have billing, set google=1. The retry
+// handler honors provider-supplied retryDelay hints either way.
+const CONCURRENCY_BY_PROVIDER = { anthropic: CONCURRENCY_DEFAULT, openai: CONCURRENCY_DEFAULT, google: CONCURRENCY_DEFAULT };
 const LIMIT = process.env.EVAL_LIMIT ? Number(process.env.EVAL_LIMIT) : null;
 
 // Provider adapters (below). Prices in USD per 1M tokens; cache rates are
