@@ -98,12 +98,21 @@ export function isHEIC(file: File): boolean {
   );
 }
 
-// Vercel's serverless functions cap the request body at 4.5 MB across all
-// plans. Modern iPhone HEICs regularly exceed that (5–15 MB is common), so
-// larger files bypass the server and are decoded entirely in the browser
-// via heic2any (libheif WASM). Slower per file but no size limit and no
-// server timeout risk.
-const VERCEL_BODY_LIMIT = 4 * 1024 * 1024; // 4 MB — leaves a small margin under Vercel's 4.5 MB
+// HEIC routing threshold: files LARGER than this decode in the browser; smaller
+// ones use the faster server endpoint (/api/convert). Two reasons the server
+// path exists at all: it's faster per file, and Vercel's serverless body cap is
+// 4.5 MB (so >4 MB must go to the browser anyway, else HTTP 413).
+//
+// Configurable (MB) via NEXT_PUBLIC_HEIC_SERVER_MAX_MB. 0 = route EVERYTHING to
+// the browser (server endpoint never used).
+//
+// ⚠️ TEMP (2026-07-06 → 2026-07-14): default is 0 so ALL HEICs decode in the
+// browser. This eliminates /api/convert "Fast Origin Transfer" while the Vercel
+// free-tier quota (10 GB) is exhausted; it resets on 2026-07-14. Trade-off:
+// slower client-side uploads. REVERT to 4 (or set NEXT_PUBLIC_HEIC_SERVER_MAX_MB=4)
+// after the quota resets to get the fast server path back for small HEICs.
+const HEIC_SERVER_MAX_MB = Number(process.env.NEXT_PUBLIC_HEIC_SERVER_MAX_MB ?? '0');
+const VERCEL_BODY_LIMIT = Math.max(0, HEIC_SERVER_MAX_MB) * 1024 * 1024;
 
 /**
  * Convert a HEIC/HEIF file to a JPEG (thumbnail by default).
