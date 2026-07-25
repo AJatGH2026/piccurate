@@ -30,26 +30,25 @@ export default async function ImprintPage({ params }: Props) {
 
         <h2>{de ? 'Diensteanbieter (§ 5 DDG)' : 'Service provider (§ 5 DDG)'}</h2>
         <p>
-          [{de ? 'Firmenname — nach Gründung eintragen' : 'Company name — to be added after founding'}]<br />
-          [{de ? 'Rechtsform, z. B. UG (haftungsbeschränkt) / GmbH' : 'Legal form, e.g. UG / GmbH'}]<br />
-          [{de ? 'Straße und Hausnummer' : 'Street address'}]<br />
-          [{de ? 'PLZ Ort' : 'Postal code, city'}]<br />
+          AJ GmbH<br />
+          Danziger Str. 80<br />
+          65191 Wiesbaden<br />
           {de ? 'Deutschland' : 'Germany'}
         </p>
 
         <h2>{de ? 'Vertreten durch' : 'Represented by'}</h2>
-        <p>[{de ? 'Geschäftsführer:in — nach Gründung' : 'Managing director — after founding'}]</p>
+        <p>Dr. Andreas Jahnke{de ? ' (Geschäftsführer)' : ' (Managing Director)'}</p>
 
         <h2>{de ? 'Kontakt' : 'Contact'}</h2>
         <p>
           {de ? 'E-Mail' : 'Email'}: contact@piccurate.app<br />
-          {de ? 'Telefon' : 'Phone'}: [{de ? 'nach Gründung' : 'after founding'}]
+          {de ? 'Telefon' : 'Phone'}: [{de ? 'optional — bei Bedarf eintragen' : 'optional — add if desired'}]
         </p>
 
         <h2>{de ? 'Registereintrag' : 'Register entry'}</h2>
         <p>
-          [{de ? 'Registergericht — nach Gründung' : 'Registering court — after founding'}]<br />
-          [{de ? 'Registernummer (z. B. HRB …) — nach Gründung' : 'Register number (e.g. HRB …) — after founding'}]
+          {de ? 'Registergericht: Amtsgericht Wiesbaden' : 'Registering court: Amtsgericht Wiesbaden'}<br />
+          {de ? 'Handelsregister-Nummer: HRB 33249' : 'Commercial register number: HRB 33249'}
         </p>
 
         <h2>{de ? 'Umsatzsteuer-ID' : 'VAT ID'}</h2>
@@ -59,8 +58,8 @@ export default async function ImprintPage({ params }: Props) {
             : 'VAT identification number pursuant to § 27a of the German VAT Act:'}
           <br />
           [{de
-            ? 'USt-IdNr. — nach Gründung; ggf. Kleinunternehmer nach § 19 UStG (dann keine USt-IdNr.)'
-            : 'VAT ID — after founding; possibly small-business scheme (§ 19 UStG), then no VAT ID'}]
+            ? 'USt-IdNr. eintragen (bei einer GmbH i. d. R. vorhanden)'
+            : 'add VAT ID (a GmbH usually has one)'}]
         </p>
 
         <h2>
@@ -69,8 +68,8 @@ export default async function ImprintPage({ params }: Props) {
             : 'Responsible for content (§ 18 (2) MStV)'}
         </h2>
         <p>
-          [{de ? 'Name — nach Gründung' : 'Name — after founding'}]<br />
-          [{de ? 'Anschrift wie oben' : 'Address as above'}]
+          Dr. Andreas Jahnke<br />
+          {de ? 'Anschrift wie oben' : 'Address as above'}
         </p>
 
         <h2>{de ? 'Verbraucherstreitbeilegung' : 'Consumer dispute resolution'}</h2>

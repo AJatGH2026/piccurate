@@ -19,7 +19,7 @@ function EnglishBody() {
       <p><em>Last updated: July 2026</em></p>
 
       <h2>1. Data Controller</h2>
-      <p>PicCurate is operated by [company name — to be added after founding], [address as in the imprint]. Contact: privacy@piccurate.app.</p>
+      <p>PicCurate is operated by AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Germany (see the <a href="/en/imprint">imprint</a>). Contact: privacy@piccurate.app.</p>
 
       <h2>2. What Data We Collect</h2>
       <ul>
@@ -96,7 +96,7 @@ function GermanBody() {
       <p><em>Letzte Aktualisierung: Juli 2026</em></p>
 
       <h2>1. Verantwortlicher</h2>
-      <p>PicCurate wird betrieben von [Firmenname — nach Gründung eintragen], [Anschrift wie im Impressum]. Kontakt: privacy@piccurate.app.</p>
+      <p>PicCurate wird betrieben von der AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Deutschland (siehe <a href="/de/imprint">Impressum</a>). Kontakt: privacy@piccurate.app.</p>
 
       <h2>2. Welche Daten wir erheben</h2>
       <ul>

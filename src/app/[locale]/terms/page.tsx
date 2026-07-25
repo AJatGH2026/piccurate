@@ -52,7 +52,7 @@ function GermanBody() {
       <p>Wir können diese Bedingungen und den Funktionsumfang der Beta jederzeit anpassen. Die jeweils aktuelle Fassung ist auf dieser Seite abrufbar.</p>
 
       <h2>10. Anwendbares Recht</h2>
-      <p>Es gilt das Recht der Bundesrepublik Deutschland. Gerichtsstand ist, soweit zulässig, [Ort — nach Gründung].</p>
+      <p>Es gilt das Recht der Bundesrepublik Deutschland. Gerichtsstand ist, soweit zulässig, Wiesbaden.</p>
     </>
   );
 }
@@ -96,7 +96,7 @@ function EnglishBody() {
       <p>We may adjust these terms and the scope of the beta at any time. The current version is always available on this page.</p>
 
       <h2>10. Governing law</h2>
-      <p>These terms are governed by the laws of the Federal Republic of Germany. Place of jurisdiction, where permitted, is [city — after founding].</p>
+      <p>These terms are governed by the laws of the Federal Republic of Germany. Place of jurisdiction, where permitted, is Wiesbaden.</p>
     </>
   );
 }
