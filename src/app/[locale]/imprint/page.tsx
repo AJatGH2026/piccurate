@@ -57,9 +57,7 @@ export default async function ImprintPage({ params }: Props) {
             ? 'Umsatzsteuer-Identifikationsnummer gemäß § 27a Umsatzsteuergesetz:'
             : 'VAT identification number pursuant to § 27a of the German VAT Act:'}
           <br />
-          [{de
-            ? 'USt-IdNr. eintragen (bei einer GmbH i. d. R. vorhanden)'
-            : 'add VAT ID (a GmbH usually has one)'}]
+          DE433664608
         </p>
 
         <h2>
