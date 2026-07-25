@@ -19,7 +19,7 @@ function EnglishBody() {
       <p><em>Last updated: July 2026</em></p>
 
       <h2>1. Data Controller</h2>
-      <p>PicCurate is operated by [Operator Name], [Address]. Contact: privacy@piccurate.app.</p>
+      <p>PicCurate is operated by [company name — to be added after founding], [address as in the imprint]. Contact: privacy@piccurate.app.</p>
 
       <h2>2. What Data We Collect</h2>
       <ul>
@@ -96,7 +96,7 @@ function GermanBody() {
       <p><em>Letzte Aktualisierung: Juli 2026</em></p>
 
       <h2>1. Verantwortlicher</h2>
-      <p>PicCurate wird betrieben von [Betreibername], [Anschrift]. Kontakt: privacy@piccurate.app.</p>
+      <p>PicCurate wird betrieben von [Firmenname — nach Gründung eintragen], [Anschrift wie im Impressum]. Kontakt: privacy@piccurate.app.</p>
 
       <h2>2. Welche Daten wir erheben</h2>
       <ul>

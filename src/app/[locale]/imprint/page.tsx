@@ -8,9 +8,15 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
+// DRAFT — legal scaffold for the public beta (pipeline §6 / §10 B2).
+// Entity-specific fields are marked TODO and must be filled after the company
+// is founded; the bracketed placeholders are deliberately visible so an
+// accidental launch shows an obviously-incomplete imprint rather than silently
+// wrong data. Final legal review pending (done by the operator).
 export default async function ImprintPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const de = locale === 'de';
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950">
@@ -20,46 +26,63 @@ export default async function ImprintPage({ params }: Props) {
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-12 prose dark:prose-invert prose-zinc">
-        <h1>{locale === 'de' ? 'Impressum' : 'Imprint'}</h1>
+        <h1>{de ? 'Impressum' : 'Imprint'}</h1>
 
-        <h2>{locale === 'de' ? 'Angaben gemaess § 5 TMG' : 'Information pursuant to § 5 TMG'}</h2>
+        <h2>{de ? 'Diensteanbieter (§ 5 DDG)' : 'Service provider (§ 5 DDG)'}</h2>
         <p>
-          [Operator Name]<br />
-          [Street Address]<br />
-          [Postal Code] [City]<br />
-          Germany
+          [{de ? 'Firmenname — nach Gründung eintragen' : 'Company name — to be added after founding'}]<br />
+          [{de ? 'Rechtsform, z. B. UG (haftungsbeschränkt) / GmbH' : 'Legal form, e.g. UG / GmbH'}]<br />
+          [{de ? 'Straße und Hausnummer' : 'Street address'}]<br />
+          [{de ? 'PLZ Ort' : 'Postal code, city'}]<br />
+          {de ? 'Deutschland' : 'Germany'}
         </p>
 
-        <h2>{locale === 'de' ? 'Kontakt' : 'Contact'}</h2>
+        <h2>{de ? 'Vertreten durch' : 'Represented by'}</h2>
+        <p>[{de ? 'Geschäftsführer:in — nach Gründung' : 'Managing director — after founding'}]</p>
+
+        <h2>{de ? 'Kontakt' : 'Contact'}</h2>
         <p>
-          Email: contact@piccurate.app<br />
-          {locale === 'de' ? 'Telefon' : 'Phone'}: [Phone Number]
+          {de ? 'E-Mail' : 'Email'}: contact@piccurate.app<br />
+          {de ? 'Telefon' : 'Phone'}: [{de ? 'nach Gründung' : 'after founding'}]
         </p>
 
-        <h2>{locale === 'de' ? 'Umsatzsteuer-ID' : 'VAT ID'}</h2>
+        <h2>{de ? 'Registereintrag' : 'Register entry'}</h2>
         <p>
-          {locale === 'de'
-            ? 'Umsatzsteuer-Identifikationsnummer gemaess §27a Umsatzsteuergesetz:'
-            : 'VAT identification number pursuant to §27a of the German VAT Act:'}
+          [{de ? 'Registergericht — nach Gründung' : 'Registering court — after founding'}]<br />
+          [{de ? 'Registernummer (z. B. HRB …) — nach Gründung' : 'Register number (e.g. HRB …) — after founding'}]
+        </p>
+
+        <h2>{de ? 'Umsatzsteuer-ID' : 'VAT ID'}</h2>
+        <p>
+          {de
+            ? 'Umsatzsteuer-Identifikationsnummer gemäß § 27a Umsatzsteuergesetz:'
+            : 'VAT identification number pursuant to § 27a of the German VAT Act:'}
           <br />
-          DE [Number]
+          [{de
+            ? 'USt-IdNr. — nach Gründung; ggf. Kleinunternehmer nach § 19 UStG (dann keine USt-IdNr.)'
+            : 'VAT ID — after founding; possibly small-business scheme (§ 19 UStG), then no VAT ID'}]
         </p>
 
-        <h2>{locale === 'de' ? 'Verantwortlich fuer den Inhalt' : 'Responsible for content'}</h2>
+        <h2>
+          {de
+            ? 'Verantwortlich für den Inhalt (§ 18 Abs. 2 MStV)'
+            : 'Responsible for content (§ 18 (2) MStV)'}
+        </h2>
         <p>
-          [Name]<br />
-          [Address]
+          [{de ? 'Name — nach Gründung' : 'Name — after founding'}]<br />
+          [{de ? 'Anschrift wie oben' : 'Address as above'}]
         </p>
 
-        <h2>{locale === 'de' ? 'Streitschlichtung' : 'Dispute Resolution'}</h2>
+        <h2>{de ? 'Verbraucherstreitbeilegung' : 'Consumer dispute resolution'}</h2>
         <p>
-          {locale === 'de'
-            ? 'Die Europaeische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:'
-            : 'The European Commission provides a platform for online dispute resolution (OS):'}
-          <br />
-          <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener noreferrer">
-            https://ec.europa.eu/consumers/odr/
-          </a>
+          {de
+            ? 'Wir sind nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen (§ 36 VSBG). [Vor Veröffentlichung prüfen — geschäftliche Entscheidung.]'
+            : 'We are neither willing nor obliged to participate in dispute resolution proceedings before a consumer arbitration board (§ 36 VSBG). [Review before publishing — business decision.]'}
+        </p>
+        <p>
+          {de
+            ? 'Hinweis: Die EU-Plattform zur Online-Streitbeilegung (OS) wurde 2025 eingestellt — vor Veröffentlichung prüfen, ob ein Verweis hier noch erforderlich ist.'
+            : 'Note: the EU Online Dispute Resolution (ODR) platform was discontinued in 2025 — verify before publishing whether a reference here is still required.'}
         </p>
       </main>
     </div>
