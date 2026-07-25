@@ -80,6 +80,7 @@ export interface ClientPhoto {
   thumbnailBlob: Blob | null;
   thumbnailUrl: string | null; // Object URL for preview
   phash: string | null; // 16-hex perceptual hash for near-duplicate / series detection
+  embedding: number[] | null; // CLIP image embedding (computed in background) for cross-camera dedup
   status: 'pending' | 'extracting' | 'generating' | 'ready' | 'uploading' | 'uploaded' | 'error';
   error: string | null;
 }

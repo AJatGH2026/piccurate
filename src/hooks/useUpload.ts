@@ -6,6 +6,7 @@ import type { ClientPhoto } from '@/types/photo';
 import { extractEXIF } from '@/utils/exif';
 import { generateThumbnail, isHEIC, convertHEICtoJPEG } from '@/utils/image';
 import { computePHash } from '@/utils/phash';
+import { computeEmbedding } from '@/utils/embedding';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'image/webp'];
 const MAX_CONCURRENT = 4;
@@ -79,7 +80,9 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
       // Perceptual hash for near-duplicate / series detection
       const phash = await computePHash(thumbnailBlob);
 
-      // Mark ready
+      // Mark ready (grid fills fast). The CLIP embedding is heavier, so compute
+      // it in the background and attach when done — series detection uses it for
+      // cross-camera near-duplicates, and falls back to pHash until it lands.
       updatePhoto(photo.id, {
         status: 'ready',
         exif,
@@ -87,6 +90,11 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
         thumbnailUrl,
         phash,
       });
+      void computeEmbedding(thumbnailBlob)
+        .then((embedding) => {
+          if (embedding) updatePhoto(photo.id, { embedding });
+        })
+        .catch(() => {});
     } catch (err) {
       const message =
         err instanceof Error
@@ -155,6 +163,7 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
         thumbnailBlob: null,
         thumbnailUrl: null,
         phash: null,
+        embedding: null,
         status: 'pending' as const,
         error: null,
       }));

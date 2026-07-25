@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import type { ClientPhoto, AIAnalysis } from '@/types/photo';
 import type { CriteriaConfig, Person } from '@/types/criteria';
 import { DEFAULT_CRITERIA, MAX_PERSONS } from '@/types/criteria';
+import { cosineSim } from '@/utils/embedding';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface ProcessedPhoto {
@@ -13,6 +14,7 @@ export interface ProcessedPhoto {
   thumbnailUrl: string;
   thumbnailBlob: Blob | null;
   phash: string | null; // 16-hex perceptual hash for near-duplicate / series detection
+  embedding: number[] | null; // CLIP image embedding for cross-camera near-duplicate detection
   dateTaken: string | null;
   latitude: number | null;
   longitude: number | null;
@@ -277,22 +279,29 @@ const VISUAL_DEDUP_MAX = 5000;
  *
  *  1. BURST (time-gated): time-sorted neighbours within GAP_S seconds AND pHash
  *     distance ≤ D. Catches rapid-fire bursts even when the frame changes a bit.
- *  2. VISUAL (time-independent): ANY two photos with pHash distance ≤ Dv, no
- *     matter how far apart in time or sequence. Catches "looks almost identical"
- *     re-shots taken minutes apart, or with other photos interleaved — the case
- *     a consecutive-only, time-gated detector misses. Dv is kept tight so two
- *     genuinely different but similar scenes aren't merged.
+ *  2. VISUAL / pHash (time-independent): ANY two photos with pHash distance ≤ Dv.
+ *     Catches pixel-level "looks almost identical" re-shots minutes apart or with
+ *     other photos interleaved. Dv kept tight so different-but-similar scenes
+ *     aren't merged.
+ *  3. SEMANTIC / embedding (time-independent): ANY two photos whose CLIP
+ *     embeddings have cosine ≥ SIM. Catches the same scene shot by DIFFERENT
+ *     cameras/people — different viewpoint, framing, colour — which pHash cannot
+ *     recognise. No-op for photos whose embedding hasn't been computed (falls
+ *     back to pHash).
  *
- * All three thresholds scale with the Duplicates slider (1 = lenient … 10 = strict):
- *   Slider 1  → GAP_S =  0s, D =  7, Dv = 0  (near-exact duplicates only)
- *   Slider 8  → GAP_S = 47s, D = 14, Dv = 6  (default)
- *   Slider 10 → GAP_S = 60s, D = 16, Dv = 8  (aggressive collapsing)
+ * All thresholds scale with the Duplicates slider (1 = lenient … 10 = strict):
+ *   Slider 1  → GAP_S =  0s, D =  7, Dv = 0, SIM = 0.97  (near-exact only)
+ *   Slider 8  → GAP_S = 47s, D = 14, Dv = 6, SIM ≈ 0.90  (default)
+ *   Slider 10 → GAP_S = 60s, D = 16, Dv = 8, SIM = 0.88  (aggressive)
  */
 function detectSeries(photos: ProcessedPhoto[], criteria: CriteriaConfig): ProcessedPhoto[][] {
   const s = Math.max(1, Math.min(10, criteria.dedupSensitivity || 8));
   const GAP_S = Math.round(((s - 1) * 60) / 9);
   const D = 6 + s;
   const Dv = Math.round(((s - 1) * 8) / 9);
+  // Cosine threshold for cross-camera semantic dedup. Empirical — tune on real
+  // sets if it over- or under-merges.
+  const SIM = 0.97 - ((s - 1) * (0.97 - 0.88)) / 9;
 
   const sorted = [...photos].sort((a, b) => (a.dateTaken || '').localeCompare(b.dateTaken || ''));
   const n = sorted.length;
@@ -317,13 +326,19 @@ function detectSeries(photos: ProcessedPhoto[], criteria: CriteriaConfig): Proce
     if (gap <= GAP_S && hamming(prev.phash, p.phash) <= D) union(i - 1, i);
   }
 
-  // Rule 2 — visual: any pair below the tight threshold, time-independent.
-  if (Dv > 0 && n <= VISUAL_DEDUP_MAX) {
+  // Rules 2 & 3 — time-independent, all pairs (capped): pHash for pixel-level
+  // near-dups, embedding cosine for same-scene-different-camera.
+  if (n <= VISUAL_DEDUP_MAX) {
     for (let i = 0; i < n; i++) {
-      if (!sorted[i].phash) continue;
+      const a = sorted[i];
       for (let j = i + 1; j < n; j++) {
-        if (!sorted[j].phash || find(i) === find(j)) continue;
-        if (hamming(sorted[i].phash, sorted[j].phash) <= Dv) union(i, j);
+        if (find(i) === find(j)) continue;
+        const b = sorted[j];
+        const pHashHit = Dv > 0 && !!a.phash && !!b.phash && hamming(a.phash, b.phash) <= Dv;
+        // cosineSim returns 0 when either embedding is missing, so this is a
+        // no-op until the background embedding lands.
+        const embHit = pHashHit || cosineSim(a.embedding, b.embedding) >= SIM;
+        if (embHit) union(i, j);
       }
     }
   }
@@ -459,6 +474,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       thumbnailUrl: p.thumbnailUrl!,
       thumbnailBlob: p.thumbnailBlob,
       phash: p.phash || null,
+      embedding: p.embedding || null,
       dateTaken: p.exif?.dateTaken || null,
       latitude: p.exif?.latitude || null,
       longitude: p.exif?.longitude || null,
