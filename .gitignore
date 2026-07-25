@@ -51,3 +51,6 @@ next-env.d.ts
 
 # Local dev launcher with secrets — never commit
 dev.cmd
+
+# Personal work log — kept local by user request (not versioned)
+docs/PicCurate-WorkLog.md
