@@ -266,35 +266,77 @@ function generateReasonTag(photo: ProcessedPhoto): string {
   }
 }
 
+// Cap for the O(N²) time-independent visual pass. Above this the pool falls back
+// to burst-only clustering (rare — only very large jobs).
+const VISUAL_DEDUP_MAX = 5000;
+
 /**
- * Cluster photos into series: time-sorted, consecutive photos that are close in
- * time AND visually similar (pHash) belong to the same burst. Returns an array
- * of clusters (each an array of photos). Falls back to singletons if no pHash.
+ * Cluster photos into series via union-find. Two photos join the same series if
+ * EITHER rule fires — so the result is strictly at least as aggressive as a pure
+ * burst detector:
+ *
+ *  1. BURST (time-gated): time-sorted neighbours within GAP_S seconds AND pHash
+ *     distance ≤ D. Catches rapid-fire bursts even when the frame changes a bit.
+ *  2. VISUAL (time-independent): ANY two photos with pHash distance ≤ Dv, no
+ *     matter how far apart in time or sequence. Catches "looks almost identical"
+ *     re-shots taken minutes apart, or with other photos interleaved — the case
+ *     a consecutive-only, time-gated detector misses. Dv is kept tight so two
+ *     genuinely different but similar scenes aren't merged.
+ *
+ * All three thresholds scale with the Duplicates slider (1 = lenient … 10 = strict):
+ *   Slider 1  → GAP_S =  0s, D =  7, Dv = 0  (near-exact duplicates only)
+ *   Slider 8  → GAP_S = 47s, D = 14, Dv = 6  (default)
+ *   Slider 10 → GAP_S = 60s, D = 16, Dv = 8  (aggressive collapsing)
  */
 function detectSeries(photos: ProcessedPhoto[], criteria: CriteriaConfig): ProcessedPhoto[][] {
-  // Both the time window AND the pHash distance now scale with the Duplicates
-  // slider — "lenient" means loose on both, "strict" means aggressive on both.
-  // Slider 1  → GAP_S =  0s, D =  7  (basically only exact duplicates)
-  // Slider 8  → GAP_S = 23s, D = 14  (default, roughly matches the old 20s)
-  // Slider 10 → GAP_S = 30s, D = 16  (aggressive burst collapsing)
   const s = Math.max(1, Math.min(10, criteria.dedupSensitivity || 8));
-  const GAP_S = Math.round(((s - 1) * 30) / 9);
+  const GAP_S = Math.round(((s - 1) * 60) / 9);
   const D = 6 + s;
+  const Dv = Math.round(((s - 1) * 8) / 9);
+
   const sorted = [...photos].sort((a, b) => (a.dateTaken || '').localeCompare(b.dateTaken || ''));
-  const clusters: ProcessedPhoto[][] = [];
-  let cur: ProcessedPhoto[] = [];
-  for (let i = 0; i < sorted.length; i++) {
-    if (i === 0) { cur = [sorted[i]]; continue; }
+  const n = sorted.length;
+
+  // Union-find.
+  const parent = Array.from({ length: n }, (_, i) => i);
+  const find = (x: number): number => {
+    while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+    return x;
+  };
+  const union = (a: number, b: number) => {
+    const ra = find(a), rb = find(b);
+    if (ra !== rb) parent[ra] = rb;
+  };
+
+  // Rule 1 — burst: consecutive time-sorted neighbours.
+  for (let i = 1; i < n; i++) {
     const prev = sorted[i - 1], p = sorted[i];
     const gap = prev.dateTaken && p.dateTaken
       ? (new Date(p.dateTaken).getTime() - new Date(prev.dateTaken).getTime()) / 1000
       : Infinity;
-    const dist = hamming(prev.phash, p.phash);
-    if (gap <= GAP_S && dist <= D) cur.push(p);
-    else { clusters.push(cur); cur = [p]; }
+    if (gap <= GAP_S && hamming(prev.phash, p.phash) <= D) union(i - 1, i);
   }
-  if (cur.length) clusters.push(cur);
-  return clusters;
+
+  // Rule 2 — visual: any pair below the tight threshold, time-independent.
+  if (Dv > 0 && n <= VISUAL_DEDUP_MAX) {
+    for (let i = 0; i < n; i++) {
+      if (!sorted[i].phash) continue;
+      for (let j = i + 1; j < n; j++) {
+        if (!sorted[j].phash || find(i) === find(j)) continue;
+        if (hamming(sorted[i].phash, sorted[j].phash) <= Dv) union(i, j);
+      }
+    }
+  }
+
+  // Group by root, preserving time order within each cluster.
+  const groups = new Map<number, ProcessedPhoto[]>();
+  for (let i = 0; i < n; i++) {
+    const r = find(i);
+    const g = groups.get(r);
+    if (g) g.push(sorted[i]);
+    else groups.set(r, [sorted[i]]);
+  }
+  return [...groups.values()];
 }
 
 /**
