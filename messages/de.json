@@ -224,6 +224,12 @@
     "close": "Schließen",
     "stepOf": "Schritt {current} von {total}"
   },
+  "consent": {
+    "text": "Wir nutzen Cookies für Statistik und Marketing (Google), um die Beta zu verbessern und Kampagnen zu messen. Notwendige Funktionen laufen ohne Cookies.",
+    "accept": "Akzeptieren",
+    "decline": "Ablehnen",
+    "privacy": "Datenschutz"
+  },
   "footer": {
     "tagline": "KI-gesteuerte Reisefoto-Auswahl",
     "guides": "Ratgeber",

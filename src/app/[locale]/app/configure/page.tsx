@@ -5,6 +5,7 @@ import { useCriteria } from '@/hooks/useCriteria';
 import { usePhotoStore, isNegativeCustom, stripNegativePrefix } from '@/hooks/usePhotoStore';
 import { MAX_PERSONS } from '@/types/criteria';
 import { generateThumbnail } from '@/utils/image';
+import { trackEvent } from '@/lib/analytics';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
@@ -666,6 +667,7 @@ export default function ConfigurePage() {
 
                 setProgress(t('progressSelecting'));
                 applyAnalysisResults(batchResults.flat(), criteria, toAnalyze.map((p) => p.id));
+                trackEvent('analysis_complete', { photos: toAnalyze.length });
                 router.push(`/${locale}/app/review`);
               } catch (err) {
                 console.error('Analysis failed:', err);

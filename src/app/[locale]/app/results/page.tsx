@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { usePhotoStore } from '@/hooks/usePhotoStore';
 import { enabledCloudProviders, type CloudProvider } from '@/lib/cloud';
 import { reverseGeocode } from '@/utils/geocode';
+import { trackEvent, trackAdsConversion } from '@/lib/analytics';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
@@ -144,6 +145,9 @@ export default function ResultsPage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      // Primary conversion: a completed download = the user got value.
+      trackEvent('download', { photos: selectedCount, zip_mode: zipMode });
+      trackAdsConversion();
     } catch (err) {
       console.error('ZIP creation failed:', err);
       alert(t('zipFailed'));

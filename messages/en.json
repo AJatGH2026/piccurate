@@ -224,6 +224,12 @@
     "close": "Close",
     "stepOf": "Step {current} of {total}"
   },
+  "consent": {
+    "text": "We use cookies for analytics and marketing (Google) to improve the beta and measure campaigns. Essential features work without cookies.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "privacy": "Privacy"
+  },
   "footer": {
     "tagline": "AI-powered travel photo curation",
     "guides": "Guides",
