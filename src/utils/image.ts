@@ -10,17 +10,22 @@ const THUMBNAIL_QUALITY = 0.6;
  * Generate a 512x512 JPEG thumbnail from an image file.
  * Uses center-crop to maintain aspect ratio.
  *
- * EXIF orientation is applied exactly once, by the browser, via
- * createImageBitmap's `imageOrientation: 'from-image'`. The decoded bitmap is
- * therefore already upright and its width/height reflect the corrected (visual)
- * dimensions, so the center-crop math below is correct for every orientation.
- * We must NOT also rotate the canvas manually — doing both double-applies the
- * rotation (e.g. an orientation-3 photo ends up upside down).
+ * EXIF orientation: the browser's `imageOrientation: 'from-image'` auto-orient
+ * turned out to be UNRELIABLE for some files (a couple of photos uploaded
+ * rotated 90°). So when the caller knows the EXIF orientation (from
+ * extractEXIF), we bake it explicitly first via rotateBlobByExif — the same
+ * deterministic path already used for HEIC. The baked JPEG carries no EXIF, so
+ * the subsequent decode stays a no-op (no double rotation). Only when the
+ * orientation is unknown (null) do we fall back to 'from-image'.
  *
  * @returns Blob of the JPEG thumbnail
  */
-export async function generateThumbnail(file: File | Blob): Promise<Blob> {
-  const imageBitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+export async function generateThumbnail(
+  file: File | Blob,
+  orientation: number | null = null
+): Promise<Blob> {
+  const src = orientation != null && orientation > 1 ? await rotateBlobByExif(file, orientation) : file;
+  const imageBitmap = await createImageBitmap(src, { imageOrientation: 'from-image' });
 
   // Determine crop dimensions (center crop to square)
   const size = Math.min(imageBitmap.width, imageBitmap.height);

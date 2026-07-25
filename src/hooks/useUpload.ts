@@ -70,9 +70,11 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
         updatePhoto(photo.id, { status: 'generating', exif });
         thumbnailBlob = await convertHEICtoJPEG(photo.file, true, exif.orientation);
       } else {
-        // JPEG/PNG/WebP: generate thumbnail client-side (fast, no server needed)
+        // JPEG/PNG/WebP: generate thumbnail client-side (fast, no server needed).
+        // Pass the extracted EXIF orientation so it's baked deterministically —
+        // the browser's auto-orient left some photos rotated 90°.
         updatePhoto(photo.id, { status: 'generating', exif });
-        thumbnailBlob = await generateThumbnail(photo.file);
+        thumbnailBlob = await generateThumbnail(photo.file, exif.orientation);
       }
 
       const thumbnailUrl = URL.createObjectURL(thumbnailBlob);
