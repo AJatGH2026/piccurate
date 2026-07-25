@@ -103,18 +103,13 @@ export function isHEIC(file: File): boolean {
 // path exists at all: it's faster per file, and Vercel's serverless body cap is
 // 4.5 MB (so >4 MB must go to the browser anyway, else HTTP 413).
 //
-// Configurable (MB) via NEXT_PUBLIC_HEIC_SERVER_MAX_MB. 4 = small HEICs use the
-// fast server path, big ones fall back to the browser. 0 = route EVERYTHING to
-// the browser — a quota lever that drives /api/convert "Fast Origin Transfer" to
-// ~0 at the cost of slower client-side uploads.
-//
-// ⚠️ Currently 0 (browser-only). The Vercel free-tier Fast Origin Transfer quota
-// (10 GB, rolling 30-day) is exhausted — a single heavy test day (~5 Jul, ~10.8 GB
-// incoming) dominates the window and won't age out until ~early August. Keep at 0
-// until the counter clears, then revert to 4 (or set the env var) to restore the
-// fast server path. Heavy iteration should happen on localhost, which doesn't
-// touch Vercel origin transfer at all.
-const HEIC_SERVER_MAX_MB = Number(process.env.NEXT_PUBLIC_HEIC_SERVER_MAX_MB ?? '0');
+// Configurable (MB) via NEXT_PUBLIC_HEIC_SERVER_MAX_MB. 4 (default) = small
+// HEICs use the fast server path, big ones fall back to the browser. 0 = route
+// EVERYTHING to the browser — a quota lever that drives /api/convert "Fast
+// Origin Transfer" to ~0 at the cost of slower client-side uploads (used
+// 2026-07-06→18 while the Vercel free-tier transfer quota was exhausted; no
+// longer needed on Pro, which includes 1 TB transfer).
+const HEIC_SERVER_MAX_MB = Number(process.env.NEXT_PUBLIC_HEIC_SERVER_MAX_MB ?? '4');
 const VERCEL_BODY_LIMIT = Math.max(0, HEIC_SERVER_MAX_MB) * 1024 * 1024;
 
 /**
