@@ -63,6 +63,44 @@ export async function trackAnalyze(e: AnalyzeEvent): Promise<void> {
   }
 }
 
+/**
+ * Today's global photo count (across all users). Used by the beta daily cap in
+ * /api/analyze-demo. Returns null when Upstash isn't configured — the caller
+ * then skips the cap (the Gemini billing limit remains the hard backstop).
+ */
+export async function getTodayPhotos(): Promise<number | null> {
+  const r = getClient();
+  if (!r) return null;
+  try {
+    const v = await r.get(`stats:photos:${todayKey()}`);
+    return v == null ? 0 : Number(v);
+  } catch (err) {
+    console.warn('[stats] getTodayPhotos failed:', err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+/**
+ * Atomically add `photos` to this IP's daily counter and return the new total
+ * (null if Upstash isn't configured). Used by the beta per-IP daily cap — a
+ * best-effort guard against a single client draining the free-beta budget.
+ */
+export async function reserveIpDailyPhotos(ip: string, photos: number): Promise<number | null> {
+  const r = getClient();
+  if (!r) return null;
+  const key = `beta:ip:${ip}:${todayKey()}`;
+  try {
+    const p = r.pipeline();
+    p.incrby(key, photos);
+    p.expire(key, DAY_TTL_S);
+    const res = (await p.exec()) as unknown[];
+    return Number(res[0]);
+  } catch (err) {
+    console.warn('[stats] reserveIpDailyPhotos failed:', err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
 export interface StatsSnapshot {
   configured: boolean;
   lifetime: { photos: number; jobs: number; inputTokens: number; outputTokens: number; estCostEur: number };

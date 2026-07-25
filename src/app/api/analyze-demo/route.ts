@@ -3,13 +3,23 @@ import { GoogleGenAI } from '@google/genai';
 import { ANALYSIS_SYSTEM_PROMPT } from '@/lib/anthropic/prompts';
 import { parseAnalysisResponse } from '@/lib/anthropic/parser';
 import { rateLimit, clientIp } from '@/lib/rate-limit';
-import { trackAnalyze } from '@/lib/stats';
+import { trackAnalyze, getTodayPhotos, reserveIpDailyPhotos } from '@/lib/stats';
 
 // Per-IP guard against a client hammering this (paid) endpoint. Generous
 // enough for a real demo job sent in batches, but caps runaway loops. The
 // hard cost backstop remains the provider's spend limit. See §4.2.1.
 const RL_LIMIT = 120; // requests
 const RL_WINDOW_MS = 60_000; // per minute
+
+// Beta cost/abuse guards (see product-pipeline.md §10). Cost scales with photos
+// (image tokens dominate), so all caps are photo-based.
+// - Per-request cap: always on, guards against a single oversized request.
+// - Daily + per-IP caps: Upstash-backed, DISABLED by default (0) so nothing
+//   changes for the current gated-tester phase. Turn on via env at public
+//   launch. The hard backstop is the provider-side Gemini billing spend limit.
+const BETA_MAX_PHOTOS_PER_REQUEST = Number(process.env.BETA_MAX_PHOTOS_PER_REQUEST ?? '40');
+const BETA_DAILY_PHOTO_CAP = Number(process.env.BETA_DAILY_PHOTO_CAP ?? '0');
+const BETA_IP_DAILY_PHOTO_CAP = Number(process.env.BETA_IP_DAILY_PHOTO_CAP ?? '0');
 
 /**
  * POST /api/analyze-demo
@@ -44,6 +54,37 @@ export async function POST(request: NextRequest) {
 
     if (!files.length || !metaStr) {
       return NextResponse.json({ error: 'Missing thumbnails or metadata' }, { status: 400 });
+    }
+
+    // Beta cost/abuse guards (§10). Per-request cap first (cheap, always on).
+    if (files.length > BETA_MAX_PHOTOS_PER_REQUEST) {
+      return NextResponse.json(
+        { error: `Too many photos in one request (max ${BETA_MAX_PHOTOS_PER_REQUEST}).` },
+        { status: 413 }
+      );
+    }
+    // Global daily photo cap — protects the free-beta budget from runaway/bot
+    // traffic once the site is public. No-op until BETA_DAILY_PHOTO_CAP is set.
+    if (BETA_DAILY_PHOTO_CAP > 0) {
+      const todayPhotos = await getTodayPhotos();
+      if (todayPhotos != null && todayPhotos >= BETA_DAILY_PHOTO_CAP) {
+        return NextResponse.json(
+          { error: 'Daily beta capacity reached. Please try again tomorrow.' },
+          { status: 503, headers: { 'Retry-After': '3600' } }
+        );
+      }
+    }
+    // Per-IP daily photo cap — stops a single client draining the budget.
+    // reserve-then-check: we allow the request that crosses the line, block the
+    // next (best-effort; exact fairness isn't worth a lock here).
+    if (BETA_IP_DAILY_PHOTO_CAP > 0) {
+      const ipTotal = await reserveIpDailyPhotos(ip, files.length);
+      if (ipTotal != null && ipTotal - files.length >= BETA_IP_DAILY_PHOTO_CAP) {
+        return NextResponse.json(
+          { error: 'Daily limit reached for this connection. Please try again tomorrow.' },
+          { status: 429, headers: { 'Retry-After': '3600' } }
+        );
+      }
     }
 
     const metadata: { filename: string; dateTaken: string | null; cameraModel: string | null }[] =
