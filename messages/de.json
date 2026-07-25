@@ -224,6 +224,25 @@
     "close": "Schließen",
     "stepOf": "Schritt {current} von {total}"
   },
+  "feedback": {
+    "button": "Feedback",
+    "title": "Feedback zur Beta",
+    "placeholder": "Was gefällt dir, was fehlt, was ist kaputt?",
+    "submit": "Senden",
+    "sending": "Senden…",
+    "thanks": "Danke für dein Feedback!",
+    "close": "Schließen"
+  },
+  "emailCapture": {
+    "title": "Über Updates informiert bleiben?",
+    "note": "Optional. Wir melden uns nur bei wichtigen Neuigkeiten. Jederzeit abbestellbar.",
+    "placeholder": "deine@email.de",
+    "submit": "Eintragen",
+    "sending": "…",
+    "thanks": "Eingetragen — danke!",
+    "error": "Bitte gültige E-Mail eingeben.",
+    "dismiss": "Ausblenden"
+  },
   "consent": {
     "text": "Wir nutzen Cookies für Statistik und Marketing (Google), um die Beta zu verbessern und Kampagnen zu messen. Notwendige Funktionen laufen ohne Cookies.",
     "accept": "Akzeptieren",

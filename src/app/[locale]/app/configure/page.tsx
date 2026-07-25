@@ -8,7 +8,8 @@ import { generateThumbnail } from '@/utils/image';
 import { trackEvent } from '@/lib/analytics';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { logBeta } from '@/lib/beta-client';
 
 const BATCH_SIZE = 20;
 
@@ -45,6 +46,7 @@ export default function ConfigurePage() {
   const { criteria, toggleCriterion, setWeight, updateCriterion, addCustom, removeCustom, setCustomWeight, reset } =
     useCriteria();
   const [customInput, setCustomInput] = useState('');
+  useEffect(() => { logBeta('configure'); }, []);
 
   const criteriaItems = [
     { key: 'preferFaces' as const, label: t('faces'), desc: t('facesDesc') },
@@ -668,6 +670,7 @@ export default function ConfigurePage() {
                 setProgress(t('progressSelecting'));
                 applyAnalysisResults(batchResults.flat(), criteria, toAnalyze.map((p) => p.id));
                 trackEvent('analysis_complete', { photos: toAnalyze.length });
+                logBeta('analysis');
                 router.push(`/${locale}/app/review`);
               } catch (err) {
                 console.error('Analysis failed:', err);

@@ -1,7 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { logBeta } from '@/lib/beta-client';
 import { ReviewPhotoCard } from '@/components/review/ReviewPhotoCard';
 import { Lightbox } from '@/components/review/Lightbox';
 import { SelectionStats } from '@/components/review/SelectionStats';
@@ -21,6 +22,17 @@ export default function ReviewPage() {
   const photos = usePhotoStore((s) => s.photos);
   const persons = usePhotoStore((s) => s.persons);
   const toggleSelection = usePhotoStore((s) => s.toggleSelection);
+
+  // Funnel + selection-correction signals (§2). Count manual add/remove during
+  // review and flush once on finalize — cheap, aggregate, no per-click calls.
+  useEffect(() => { logBeta('review'); }, []);
+  const added = useRef(0);
+  const removed = useRef(0);
+  const wrappedToggle = (id: string) => {
+    const p = photos.find((x) => x.id === id);
+    if (p) (p.selected ? removed : added).current++;
+    toggleSelection(id);
+  };
 
   // Map lowercased name → original-cased name so the person chips on the
   // review cards show "Peter" (as typed by the user) rather than "peter"
@@ -135,7 +147,7 @@ export default function ReviewPage() {
                           latitude={photo.latitude}
                           longitude={photo.longitude}
                           persons={displayPersons(photo.persons || [])}
-                          onToggle={() => toggleSelection(photo.id)}
+                          onToggle={() => wrappedToggle(photo.id)}
                           onEnlarge={() => openLightbox(photo.id)}
                         />
                       ))}
@@ -161,7 +173,7 @@ export default function ReviewPage() {
                             latitude={photo.latitude}
                             longitude={photo.longitude}
                             persons={displayPersons(photo.persons || [])}
-                            onToggle={() => toggleSelection(photo.id)}
+                            onToggle={() => wrappedToggle(photo.id)}
                             onEnlarge={() => openLightbox(photo.id)}
                           />
                         ))}
@@ -193,7 +205,10 @@ export default function ReviewPage() {
               />
 
               <button
-                onClick={() => router.push(`/${locale}/app/results`)}
+                onClick={() => {
+                  logBeta('finalize', { added: added.current, removed: removed.current });
+                  router.push(`/${locale}/app/results`);
+                }}
                 className="block w-full text-center rounded-full bg-indigo-600 px-6 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
               >
                 {t('finalize')} ({selectedPhotos.length})
@@ -235,7 +250,7 @@ export default function ReviewPage() {
           photos={photos}
           index={lightboxIndex}
           onIndexChange={setLightboxIndex}
-          onToggle={toggleSelection}
+          onToggle={wrappedToggle}
           onClose={() => setLightboxIndex(null)}
         />
       )}

@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { readStats } from '@/lib/stats';
+import { readBetaSignals } from '@/lib/beta';
 
 // Admin usage dashboard. Sits at /admin/stats (locale-free), protected by the
 // site-wide Basic Auth gate (src/proxy.ts) — so the same SITE_PASSWORD that
@@ -23,14 +24,14 @@ function fmtEur(n: number): string {
 }
 
 export default async function AdminStatsPage() {
-  const stats = await readStats(7);
+  const [stats, beta] = await Promise.all([readStats(7), readBetaSignals()]);
 
   return (
     <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-10">
         <h1 className="text-2xl font-bold">Usage</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          Analysierte Fotos und API-Tokens. Kostenschätzung auf Sonnet-4.6-Preisen (Input $3 / Output $15 pro 1 M).
+          Analysierte Fotos und API-Tokens. Kostenschätzung auf Gemini-2.5-Flash-Preisen (Input $0,30 / Output $2,50 pro 1 M).
         </p>
 
         {!stats.configured && (
@@ -74,6 +75,46 @@ export default async function AdminStatsPage() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Beta signals — funnel, selection corrections, feedback, emails */}
+        <div className="mt-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="font-semibold">Beta-Signale</h2>
+          {!beta.configured ? (
+            <p className="mt-2 text-sm text-zinc-500">Erscheint, sobald Upstash Redis konfiguriert ist.</p>
+          ) : (
+            <>
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                {beta.funnel.map((f) => (
+                  <div key={f.step} className="rounded-lg border border-zinc-100 dark:border-zinc-800 px-3 py-2">
+                    <div className="text-zinc-500 capitalize">{f.step}</div>
+                    <div className="font-semibold tabular-nums">{fmt(f.total)}</div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-sm text-zinc-500">
+                Manuelle Korrekturen: <span className="font-medium text-zinc-700 dark:text-zinc-300">+{fmt(beta.selection.added)}</span> hinzugefügt,{' '}
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">−{fmt(beta.selection.removed)}</span> entfernt · Feedback:{' '}
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">{fmt(beta.feedbackCount)}</span> · E-Mails:{' '}
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">{fmt(beta.emailCount)}</span>
+              </p>
+              {beta.recentFeedback.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium">Letztes Feedback</h3>
+                  <ul className="mt-2 space-y-2">
+                    {beta.recentFeedback.map((f, i) => (
+                      <li key={i} className="rounded-lg border border-zinc-100 dark:border-zinc-800 px-3 py-2 text-sm">
+                        <div className="text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap break-words">{f.text}</div>
+                        <div className="mt-1 text-xs text-zinc-400">
+                          {f.ts?.slice(0, 16).replace('T', ' ')} · {f.locale || '—'} · {f.path || '—'}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </main>

@@ -7,12 +7,13 @@ import { UploadProgress } from '@/components/upload/UploadProgress';
 import { PhotoGrid } from '@/components/upload/PhotoGrid';
 import { DropboxImport } from '@/components/upload/DropboxImport';
 import { dropboxConfigured } from '@/lib/cloud/dropbox';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Tier } from '@/types/job';
 import { PRICING_PLANS } from '@/types/pricing';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { usePhotoStore } from '@/hooks/usePhotoStore';
+import { logBeta } from '@/lib/beta-client';
 
 const DEFAULT_TIER: Tier = 'free';
 
@@ -22,6 +23,7 @@ export default function UploadPage() {
   const params = useParams();
   const router = useRouter();
   const locale = params.locale as string;
+  useEffect(() => { logBeta('upload'); }, []);
   const [currentTier] = useState<Tier>(DEFAULT_TIER);
   const [showDropbox, setShowDropbox] = useState(false);
   const setPhotosFromUpload = usePhotoStore((s) => s.setPhotosFromUpload);

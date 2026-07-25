@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { Analytics } from '@vercel/analytics/next';
 import { GoogleTag } from '@/components/analytics/GoogleTag';
 import { ConsentBanner } from '@/components/analytics/ConsentBanner';
+import { FeedbackWidget } from '@/components/beta/FeedbackWidget';
 import { routing } from '../../../i18n/routing';
 import { clientConfig } from '@/lib/config';
 import { Geist, Geist_Mono } from 'next/font/google';
@@ -65,8 +66,9 @@ export default async function LocaleLayout({ children, params }: Props) {
       <body className="min-h-full flex flex-col bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
         <NextIntlClientProvider messages={messages}>
           {children}
-          {/* Inside the intl provider — ConsentBanner uses useTranslations. */}
+          {/* Inside the intl provider — these use useTranslations. */}
           <ConsentBanner />
+          <FeedbackWidget />
         </NextIntlClientProvider>
         {/* Vercel Web Analytics — cookieless page-view + funnel data.
             Only fires on production builds under a Vercel deployment;

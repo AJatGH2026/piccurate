@@ -6,6 +6,8 @@ import { usePhotoStore } from '@/hooks/usePhotoStore';
 import { enabledCloudProviders, type CloudProvider } from '@/lib/cloud';
 import { reverseGeocode } from '@/utils/geocode';
 import { trackEvent, trackAdsConversion } from '@/lib/analytics';
+import { logBeta } from '@/lib/beta-client';
+import { EmailCapture } from '@/components/beta/EmailCapture';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
@@ -14,6 +16,7 @@ export default function ResultsPage() {
   const tc = useTranslations('common');
   const params = useParams();
   const locale = params.locale as string;
+  useEffect(() => { logBeta('results'); }, []);
   const [downloading, setDownloading] = useState(false);
   // 'flat' = one folder for the whole trip (best for photo-book auto-import);
   // 'byday' = one subfolder per day (best for the user's own organisation).
@@ -148,6 +151,7 @@ export default function ResultsPage() {
       // Primary conversion: a completed download = the user got value.
       trackEvent('download', { photos: selectedCount, zip_mode: zipMode });
       trackAdsConversion();
+      logBeta('download');
     } catch (err) {
       console.error('ZIP creation failed:', err);
       alert(t('zipFailed'));
@@ -301,6 +305,9 @@ export default function ResultsPage() {
           >
             {downloading ? t('downloading') : t('downloadAction', { count: selectedCount })}
           </button>
+
+          {/* Optional beta email capture — build a notify list without a login. */}
+          <EmailCapture />
         </div>
 
         {/* Save to cloud (only when a provider is configured) */}

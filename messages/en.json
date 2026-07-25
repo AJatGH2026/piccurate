@@ -224,6 +224,25 @@
     "close": "Close",
     "stepOf": "Step {current} of {total}"
   },
+  "feedback": {
+    "button": "Feedback",
+    "title": "Beta feedback",
+    "placeholder": "What do you like, what's missing, what's broken?",
+    "submit": "Send",
+    "sending": "Sending…",
+    "thanks": "Thanks for your feedback!",
+    "close": "Close"
+  },
+  "emailCapture": {
+    "title": "Stay in the loop on updates?",
+    "note": "Optional. We'll only email about important news. Unsubscribe anytime.",
+    "placeholder": "you@email.com",
+    "submit": "Subscribe",
+    "sending": "…",
+    "thanks": "Subscribed — thank you!",
+    "error": "Please enter a valid email.",
+    "dismiss": "Dismiss"
+  },
   "consent": {
     "text": "We use cookies for analytics and marketing (Google) to improve the beta and measure campaigns. Essential features work without cookies.",
     "accept": "Accept",
