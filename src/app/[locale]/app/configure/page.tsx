@@ -596,8 +596,15 @@ export default function ConfigurePage() {
                   .sort();
                 const personsChanged =
                   JSON.stringify(currentPersonNames) !== JSON.stringify([...analyzedPersons].sort());
-                const personNames = persons.map((p) => p.name);
+                // A1 (privacy): never send real names to Google. Reference
+                // persons go to the model as neutral labels ("Person A", …);
+                // the model's answers are mapped back to the real names
+                // client-side, so Google only ever sees the labels.
+                const personLabels = persons.map((_, i) => `Person ${String.fromCharCode(65 + i)}`);
                 const personBlobs = persons.map((p) => p.blob);
+                const labelToName = new Map(
+                  persons.map((p, i) => [`person ${String.fromCharCode(97 + i)}`, p.name.toLowerCase()])
+                );
 
                 const toAnalyze = photos.filter(
                   (p) => !p.saved && (!p.analyzed || termsChanged || personsChanged)
@@ -633,8 +640,8 @@ export default function ConfigurePage() {
                   // Reference persons: names + JPEGs. Sent with every batch —
                   // Gemini has no cross-request memory, so each request needs
                   // to carry the references. Only marginally more tokens.
-                  if (personNames.length) {
-                    formData.append('personNames', JSON.stringify(personNames));
+                  if (personLabels.length) {
+                    formData.append('personNames', JSON.stringify(personLabels));
                     for (let i = 0; i < personBlobs.length; i++) {
                       formData.append('personRefs', personBlobs[i], `person-${i}.jpg`);
                     }
@@ -669,7 +676,18 @@ export default function ConfigurePage() {
                 );
 
                 setProgress(t('progressSelecting'));
-                applyAnalysisResults(batchResults.flat(), criteria, toAnalyze.map((p) => p.id));
+                // A1: translate the neutral labels the model returned back to the
+                // real (lowercased) names, so selection matching + review chips
+                // work exactly as before. Google only ever saw "Person A".
+                const flatResults = batchResults.flat();
+                for (const r of flatResults) {
+                  if (r && Array.isArray(r.persons)) {
+                    r.persons = r.persons.map(
+                      (l: string) => labelToName.get(String(l).toLowerCase()) ?? String(l).toLowerCase()
+                    );
+                  }
+                }
+                applyAnalysisResults(flatResults, criteria, toAnalyze.map((p) => p.id));
                 trackEvent('analysis_complete', { photos: toAnalyze.length });
                 logBeta('analysis');
                 router.push(`/${locale}/app/review`);

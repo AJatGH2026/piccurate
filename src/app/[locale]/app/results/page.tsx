@@ -52,6 +52,11 @@ export default function ResultsPage() {
   // Resolve place names for the days that have GPS (cached, localized).
   const [placeByDay, setPlaceByDay] = useState<Record<string, string>>({});
   useEffect(() => {
+    // A5 (privacy): reverse geocoding sends GPS coordinates to a third party
+    // (BigDataCloud, outside the EU). DISABLED by default — no GPS leaves the
+    // app. Only re-enable behind explicit user consent + a DPA/SCC by setting
+    // NEXT_PUBLIC_ENABLE_GEOCODING=1 (see product-pipeline.md §10 / privacy §6).
+    if (process.env.NEXT_PUBLIC_ENABLE_GEOCODING !== '1') return;
     let cancelled = false;
     (async () => {
       for (const g of dayGroups) {
