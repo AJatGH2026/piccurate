@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { brandName } from '@/lib/brand';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -40,7 +41,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: t('title'),
       description: t('description'),
-      siteName: 'PicCurate',
+      siteName: brandName(locale),
       locale,
       type: 'website',
     },

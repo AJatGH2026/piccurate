@@ -16,7 +16,7 @@ export class ResendEmail implements EmailAdapter {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'PicCurate <noreply@piccurate.app>',
+        from: 'AuswahlBuddy <noreply@auswahlbuddy.de>',
         to: options.to,
         subject: options.subject,
         html: options.html,

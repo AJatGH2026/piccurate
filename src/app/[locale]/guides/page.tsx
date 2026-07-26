@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { brandName } from '@/lib/brand';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 import { GUIDES } from '@/content/guides';
@@ -14,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'guides' });
   return {
-    title: `${t('indexTitle')} — PicCurate`,
+    title: `${t('indexTitle')} — ${brandName(locale)}`,
     description: t('indexLead'),
     alternates: {
       canonical: `/${locale}/guides`,
@@ -33,7 +34,7 @@ export default async function GuidesIndex({ params }: Props) {
     <div className="min-h-screen bg-white dark:bg-zinc-950">
       <header className="border-b border-zinc-200 dark:border-zinc-800">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href={`/${locale}`} className="text-xl font-bold text-indigo-600">PicCurate</Link>
+          <Link href={`/${locale}`} className="text-xl font-bold text-indigo-600">{brandName(locale)}</Link>
           <Link href={`/${locale}`} className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
             {t('backHome')}
           </Link>

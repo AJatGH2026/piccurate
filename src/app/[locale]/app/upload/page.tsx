@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { brandName } from '@/lib/brand';
 import { useUpload } from '@/hooks/useUpload';
 import { DropZone } from '@/components/upload/DropZone';
 import { UploadProgress } from '@/components/upload/UploadProgress';
@@ -64,7 +65,7 @@ export default function UploadPage() {
       <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
           <Link href="/" className="text-lg font-bold text-indigo-600">
-            PicCurate
+            {brandName(locale)}
           </Link>
           <span className="text-sm text-zinc-500">{tNav('dashboard')}</span>
         </div>

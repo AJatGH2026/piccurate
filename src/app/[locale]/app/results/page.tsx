@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { brandName } from '@/lib/brand';
 import { useEffect, useMemo, useState } from 'react';
 import { usePhotoStore } from '@/hooks/usePhotoStore';
 import { enabledCloudProviders, type CloudProvider } from '@/lib/cloud';
@@ -82,7 +83,7 @@ export default function ResultsPage() {
 
       // Build summary lines for the index file
       const summaryLines: string[] = [
-        'PicCurate Selection Summary',
+        `${brandName(locale)} Selection Summary`,
         `Generated: ${new Date().toISOString().split('T')[0]}`,
         `Photos: ${sorted.length} selected from ${totalCount} total`,
         '',
@@ -143,7 +144,7 @@ export default function ResultsPage() {
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `piccurate-selection-${selectedCount}-photos.zip`;
+      a.download = `${brandName(locale).toLowerCase()}-selection-${selectedCount}-photos.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -184,7 +185,7 @@ export default function ResultsPage() {
     }
   };
 
-  const ceweUrl = `https://www.cewe.de/?utm_source=piccurate&utm_medium=affiliate&utm_campaign=photobook&utm_content=results`;
+  const ceweUrl = `https://www.cewe.de/?utm_source=auswahlbuddy&utm_medium=affiliate&utm_campaign=photobook&utm_content=results`;
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -197,7 +198,7 @@ export default function ResultsPage() {
             >
               <span aria-hidden="true">←</span> {tc('back')}
             </Link>
-            <Link href={`/${locale}`} className="text-lg font-bold text-indigo-600">PicCurate</Link>
+            <Link href={`/${locale}`} className="text-lg font-bold text-indigo-600">{brandName(locale)}</Link>
           </div>
           <span className="text-sm text-zinc-500">{tc('stepOf', { current: 4, total: 4 })}</span>
         </div>

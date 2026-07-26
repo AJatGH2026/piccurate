@@ -15,17 +15,17 @@ export function GET() {
     (g) => `- [${g.en.title}](${base}/en/guides/${g.en.slug}): ${g.en.description}`
   ).join('\n');
 
-  const body = `# PicCurate
+  const body = `# AuswahlBuddy
 
-> PicCurate is an AI-powered web app that curates large sets of travel and holiday photos down to a small, high-quality selection. Upload up to a few thousand photos; it scores, de-duplicates and ranks them, then gives you a reviewable shortlist to approve, adjust, download as a ZIP, or export to a cloud folder for photo-book services.
+> AuswahlBuddy is an AI-powered web app that curates large sets of travel and holiday photos down to a small, high-quality selection. Upload up to a few thousand photos; it scores, de-duplicates and ranks them, then gives you a reviewable shortlist to approve, adjust, download as a ZIP, or export to a cloud folder for photo-book services.
 
-PicCurate analyses photos with Claude vision models. It detects near-duplicate series and keeps the best of each, scores holistic "keep-worthiness" (an album score), checks faces for open eyes and natural expressions, and balances the selection across places, people and subjects. The user keeps full control — nothing is deleted; the tool only proposes a selection. The interface is bilingual (English and German); German pages live under /de.
+AuswahlBuddy analyses photos with Claude vision models. It detects near-duplicate series and keeps the best of each, scores holistic "keep-worthiness" (an album score), checks faces for open eyes and natural expressions, and balances the selection across places, people and subjects. The user keeps full control — nothing is deleted; the tool only proposes a selection. The interface is bilingual (English and German); German pages live under /de.
 
 ## Guides
 ${guideLines}
 
 ## Product
-- [PicCurate home](${base}/en): Overview, how it works, and pricing.
+- [AuswahlBuddy home](${base}/en): Overview, how it works, and pricing.
 - [Try the demo](${base}/en/demo): Runs entirely in the browser, no account needed.
 
 ## Optional

@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "PicCurate — AI Travel Photo Curation",
+    "title": "ShortlistBuddy — AI Travel Photo Curation",
     "description": "Turn 1,000 vacation photos into 50 perfect memories. AI-powered selection, configurable criteria, instant download."
   },
   "guides": {
@@ -8,7 +8,7 @@
     "indexLead": "Practical guides on choosing, organising and printing your holiday photos.",
     "readMore": "Read guide",
     "backHome": "Back to home",
-    "ctaText": "Let PicCurate do the first pass — turn your holiday photos into a reviewable shortlist in minutes.",
+    "ctaText": "Let ShortlistBuddy do the first pass — turn your holiday photos into a reviewable shortlist in minutes.",
     "ctaButton": "Try the demo"
   },
   "nav": {
@@ -40,7 +40,7 @@
   },
   "showcase": {
     "title": "From a thousand shots to your best few",
-    "subtitle": "PicCurate highlights the keepers and quietly sets the rest aside — you stay in control."
+    "subtitle": "ShortlistBuddy highlights the keepers and quietly sets the rest aside — you stay in control."
   },
   "pricing": {
     "title": "Simple pricing",
@@ -193,7 +193,7 @@
     "zipByDayDesc": "Subfolder per day — for sorting",
     "zipFailed": "Failed to create ZIP file.",
     "cloudHeading": "Save to cloud",
-    "cloudHint": "Copies your selection into a PicCurate Auswahl folder in your cloud.",
+    "cloudHint": "Copies your selection into a ShortlistBuddy Auswahl folder in your cloud.",
     "cloudSaveTo": "Save to {provider}",
     "cloudUploading": "Uploading to {provider}… {done} of {total}",
     "cloudDone": "{count} photos saved to {folder}",
@@ -255,6 +255,6 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "imprint": "Imprint",
-    "copyright": "© {year} PicCurate. All rights reserved."
+    "copyright": "© {year} ShortlistBuddy. All rights reserved."
   }
 }

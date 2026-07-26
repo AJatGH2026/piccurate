@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import type { Metadata } from 'next';
+import { brandName } from '@/lib/brand';
 import { useTranslations } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
@@ -47,7 +48,7 @@ async function softwareJsonLd(locale: string) {
   return {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    name: 'PicCurate',
+    name: brandName(locale),
     applicationCategory: 'MultimediaApplication',
     operatingSystem: 'Web',
     url: `${clientConfig.appUrl}/${locale}`,
@@ -102,7 +103,7 @@ function Header({ locale }: { locale: string }) {
     <header className="border-b border-zinc-200 dark:border-zinc-800">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
         <Link href={`/${locale}`} className="text-xl font-bold text-indigo-600">
-          PicCurate
+          {brandName(locale)}
         </Link>
         <nav className="flex items-center gap-4 text-sm">
           <Link
@@ -396,7 +397,7 @@ function Footer({ locale }: { locale: string }) {
     <footer className="border-t border-zinc-200 dark:border-zinc-800 py-8 mt-auto">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-zinc-500">
         <div>
-          <span className="font-semibold text-zinc-700 dark:text-zinc-300">PicCurate</span>
+          <span className="font-semibold text-zinc-700 dark:text-zinc-300">{brandName(locale)}</span>
           {' '}&mdash; {t('tagline')}
         </div>
         <div className="flex gap-4">

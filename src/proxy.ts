@@ -40,7 +40,7 @@ export default function proxy(req: NextRequest) {
   if (!isAuthorized(req)) {
     return new NextResponse('Authentication required', {
       status: 401,
-      headers: { 'WWW-Authenticate': 'Basic realm="PicCurate Prototype"' },
+      headers: { 'WWW-Authenticate': 'Basic realm="AuswahlBuddy"' },
     });
   }
 

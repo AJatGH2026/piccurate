@@ -1,11 +1,13 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
+import { brandName } from '@/lib/brand';
 import { PRICING_PLANS } from '@/types/pricing';
 import Link from 'next/link';
 
 export default function PricingPage() {
   const t = useTranslations('pricing');
+  const locale = useLocale();
 
   // Photo volume is the primary tier differentiator; Custom Criteria (§5a) is
   // a paid-only feature per the pricing plan (see product-pipeline.md §9.3).
@@ -22,7 +24,7 @@ export default function PricingPage() {
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
-          <Link href="/" className="text-lg font-bold text-indigo-600">PicCurate</Link>
+          <Link href="/" className="text-lg font-bold text-indigo-600">{brandName(locale)}</Link>
           <span className="text-sm text-zinc-500">{t('title')}</span>
         </div>
       </header>

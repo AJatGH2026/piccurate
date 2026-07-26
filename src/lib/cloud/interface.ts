@@ -1,5 +1,5 @@
 // Provider-agnostic cloud export. A provider authenticates the user (client-side
-// OAuth) and copies the selected originals into a "PicCurate Auswahl" folder.
+// OAuth) and copies the selected originals into an "AuswahlBuddy Auswahl" folder.
 // Photos go browser → cloud directly; they never touch our server (variable cost,
 // privacy-friendly — see docs/product-pipeline.md §7.3).
 
@@ -27,4 +27,4 @@ export interface CloudProvider {
 }
 
 /** Folder created in the user's cloud to hold the curated selection. */
-export const SELECTION_FOLDER = 'PicCurate Auswahl';
+export const SELECTION_FOLDER = 'AuswahlBuddy Auswahl';

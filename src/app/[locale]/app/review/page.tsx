@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { brandName } from '@/lib/brand';
 import { useEffect, useRef, useState } from 'react';
 import { logBeta } from '@/lib/beta-client';
 import { ReviewPhotoCard } from '@/components/review/ReviewPhotoCard';
@@ -87,7 +88,7 @@ export default function ReviewPage() {
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
-          <Link href={`/${locale}`} className="text-lg font-bold text-indigo-600">PicCurate</Link>
+          <Link href={`/${locale}`} className="text-lg font-bold text-indigo-600">{brandName(locale)}</Link>
           <span className="text-sm text-zinc-500">{tc('stepOf', { current: 3, total: 4 })}</span>
         </div>
       </header>

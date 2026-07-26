@@ -32,7 +32,7 @@ function redirectUri(): string {
   return `${window.location.origin}/en/cloud/callback`;
 }
 
-// Current PicCurate UI locale, taken from the first path segment (/en/... or
+// Current AuswahlBuddy UI locale, taken from the first path segment (/en/... or
 // /de/...). Passed to Dropbox so its consent screen matches the site language.
 function currentLocale(): string {
   const seg = window.location.pathname.split('/')[1];

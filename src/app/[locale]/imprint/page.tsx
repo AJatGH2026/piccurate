@@ -1,4 +1,5 @@
 import { setRequestLocale } from 'next-intl/server';
+import { brandName, brandDomain } from '@/lib/brand';
 import { routing } from '../../../../i18n/routing';
 import Link from 'next/link';
 
@@ -22,7 +23,7 @@ export default async function ImprintPage({ params }: Props) {
     <div className="min-h-screen bg-white dark:bg-zinc-950">
       <header className="border-b border-zinc-200 dark:border-zinc-800">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 flex items-center h-14">
-          <Link href={`/${locale}`} className="text-lg font-bold text-indigo-600">PicCurate</Link>
+          <Link href={`/${locale}`} className="text-lg font-bold text-indigo-600">{brandName(locale)}</Link>
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-12 prose dark:prose-invert prose-zinc">
@@ -41,7 +42,7 @@ export default async function ImprintPage({ params }: Props) {
 
         <h2>{de ? 'Kontakt' : 'Contact'}</h2>
         <p>
-          {de ? 'E-Mail' : 'Email'}: contact@piccurate.app<br />
+          {de ? 'E-Mail' : 'Email'}: contact@{brandDomain(locale)}<br />
           {de ? 'Telefon' : 'Phone'}: [{de ? 'optional — bei Bedarf eintragen' : 'optional — add if desired'}]
         </p>
 

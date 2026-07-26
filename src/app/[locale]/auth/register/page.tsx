@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { brandName } from '@/lib/brand';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -39,7 +40,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Link href={`/${locale}`} className="text-2xl font-bold text-indigo-600">
-            PicCurate
+            {brandName(locale)}
           </Link>
           <h1 className="mt-4 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
             {t('register')}

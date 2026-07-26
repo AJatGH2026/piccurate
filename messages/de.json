@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "PicCurate — KI-gesteuerte Reisefoto-Auswahl",
+    "title": "AuswahlBuddy — KI-gesteuerte Reisefoto-Auswahl",
     "description": "Aus 1.000 Urlaubsfotos werden 50 perfekte Erinnerungen. KI-gesteuerte Auswahl, konfigurierbare Kriterien, sofortiger Download."
   },
   "guides": {
@@ -8,7 +8,7 @@
     "indexLead": "Praktische Ratgeber zum Auswählen, Ordnen und Drucken deiner Urlaubsfotos.",
     "readMore": "Ratgeber lesen",
     "backHome": "Zurück zur Startseite",
-    "ctaText": "Lass PicCurate den ersten Durchgang machen — aus deinen Urlaubsfotos wird in wenigen Minuten eine prüfbare Auswahl.",
+    "ctaText": "Lass AuswahlBuddy den ersten Durchgang machen — aus deinen Urlaubsfotos wird in wenigen Minuten eine prüfbare Auswahl.",
     "ctaButton": "Demo ausprobieren"
   },
   "nav": {
@@ -40,7 +40,7 @@
   },
   "showcase": {
     "title": "Aus tausend Aufnahmen deine besten",
-    "subtitle": "PicCurate hebt die Treffer hervor und legt den Rest beiseite — die Kontrolle behältst du."
+    "subtitle": "AuswahlBuddy hebt die Treffer hervor und legt den Rest beiseite — die Kontrolle behältst du."
   },
   "pricing": {
     "title": "Einfache Preise",
@@ -193,7 +193,7 @@
     "zipByDayDesc": "Unterordner je Tag — zum Sortieren",
     "zipFailed": "ZIP-Datei konnte nicht erstellt werden.",
     "cloudHeading": "In Cloud speichern",
-    "cloudHint": "Kopiert deine Auswahl in einen Ordner namens PicCurate Auswahl in deiner Cloud.",
+    "cloudHint": "Kopiert deine Auswahl in einen Ordner namens AuswahlBuddy Auswahl in deiner Cloud.",
     "cloudSaveTo": "In {provider} speichern",
     "cloudUploading": "Hochladen zu {provider}… {done} von {total}",
     "cloudDone": "{count} Fotos in {folder} gespeichert",
@@ -255,6 +255,6 @@
     "privacy": "Datenschutz",
     "terms": "Nutzungsbedingungen",
     "imprint": "Impressum",
-    "copyright": "© {year} PicCurate. Alle Rechte vorbehalten."
+    "copyright": "© {year} AuswahlBuddy. Alle Rechte vorbehalten."
   }
 }

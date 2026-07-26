@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { brandName } from '@/lib/brand';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -17,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!found) return {};
   const { guide, content } = found;
   return {
-    title: `${content.title} — PicCurate`,
+    title: `${content.title} — ${brandName(locale)}`,
     description: content.description,
     alternates: {
       canonical: `/${locale}/guides/${content.slug}`,
@@ -69,7 +70,7 @@ export default async function GuidePage({ params }: Props) {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'PicCurate', item: `${base}/${locale}` },
+        { '@type': 'ListItem', position: 1, name: brandName(locale), item: `${base}/${locale}` },
         { '@type': 'ListItem', position: 2, name: t('indexTitle'), item: `${base}/${locale}/guides` },
         { '@type': 'ListItem', position: 3, name: content.title, item: url },
       ],
@@ -82,7 +83,7 @@ export default async function GuidePage({ params }: Props) {
 
       <header className="border-b border-zinc-200 dark:border-zinc-800">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href={`/${locale}`} className="text-xl font-bold text-indigo-600">PicCurate</Link>
+          <Link href={`/${locale}`} className="text-xl font-bold text-indigo-600">{brandName(locale)}</Link>
           <Link href={`/${locale}/guides`} className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
             {t('indexTitle')}
           </Link>
@@ -92,7 +93,7 @@ export default async function GuidePage({ params }: Props) {
       <main className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-12">
         {/* Breadcrumb */}
         <nav className="text-xs text-zinc-400 mb-4">
-          <Link href={`/${locale}`} className="hover:text-indigo-600">PicCurate</Link>
+          <Link href={`/${locale}`} className="hover:text-indigo-600">{brandName(locale)}</Link>
           {' / '}
           <Link href={`/${locale}/guides`} className="hover:text-indigo-600">{t('indexTitle')}</Link>
         </nav>

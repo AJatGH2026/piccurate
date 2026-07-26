@@ -82,8 +82,8 @@ export const GUIDES: Guide[] = [
           a: 'AI is very good at the mechanical steps — removing blurry shots, collapsing near-duplicate bursts, and ranking by general quality. It is weaker at "does this bring the memory back", so the best workflow is AI for the first pass, you for the final call.',
         },
         {
-          q: 'How does PicCurate help?',
-          a: 'PicCurate runs steps 1, 2 and 4 automatically: it scores each photo, detects series and keeps the best of each, and balances the selection, then hands you a shortlist to approve or adjust. A 1,500-photo trip becomes a reviewable shortlist in a few minutes.',
+          q: 'How does ShortlistBuddy help?',
+          a: 'ShortlistBuddy runs steps 1, 2 and 4 automatically: it scores each photo, detects series and keeps the best of each, and balances the selection, then hands you a shortlist to approve or adjust. A 1,500-photo trip becomes a reviewable shortlist in a few minutes.',
         },
       ],
     },
@@ -134,8 +134,8 @@ export const GUIDES: Guide[] = [
           a: 'KI ist sehr gut bei den mechanischen Schritten — unscharfe Bilder entfernen, Beinahe-Dubletten zusammenfassen, nach allgemeiner Qualität sortieren. Schwächer ist sie bei „holt mich das in die Erinnerung zurück". Am besten erledigt die KI den ersten Durchgang, die finale Entscheidung triffst du.',
         },
         {
-          q: 'Wie hilft PicCurate dabei?',
-          a: 'PicCurate übernimmt die Schritte 1, 2 und 4 automatisch: Es bewertet jedes Foto, erkennt Serien und behält das jeweils beste, und gleicht die Auswahl aus. Danach erhältst du eine Vorauswahl zum Bestätigen oder Anpassen. Aus einer 1.500-Foto-Reise wird in wenigen Minuten eine prüfbare Auswahl.',
+          q: 'Wie hilft AuswahlBuddy dabei?',
+          a: 'AuswahlBuddy übernimmt die Schritte 1, 2 und 4 automatisch: Es bewertet jedes Foto, erkennt Serien und behält das jeweils beste, und gleicht die Auswahl aus. Danach erhältst du eine Vorauswahl zum Bestätigen oder Anpassen. Aus einer 1.500-Foto-Reise wird in wenigen Minuten eine prüfbare Auswahl.',
         },
       ],
     },
@@ -189,8 +189,8 @@ export const GUIDES: Guide[] = [
           a: 'No. CEWE, Mixbook and Shutterfly all offer auto-fill: you give them the set and they lay out the pages in order, which you then adjust. The selection and ordering is the real work; the placement is automatic.',
         },
         {
-          q: 'How does PicCurate fit in?',
-          a: 'PicCurate produces exactly this kind of set: it selects the strongest photos, sorts them by capture date, and exports either a flat ZIP of full-resolution originals or a cloud "Selection" folder that a photo book service can import directly.',
+          q: 'How does ShortlistBuddy fit in?',
+          a: 'ShortlistBuddy produces exactly this kind of set: it selects the strongest photos, sorts them by capture date, and exports either a flat ZIP of full-resolution originals or a cloud "Selection" folder that a photo book service can import directly.',
         },
       ],
     },
@@ -241,8 +241,8 @@ export const GUIDES: Guide[] = [
           a: 'Nein. CEWE, Mixbook und Shutterfly bieten alle Auto-Fill: Du gibst das Set, sie legen die Seiten der Reihe nach an, und du passt sie an. Die Auswahl und Reihenfolge ist die eigentliche Arbeit; die Platzierung läuft automatisch.',
         },
         {
-          q: 'Wie passt PicCurate dazu?',
-          a: 'PicCurate erzeugt genau ein solches Set: Es wählt die stärksten Fotos, sortiert sie nach Aufnahmedatum und exportiert wahlweise ein flaches ZIP mit Originalen in voller Auflösung oder einen Cloud-Ordner „Auswahl", den ein Fotobuch-Dienst direkt importieren kann.',
+          q: 'Wie passt AuswahlBuddy dazu?',
+          a: 'AuswahlBuddy erzeugt genau ein solches Set: Es wählt die stärksten Fotos, sortiert sie nach Aufnahmedatum und exportiert wahlweise ein flaches ZIP mit Originalen in voller Auflösung oder einen Cloud-Ordner „Auswahl", den ein Fotobuch-Dienst direkt importieren kann.',
         },
       ],
     },
@@ -289,7 +289,7 @@ export const GUIDES: Guide[] = [
         },
         {
           q: 'Will AI delete my photos?',
-          a: 'Good tools never delete anything. They rank and pre-select; you keep full control and the originals are untouched. PicCurate, for example, only ever proposes a selection for you to approve or change.',
+          a: 'Good tools never delete anything. They rank and pre-select; you keep full control and the originals are untouched. ShortlistBuddy, for example, only ever proposes a selection for you to approve or change.',
         },
         {
           q: 'Does AI culling work on my own device or in the cloud?',
@@ -337,7 +337,7 @@ export const GUIDES: Guide[] = [
         },
         {
           q: 'Löscht die KI meine Fotos?',
-          a: 'Gute Tools löschen nie etwas. Sie sortieren und treffen eine Vorauswahl; du behältst die volle Kontrolle, und die Originale bleiben unangetastet. PicCurate etwa schlägt immer nur eine Auswahl vor, die du bestätigst oder änderst.',
+          a: 'Gute Tools löschen nie etwas. Sie sortieren und treffen eine Vorauswahl; du behältst die volle Kontrolle, und die Originale bleiben unangetastet. AuswahlBuddy etwa schlägt immer nur eine Auswahl vor, die du bestätigst oder änderst.',
         },
         {
           q: 'Läuft KI-Auswahl auf meinem Gerät oder in der Cloud?',

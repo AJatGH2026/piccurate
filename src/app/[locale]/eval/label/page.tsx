@@ -230,7 +230,7 @@ export default function LabelPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
       <header className="border-b border-zinc-800 px-6 h-12 flex items-center justify-between text-sm">
-        <span className="font-semibold text-indigo-400">PicCurate · Eval-Labeling v2</span>
+        <span className="font-semibold text-indigo-400">AuswahlBuddy · Eval-Labeling v2</span>
         <div className="flex items-center gap-4 text-zinc-400">
           <span>Bild {current + 1} / {manifest.length}</span>
           <span className="text-green-400">{doneCount} bestätigt</span>

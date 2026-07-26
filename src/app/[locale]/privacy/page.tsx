@@ -1,4 +1,5 @@
 import { setRequestLocale } from 'next-intl/server';
+import { brandName } from '@/lib/brand';
 import { routing } from '../../../../i18n/routing';
 import Link from 'next/link';
 
@@ -19,7 +20,7 @@ function EnglishBody() {
       <p><em>Last updated: July 2026</em></p>
 
       <h2>1. Data Controller</h2>
-      <p>PicCurate is operated by AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Germany (see the <a href="/en/imprint">imprint</a>). Contact: privacy@piccurate.app.</p>
+      <p>ShortlistBuddy is operated by AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Germany (see the <a href="/en/imprint">imprint</a>). Contact: privacy@shortlistbuddy.com.</p>
 
       <h2>2. What Data We Collect</h2>
       <ul>
@@ -47,7 +48,7 @@ function EnglishBody() {
         <li>The feature is <strong>opt-in</strong>: reference photos are only processed if you actively upload them, and using the feature is entirely optional.</li>
         <li>Reference photos are <strong>held only in your browser session</strong>. They are never persisted on our servers, never written to your browser&apos;s local storage, and are discarded when you close the tab or start a new job.</li>
         <li>Reference photos are sent to the LLM provider <strong>only for the duration of the analysis</strong>. The provider does not train on this data and deletes it after processing under the applicable data processing agreement.</li>
-        <li>You must have the <strong>consent of any person</strong> whose reference photo you upload. You are the data controller for that upload; PicCurate acts as processor only for the technical transmission and result.</li>
+        <li>You must have the <strong>consent of any person</strong> whose reference photo you upload. You are the data controller for that upload; ShortlistBuddy acts as processor only for the technical transmission and result.</li>
         <li>The feature is <strong>currently limited to four persons per job</strong>.</li>
       </ul>
 
@@ -61,7 +62,7 @@ function EnglishBody() {
         <li><strong>Portability:</strong> Export your data in a machine-readable format.</li>
         <li><strong>Objection:</strong> Object to processing at any time.</li>
       </ul>
-      <p>To exercise any of these rights, contact privacy@piccurate.app.</p>
+      <p>To exercise any of these rights, contact privacy@shortlistbuddy.com.</p>
 
       <h2>7. Data Retention</h2>
       <table>
@@ -96,7 +97,7 @@ function GermanBody() {
       <p><em>Letzte Aktualisierung: Juli 2026</em></p>
 
       <h2>1. Verantwortlicher</h2>
-      <p>PicCurate wird betrieben von der AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Deutschland (siehe <a href="/de/imprint">Impressum</a>). Kontakt: privacy@piccurate.app.</p>
+      <p>AuswahlBuddy wird betrieben von der AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Deutschland (siehe <a href="/de/imprint">Impressum</a>). Kontakt: privacy@auswahlbuddy.de.</p>
 
       <h2>2. Welche Daten wir erheben</h2>
       <ul>
@@ -124,7 +125,7 @@ function GermanBody() {
         <li>Die Funktion ist <strong>opt-in</strong>: Referenzfotos werden nur verarbeitet, wenn du sie aktiv hochlädst; die Nutzung ist rein freiwillig.</li>
         <li>Referenzfotos werden <strong>ausschließlich in deiner Browser-Sitzung</strong> gehalten. Sie werden weder auf unseren Servern gespeichert noch in den lokalen Speicher deines Browsers geschrieben und werden verworfen, sobald du den Tab schließt oder einen neuen Job startest.</li>
         <li>Referenzfotos werden dem LLM-Anbieter <strong>nur für die Dauer der Analyse</strong> übermittelt. Der Anbieter trainiert keine Modelle mit diesen Daten und löscht sie gemäß Auftragsverarbeitungs­vertrag nach der Verarbeitung.</li>
-        <li>Du musst über die <strong>ausdrückliche Einwilligung jeder Person</strong> verfügen, deren Referenzfoto du hochlädst. Für diesen Upload bist du der Verantwortliche im Sinne der DSGVO; PicCurate handelt lediglich als Auftrags­verarbeiter für die technische Übermittlung und das Analyse­ergebnis.</li>
+        <li>Du musst über die <strong>ausdrückliche Einwilligung jeder Person</strong> verfügen, deren Referenzfoto du hochlädst. Für diesen Upload bist du der Verantwortliche im Sinne der DSGVO; AuswahlBuddy handelt lediglich als Auftrags­verarbeiter für die technische Übermittlung und das Analyse­ergebnis.</li>
         <li>Die Funktion ist <strong>derzeit auf vier Personen je Job begrenzt</strong>.</li>
       </ul>
 
@@ -138,7 +139,7 @@ function GermanBody() {
         <li><strong>Übertragbarkeit:</strong> Export deiner Daten in einem maschinen­lesbaren Format.</li>
         <li><strong>Widerspruch:</strong> Widerspruch gegen die Verarbeitung jederzeit möglich.</li>
       </ul>
-      <p>Zur Ausübung dieser Rechte wende dich bitte an privacy@piccurate.app.</p>
+      <p>Zur Ausübung dieser Rechte wende dich bitte an privacy@auswahlbuddy.de.</p>
 
       <h2>7. Speicherfristen</h2>
       <table>
@@ -174,7 +175,7 @@ export default async function PrivacyPage({ params }: Props) {
     <div className="min-h-screen bg-white dark:bg-zinc-950">
       <header className="border-b border-zinc-200 dark:border-zinc-800">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 flex items-center h-14">
-          <Link href={`/${locale}`} className="text-lg font-bold text-indigo-600">PicCurate</Link>
+          <Link href={`/${locale}`} className="text-lg font-bold text-indigo-600">{brandName(locale)}</Link>
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-12 prose dark:prose-invert prose-zinc">
