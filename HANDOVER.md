@@ -1,4 +1,4 @@
-# PicCurate — Handover & Resume Guide
+# AuswahlBuddy — Handover & Resume Guide
 
 Everything you need to pause the project and pick it up later — on this
 machine, another machine, or a cloud environment. **The code is fully in

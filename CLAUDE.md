@@ -1,8 +1,8 @@
 @AGENTS.md
 
-# PicCurate (tpai) — Project Instructions
+# AuswahlBuddy (tpai) — Project Instructions
 
-Workspace-specific context for the PicCurate app. Global identity, Accenture
+Workspace-specific context for the AuswahlBuddy app. Global identity, Accenture
 context, and universal behaviours live in `~/.claude/CLAUDE.md`.
 
 > **This is a personal product / tool, NOT a CGRT client engagement.** Keep it
@@ -11,7 +11,7 @@ context, and universal behaviours live in `~/.claude/CLAUDE.md`.
 
 ## What this is
 
-PicCurate — an AI-powered travel-photo curation web app. Users upload holiday
+AuswahlBuddy — an AI-powered travel-photo curation web app. Users upload holiday
 photos; the app scores them, collapses near-duplicate series, and proposes a
 small curated keeper set to review and download / export to a photo book.
 

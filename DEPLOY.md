@@ -1,4 +1,4 @@
-# PicCurate — Deployment-Anleitung (Prototyp)
+# AuswahlBuddy — Deployment-Anleitung (Prototyp)
 
 Schritt-für-Schritt, um den Prototyp für externe Tester verfügbar zu machen.
 Zielplattform: **Vercel** (kostenlos, ideal für Next.js).
@@ -83,7 +83,7 @@ In Vercel: **Project → Settings → Environment Variables**. Diese eintragen
 ## Schritt 4 — Kostendeckel bei Google setzen (wichtig!)
 
 Der Analyse-Endpoint kostet pro Nutzung Google-Cloud-Guthaben (Gemini 2.5
-Flash: ~$0.30 Input / $2.50 Output pro 1M Tokens — für PicCurate ca. $0.0005
+Flash: ~$0.30 Input / $2.50 Output pro 1M Tokens — für AuswahlBuddy ca. $0.0005
 pro Foto). Auch mit Passwort-Gate gilt: **Budget-Alarm setzen** als harte
 Obergrenze.
 
