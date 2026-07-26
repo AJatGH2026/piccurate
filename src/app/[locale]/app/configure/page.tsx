@@ -47,6 +47,12 @@ export default function ConfigurePage() {
   const { criteria, toggleCriterion, setWeight, updateCriterion, addCustom, removeCustom, setCustomWeight, reset } =
     useCriteria();
   const [customInput, setCustomInput] = useState('');
+  // A3: 18+/terms confirmation required before analysis. A2: reference-photo
+  // collective confirmation required before persons are transmitted.
+  const [ageAccepted, setAgeAccepted] = useState(false);
+  const [personsConfirmed, setPersonsConfirmed] = useState(false);
+  const personsNeedConfirm = persons.length > 0 && !hasAnalyzed;
+  const canAnalyze = ageAccepted && (!personsNeedConfirm || personsConfirmed);
   useEffect(() => { logBeta('configure'); }, []);
 
   const criteriaItems = [
@@ -541,6 +547,26 @@ export default function ConfigurePage() {
             <p className="mt-3 text-xs text-red-600 dark:text-red-400">{personError}</p>
           )}
 
+          {/* A2 (privacy): single, non-preselected collective confirmation for
+              all reference photos of this upload. Reference photos are only
+              transmitted after this is ticked (analysis is gated below). */}
+          {personsNeedConfirm && (
+            <label className="mt-4 flex items-start gap-2 text-xs text-zinc-700 dark:text-zinc-300">
+              <input
+                type="checkbox"
+                checked={personsConfirmed}
+                onChange={(e) => setPersonsConfirmed(e.target.checked)}
+                className="mt-0.5 accent-purple-600"
+              />
+              <span>
+                {t('personsConfirm')}{' '}
+                <Link href={`/${locale}/persons-info`} target="_blank" className="underline hover:text-purple-700">
+                  {t('personsInfoLink')}
+                </Link>
+              </span>
+            </label>
+          )}
+
           <p className="mt-3 text-xs text-purple-700 dark:text-purple-300">
             {hasAnalyzed
               ? t('personsLockedNote')
@@ -555,8 +581,29 @@ export default function ConfigurePage() {
           {selectionMode}
         </div>
 
+        {/* A4 (AI Act): transparency notice directly before starting analysis. */}
+        <div className="mt-4 p-3 rounded-xl bg-zinc-100 text-zinc-600 text-xs dark:bg-zinc-800 dark:text-zinc-300">
+          {t('aiNotice')}
+        </div>
+
+        {/* A3: 18+ / terms confirmation (required, not preselected). */}
+        <label className="mt-3 flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+          <input
+            type="checkbox"
+            checked={ageAccepted}
+            onChange={(e) => setAgeAccepted(e.target.checked)}
+            className="mt-0.5 accent-indigo-600"
+          />
+          <span>
+            {t('ageConfirm')}{' '}
+            <Link href={`/${locale}/terms`} target="_blank" className="underline hover:text-indigo-600">
+              {t('termsShort')}
+            </Link>
+          </span>
+        </label>
+
         {/* Continue button */}
-        <div className="mt-8 flex justify-end">
+        <div className="mt-6 flex justify-end">
           <button
             onClick={async () => {
               // TODO(free-tier-blocker): this demo flow starts analysis directly,
@@ -564,6 +611,9 @@ export default function ConfigurePage() {
               // rule is NOT enforced here. When accounts/auth land (Phase 3),
               // gate this on the free_tier_used check (see JobManager.createJob
               // and product-pipeline.md §4.2.1) before spending API budget.
+              // A2/A3: record the confirmations (date-keyed) before processing.
+              logBeta('terms_accepted');
+              if (personsNeedConfirm) logBeta('persons_confirmed');
               setAnalyzing(true);
               setProgress(t('progressPreparing'));
               try {
@@ -699,10 +749,11 @@ export default function ConfigurePage() {
                 setAnalyzing(false);
               }
             }}
-            disabled={analyzing}
+            disabled={analyzing || !canAnalyze}
+            title={!canAnalyze ? t('confirmRequired') : undefined}
             className={`rounded-full px-8 py-3 text-sm font-semibold transition-colors ${
-              analyzing
-                ? 'bg-zinc-300 text-zinc-500 cursor-wait dark:bg-zinc-700'
+              analyzing || !canAnalyze
+                ? 'bg-zinc-300 text-zinc-500 cursor-not-allowed dark:bg-zinc-700'
                 : 'bg-indigo-600 text-white hover:bg-indigo-700'
             }`}
           >

@@ -26,7 +26,14 @@ const DAY_TTL_S = 90 * 24 * 3600;
 
 // Funnel steps that make up the flow, plus the two selection-correction signals.
 export const FUNNEL_STEPS = ['upload', 'configure', 'analysis', 'review', 'results', 'download'] as const;
-const ALLOWED = new Set<string>([...FUNNEL_STEPS, 'finalize', 'added', 'removed']);
+const ALLOWED = new Set<string>([
+  ...FUNNEL_STEPS,
+  'finalize',
+  'added',
+  'removed',
+  'terms_accepted', // A3: 18+ / terms confirmation given before analysis
+  'persons_confirmed', // A2: reference-photo collective confirmation given
+]);
 
 /** Increment a funnel/selection counter (total + per-day). Whitelisted keys only. */
 export async function logFunnel(step: string, count = 1): Promise<void> {
