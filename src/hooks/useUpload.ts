@@ -60,6 +60,9 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
       updatePhoto(photo.id, { status: 'extracting' });
       const exif = await extractEXIF(photo.file);
 
+      // TEMP DIAGNOSTIC: what orientation did we read, and which path runs?
+      console.log(`[orient] ${photo.filename} heic=${isHEIC(photo.file)} exifOrientation=${exif.orientation}`);
+
       let thumbnailBlob: Blob;
 
       if (isHEIC(photo.file)) {

@@ -180,6 +180,15 @@ async function convertHEICInBrowser(
   let jpegBlob: Blob = decoded instanceof Blob ? decoded : new Blob([decoded]);
   if (!jpegBlob || jpegBlob.size === 0) throw new Error('HEIC conversion produced empty result');
 
+  // TEMP DIAGNOSTIC: is heic-to's output already display-oriented (portrait for a
+  // portrait photo) or raw? Compared with the EXIF orientation, this tells us
+  // whether our manual rotate is correct, missing, or double-applied.
+  try {
+    const _b = await createImageBitmap(jpegBlob, { imageOrientation: 'none' });
+    console.log(`[orient-heic] ${file.name} heic-to=${_b.width}x${_b.height} exifOrientation=${orientation}`);
+    _b.close();
+  } catch { /* ignore */ }
+
   if (orientation && orientation > 1) {
     jpegBlob = await rotateBlobByExif(jpegBlob, orientation);
   }
