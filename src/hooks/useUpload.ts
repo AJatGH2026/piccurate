@@ -60,24 +60,18 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
       updatePhoto(photo.id, { status: 'extracting' });
       const exif = await extractEXIF(photo.file);
 
-      // TEMP DIAGNOSTIC: what orientation did we read, and which path runs?
-      console.log(`[orient] ${photo.filename} heic=${isHEIC(photo.file)} exifOrientation=${exif.orientation}`);
-
       let thumbnailBlob: Blob;
 
       if (isHEIC(photo.file)) {
-        // HEIC path: small files use the server (fast, sharp handles EXIF
-        // orientation itself). Large files fall back to the browser via
-        // heic-to, which strips EXIF without baking the rotation — we pass
-        // the extracted orientation through so it can be applied there.
+        // HEIC path: small files use the server (sharp handles orientation),
+        // large files the browser (heic-to). Both output already-upright pixels.
         updatePhoto(photo.id, { status: 'generating', exif });
-        thumbnailBlob = await convertHEICtoJPEG(photo.file, true, exif.orientation);
+        thumbnailBlob = await convertHEICtoJPEG(photo.file, true);
       } else {
-        // JPEG/PNG/WebP: generate thumbnail client-side (fast, no server needed).
-        // Pass the extracted EXIF orientation so it's baked deterministically —
-        // the browser's auto-orient left some photos rotated 90°.
+        // JPEG/PNG/WebP: thumbnail client-side; createImageBitmap 'from-image'
+        // applies EXIF orientation. No manual rotation (it double-applied).
         updatePhoto(photo.id, { status: 'generating', exif });
-        thumbnailBlob = await generateThumbnail(photo.file, exif.orientation);
+        thumbnailBlob = await generateThumbnail(photo.file);
       }
 
       const thumbnailUrl = URL.createObjectURL(thumbnailBlob);
