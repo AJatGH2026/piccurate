@@ -54,6 +54,12 @@ export default function ConfigurePage() {
   const personsNeedConfirm = persons.length > 0 && !hasAnalyzed;
   const canAnalyze = ageAccepted && (!personsNeedConfirm || personsConfirmed);
   useEffect(() => { logBeta('configure'); }, []);
+  // Age/terms acceptance is remembered (localStorage) — confirm once, not again
+  // when changing criteria or re-running. (The reference-photo confirmation A2
+  // stays per analysis, as the legal text requires it before each transfer.)
+  useEffect(() => {
+    try { if (localStorage.getItem('piccurate-age-ok') === '1') setAgeAccepted(true); } catch { /* ignore */ }
+  }, []);
 
   const criteriaItems = [
     { key: 'preferFaces' as const, label: t('faces'), desc: t('facesDesc') },
@@ -591,7 +597,10 @@ export default function ConfigurePage() {
           <input
             type="checkbox"
             checked={ageAccepted}
-            onChange={(e) => setAgeAccepted(e.target.checked)}
+            onChange={(e) => {
+              setAgeAccepted(e.target.checked);
+              try { localStorage.setItem('piccurate-age-ok', e.target.checked ? '1' : '0'); } catch { /* ignore */ }
+            }}
             className="mt-0.5 accent-indigo-600"
           />
           <span>
