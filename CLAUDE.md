@@ -15,7 +15,7 @@ AuswahlBuddy — an AI-powered travel-photo curation web app. Users upload holid
 photos; the app scores them, collapses near-duplicate series, and proposes a
 small curated keeper set to review and download / export to a photo book.
 
-- **Live:** https://piccurate.vercel.app (behind an HTTP Basic Auth gate for testers)
+- **Live:** https://shortlistbuddy.com (leading/canonical domain; auswahlbuddy.de redirects here). German at /de, English at /en. Basic Auth gate until public launch. Vercel deployment URL: piccurate.vercel.app.
 - **Repo:** `AJatGH2026/piccurate` (branch `master`) — Vercel auto-deploys on push
 - **Deploy target:** Vercel (Hobby / free tier)
 

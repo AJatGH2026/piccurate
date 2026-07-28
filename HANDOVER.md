@@ -4,7 +4,7 @@ Everything you need to pause the project and pick it up later — on this
 machine, another machine, or a cloud environment. **The code is fully in
 GitHub; only the items marked "not in the repo" below can be lost.**
 
-- **Live app:** https://piccurate.vercel.app
+- **Live app:** https://shortlistbuddy.com (leading domain; auswahlbuddy.de → redirect). Vercel deployment URL: piccurate.vercel.app.
 - **Repo:** `AJatGH2026/piccurate` (branch `master`, auto-deploys to Vercel on push)
 - **Project history & decisions:** [docs/product-pipeline.md](docs/product-pipeline.md) — read the changelog at the bottom to get back up to speed.
 - **All required env-var names:** [.env.example](.env.example)
