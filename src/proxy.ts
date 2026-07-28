@@ -62,15 +62,11 @@ export default function proxy(req: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
-  // Consolidate www onto the leading/canonical apex host (path + locale kept),
-  // so www.shortlistbuddy.com doesn't serve a duplicate of shortlistbuddy.com.
-  if (host === 'www.shortlistbuddy.com') {
-    const url = req.nextUrl.clone();
-    url.protocol = 'https:';
-    url.host = 'shortlistbuddy.com';
-    url.port = '';
-    return NextResponse.redirect(url, 308);
-  }
+  // NOTE: www.shortlistbuddy.com → apex consolidation is handled at the Vercel
+  // domain level (apex = primary, www redirects to it), NOT here. Doing it in
+  // code as well caused a redirect loop when Vercel was still redirecting the
+  // apex → www (the two fought each other). Keep host canonicalization in ONE
+  // place — Vercel — so the direction can't conflict.
 
   if (!isAuthorized(req)) {
     return new NextResponse('Authentication required', {
