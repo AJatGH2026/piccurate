@@ -36,7 +36,32 @@ function isAuthorized(req: NextRequest): boolean {
   return user === expectedUser && pass === password;
 }
 
+// The German marketing domain (auswahlbuddy.de) should always land on the
+// German site, regardless of the visitor's browser language — and consolidate
+// onto the leading/canonical host (shortlistbuddy.com). A plain Vercel domain
+// redirect can't inject the /de prefix, so we do it here: a single 308 to
+// https://shortlistbuddy.com/de… (existing /en or /de paths are preserved so
+// the locale switcher keeps working). Requires auswahlbuddy.de to be ASSIGNED
+// to the deployment in Vercel (not configured as a "Redirect to" domain),
+// otherwise the request never reaches this middleware.
+const GERMAN_MARKETING_HOSTS = new Set([
+  'auswahlbuddy.de',
+  'www.auswahlbuddy.de',
+]);
+
 export default function proxy(req: NextRequest) {
+  const host = (req.headers.get('host') ?? '').toLowerCase();
+  if (GERMAN_MARKETING_HOSTS.has(host)) {
+    const url = req.nextUrl.clone();
+    url.protocol = 'https:';
+    url.host = 'shortlistbuddy.com';
+    url.port = '';
+    if (!/^\/(en|de)(\/|$)/.test(url.pathname)) {
+      url.pathname = url.pathname === '/' ? '/de' : `/de${url.pathname}`;
+    }
+    return NextResponse.redirect(url, 308);
+  }
+
   if (!isAuthorized(req)) {
     return new NextResponse('Authentication required', {
       status: 401,
