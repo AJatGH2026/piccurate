@@ -62,6 +62,16 @@ export default function proxy(req: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
+  // Consolidate www onto the leading/canonical apex host (path + locale kept),
+  // so www.shortlistbuddy.com doesn't serve a duplicate of shortlistbuddy.com.
+  if (host === 'www.shortlistbuddy.com') {
+    const url = req.nextUrl.clone();
+    url.protocol = 'https:';
+    url.host = 'shortlistbuddy.com';
+    url.port = '';
+    return NextResponse.redirect(url, 308);
+  }
+
   if (!isAuthorized(req)) {
     return new NextResponse('Authentication required', {
       status: 401,
