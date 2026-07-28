@@ -49,6 +49,7 @@ Currently `0` while the Vercel Fast Origin Transfer quota recovers (~early Augus
 ## Key documents
 
 - [HANDOVER.md](HANDOVER.md) — resume/backup guide (what to save, how to resume, cloud options)
+- [docs/domain-setup.md](docs/domain-setup.md) — live domains, DNS, Vercel/code redirect split + learnings (read before touching domains)
 - [docs/product-pipeline.md](docs/product-pipeline.md) — full project history & rationale (German, dated changelog)
 - [docs/PicCurate-WorkLog.md](docs/PicCurate-WorkLog.md) — chronological work log (Jun 4 → Jul 18 2026)
 - [.env.example](.env.example) — all environment variables

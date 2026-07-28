@@ -86,6 +86,10 @@ continue:
 
 - **Deploy:** push to `master` → Vercel builds automatically. See
   [DEPLOY.md](DEPLOY.md) for first-time setup steps.
+- **Domains / DNS / redirects:** see [docs/domain-setup.md](docs/domain-setup.md)
+  — final state, DNS records, the Vercel-vs-code redirect split, and the
+  learnings (avoid the apex↔www redirect loop; `NEXT_PUBLIC_*` build-time
+  inlining; verification-tool blind spots). Read it before changing any domain.
 - **Cost/quota lever:** `NEXT_PUBLIC_HEIC_SERVER_MAX_MB` controls HEIC
   routing. Default `4` = small HEICs use the fast server path. Set to `0` to
   route all HEIC decoding to the browser and drive `/api/convert` "Fast Origin
