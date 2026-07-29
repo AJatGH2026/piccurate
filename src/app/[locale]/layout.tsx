@@ -30,8 +30,19 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
+// Only 'en'/'de' are valid locales. Reject anything else (e.g. scanner paths
+// like /admin.php) with a clean 404 BEFORE any locale-consuming code runs —
+// otherwise an invalid segment reaches an Intl API and throws
+// `RangeError: Incorrect locale information` (a 500 instead of a 404).
+export const dynamicParams = false;
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
+  // Defense-in-depth: generateMetadata runs independently of the component
+  // guard below, so validate here too before calling getTranslations/Intl.
+  if (!routing.locales.includes(locale as 'en' | 'de')) {
+    return {};
+  }
   const t = await getTranslations({ locale, namespace: 'meta' });
 
   return {
