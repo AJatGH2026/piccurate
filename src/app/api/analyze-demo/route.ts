@@ -32,7 +32,7 @@ const RL_WINDOW_MS = 60_000; // per minute
 //   spend limit remains the hard backstop. All three are tunable via env.
 const BETA_MAX_PHOTOS_PER_REQUEST = Number(process.env.BETA_MAX_PHOTOS_PER_REQUEST ?? '250');
 const BETA_DAILY_PHOTO_CAP = Number(process.env.BETA_DAILY_PHOTO_CAP ?? '20000');
-const BETA_IP_DAILY_PHOTO_CAP = Number(process.env.BETA_IP_DAILY_PHOTO_CAP ?? '2000');
+const BETA_IP_DAILY_PHOTO_CAP = Number(process.env.BETA_IP_DAILY_PHOTO_CAP ?? '750');
 
 /**
  * POST /api/analyze-demo
