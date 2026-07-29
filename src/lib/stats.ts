@@ -29,6 +29,9 @@ function todayKey(): string {
 }
 
 const DAY_TTL_S = 90 * 24 * 3600;
+// Per-IP daily-cap keys contain IP addresses (personal data) and only need to
+// live for the current day, so they get a short TTL — data minimisation.
+const IP_DAY_TTL_S = 2 * 24 * 3600;
 
 export interface AnalyzeEvent {
   photos: number; // photos analysed in this single API call
@@ -92,7 +95,7 @@ export async function reserveIpDailyPhotos(ip: string, photos: number): Promise<
   try {
     const p = r.pipeline();
     p.incrby(key, photos);
-    p.expire(key, DAY_TTL_S);
+    p.expire(key, IP_DAY_TTL_S);
     const res = (await p.exec()) as unknown[];
     return Number(res[0]);
   } catch (err) {

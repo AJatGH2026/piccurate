@@ -54,3 +54,9 @@ dev.cmd
 
 # Personal work log — kept local by user request (not versioned)
 docs/PicCurate-WorkLog.md
+
+# Local archive / export artifacts (offline backups, code exports) — never commit
+*.bundle
+*.zip
+*.docx
+~$*
