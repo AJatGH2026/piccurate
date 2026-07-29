@@ -2,24 +2,37 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { ANALYSIS_SYSTEM_PROMPT } from '@/lib/anthropic/prompts';
 import { parseAnalysisResponse } from '@/lib/anthropic/parser';
-import { rateLimit, clientIp } from '@/lib/rate-limit';
+import { checkRateLimit, clientIp } from '@/lib/rate-limit';
 import { trackAnalyze, getTodayPhotos, reserveIpDailyPhotos } from '@/lib/stats';
 
+// Strip control characters and cap length on any user-supplied string that
+// flows into the model prompt (person names, custom terms, EXIF camera model).
+// Defence against prompt-injection / token-waste via crafted values. Done via
+// char codes (no unicode-escape regex) to keep the source plain ASCII.
+function sanitizePromptField(s: unknown, max = 80): string {
+  const out = Array.from(String(s ?? ''))
+    .map((ch) => (ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127 ? ' ' : ch))
+    .join('');
+  return out.replace(/\s+/g, ' ').trim().slice(0, max);
+}
+
 // Per-IP guard against a client hammering this (paid) endpoint. Generous
-// enough for a real demo job sent in batches, but caps runaway loops. The
-// hard cost backstop remains the provider's spend limit. See §4.2.1.
+// enough for a real demo job sent in batches, but caps runaway loops. Backed
+// by Upstash so it holds globally across Vercel instances (falls back to an
+// in-memory limiter when Upstash isn't configured). See §4.2.1 / §10.
 const RL_LIMIT = 120; // requests
 const RL_WINDOW_MS = 60_000; // per minute
 
 // Beta cost/abuse guards (see product-pipeline.md §10). Cost scales with photos
 // (image tokens dominate), so all caps are photo-based.
-// - Per-request cap: always on, guards against a single oversized request.
-// - Daily + per-IP caps: Upstash-backed, DISABLED by default (0) so nothing
-//   changes for the current gated-tester phase. Turn on via env at public
-//   launch. The hard backstop is the provider-side Gemini billing spend limit.
-const BETA_MAX_PHOTOS_PER_REQUEST = Number(process.env.BETA_MAX_PHOTOS_PER_REQUEST ?? '40');
-const BETA_DAILY_PHOTO_CAP = Number(process.env.BETA_DAILY_PHOTO_CAP ?? '0');
-const BETA_IP_DAILY_PHOTO_CAP = Number(process.env.BETA_IP_DAILY_PHOTO_CAP ?? '0');
+// - Per-request cap: ALWAYS on (works without Upstash) — matches the 250-photo
+//   free tier advertised on the site.
+// - Daily + per-IP caps: Upstash-backed budget backstops, now ON by default.
+//   They only bite when Upstash is configured; the provider-side Gemini billing
+//   spend limit remains the hard backstop. All three are tunable via env.
+const BETA_MAX_PHOTOS_PER_REQUEST = Number(process.env.BETA_MAX_PHOTOS_PER_REQUEST ?? '250');
+const BETA_DAILY_PHOTO_CAP = Number(process.env.BETA_DAILY_PHOTO_CAP ?? '20000');
+const BETA_IP_DAILY_PHOTO_CAP = Number(process.env.BETA_IP_DAILY_PHOTO_CAP ?? '2000');
 
 /**
  * POST /api/analyze-demo
@@ -33,14 +46,16 @@ const BETA_IP_DAILY_PHOTO_CAP = Number(process.env.BETA_IP_DAILY_PHOTO_CAP ?? '0
  * Form fields:
  * - thumbnails: JPEG files
  * - metadata: JSON string with [{filename, dateTaken, cameraModel}]
+ * - consent: "1" — required; attests the user accepted terms and is 18+
  * - customTerms: (optional) JSON array of user-defined terms to tag
  * - personRefs: (optional) reference JPEGs for named-person detection (feature 5b)
  * - personNames: (optional) JSON array of names — parallel to personRefs
+ * - personsConsent: "1" — required when personRefs are present (GDPR Art. 9)
  */
 export async function POST(request: NextRequest) {
   try {
     const ip = clientIp(request);
-    const rl = rateLimit(`analyze-demo:${ip}`, RL_LIMIT, RL_WINDOW_MS);
+    const rl = await checkRateLimit(`analyze-demo:${ip}`, RL_LIMIT, RL_WINDOW_MS);
     if (!rl.ok) {
       return NextResponse.json(
         { error: 'Too many requests. Please slow down and try again shortly.' },
@@ -56,6 +71,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing thumbnails or metadata' }, { status: 400 });
     }
 
+    // Consent attestation — server-side enforcement of the client-side 18+/terms
+    // gate (defence-in-depth). A direct API caller bypassing the UI must also
+    // assert consent before any analysis runs.
+    if (formData.get('consent') !== '1') {
+      return NextResponse.json(
+        { error: 'Missing consent. You must accept the terms and confirm you are at least 18.' },
+        { status: 403 }
+      );
+    }
+
     // Beta cost/abuse guards (§10). Per-request cap first (cheap, always on).
     if (files.length > BETA_MAX_PHOTOS_PER_REQUEST) {
       return NextResponse.json(
@@ -64,7 +89,7 @@ export async function POST(request: NextRequest) {
       );
     }
     // Global daily photo cap — protects the free-beta budget from runaway/bot
-    // traffic once the site is public. No-op until BETA_DAILY_PHOTO_CAP is set.
+    // traffic. No-op until Upstash is configured (getTodayPhotos returns null).
     if (BETA_DAILY_PHOTO_CAP > 0) {
       const todayPhotos = await getTodayPhotos();
       if (todayPhotos != null && todayPhotos >= BETA_DAILY_PHOTO_CAP) {
@@ -96,7 +121,7 @@ export async function POST(request: NextRequest) {
     if (customStr) {
       try {
         const arr = JSON.parse(customStr);
-        if (Array.isArray(arr)) customTerms = arr.map((t) => String(t).trim()).filter(Boolean);
+        if (Array.isArray(arr)) customTerms = arr.map((t) => sanitizePromptField(t, 60)).filter(Boolean);
       } catch {
         /* ignore */
       }
@@ -105,13 +130,23 @@ export async function POST(request: NextRequest) {
     // Optional reference photos of named persons (feature 5b). Names come as
     // a parallel JSON array. We enforce a small hard cap here as a backstop
     // — the UI already caps at 4.
-    let personNames: string[] = [];
     const personRefs = formData.getAll('personRefs') as File[];
+
+    // Biometric data (GDPR Art. 9) — person recognition requires its own
+    // explicit, server-verified consent, over and above the general consent.
+    if (personRefs.length > 0 && formData.get('personsConsent') !== '1') {
+      return NextResponse.json(
+        { error: 'Missing consent for person recognition (biometric data).' },
+        { status: 403 }
+      );
+    }
+
+    let personNames: string[] = [];
     const personNamesStr = formData.get('personNames') as string | null;
     if (personNamesStr) {
       try {
         const arr = JSON.parse(personNamesStr);
-        if (Array.isArray(arr)) personNames = arr.map((t) => String(t).trim()).filter(Boolean);
+        if (Array.isArray(arr)) personNames = arr.map((t) => sanitizePromptField(t, 60)).filter(Boolean);
       } catch {
         /* ignore */
       }
@@ -176,7 +211,7 @@ export async function POST(request: NextRequest) {
       const m = metadata[i] || {};
       const bits = [`Photo ${i}`];
       if (m.dateTaken) bits.push(`taken ${m.dateTaken.split('T')[0]}`);
-      if (m.cameraModel) bits.push(m.cameraModel);
+      if (m.cameraModel) bits.push(sanitizePromptField(m.cameraModel, 60));
       parts.push({ text: `[${bits.join(', ')}]` });
       const buffer = Buffer.from(await files[i].arrayBuffer());
       parts.push({
@@ -251,13 +286,14 @@ export async function POST(request: NextRequest) {
 
     // Diagnostic: if references were sent but no photo came back with a
     // "persons" hit, log a snippet of the raw response so we can inspect
-    // Gemini's actual reply and adjust the prompt if needed.
+    // Gemini's actual reply and adjust the prompt if needed. (Names are only
+    // neutral labels "Person A/B…" here — real names never reach the server.)
     if (usePersons) {
       const totalHits = results.reduce((n, r) => n + (r.persons?.length || 0), 0);
       if (totalHits === 0) {
         console.warn(
           `[Demo Analyze] Face matching returned NO hits across ${files.length} photos ` +
-            `with ${nPersons} reference(s). First 500 chars of raw response: ${text.slice(0, 500)}`
+            `with ${nPersons} reference(s).`
         );
       } else {
         console.log(`[Demo Analyze] Face matching: ${totalHits} name-hit(s) across ${files.length} photos.`);

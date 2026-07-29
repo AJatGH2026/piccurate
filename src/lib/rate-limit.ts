@@ -7,6 +7,8 @@
 // global limit, back this with a shared store (Upstash Redis / Vercel KV).
 // See product-pipeline.md §4.2.1.
 
+import { rateLimitRedis } from './stats';
+
 type Bucket = { count: number; resetAt: number };
 
 const buckets = new Map<string, Bucket>();
@@ -36,9 +38,29 @@ export function rateLimit(key: string, limit: number, windowMs: number): RateLim
   return { ok: true, retryAfter: 0 };
 }
 
-/** Best-effort client IP from common proxy headers (Vercel sets x-forwarded-for). */
+/**
+ * Rate limit backed by Upstash when configured (global across serverless
+ * instances), falling back to the in-memory limiter otherwise. Prefer this in
+ * API routes so the limit actually holds across Vercel instances.
+ */
+export async function checkRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number
+): Promise<RateLimitResult> {
+  const redis = await rateLimitRedis(key, limit, Math.ceil(windowMs / 1000));
+  return redis ?? rateLimit(key, limit, windowMs);
+}
+
+/**
+ * Best-effort client IP. Prefer Vercel's `x-real-ip` (set by the platform to
+ * the true client IP; not client-spoofable) over the left-most value of
+ * `x-forwarded-for`, which a caller can forge. Falls back to XFF for local dev.
+ */
 export function clientIp(req: Request): string {
+  const real = req.headers.get('x-real-ip');
+  if (real) return real.trim();
   const xff = req.headers.get('x-forwarded-for');
   if (xff) return xff.split(',')[0].trim();
-  return req.headers.get('x-real-ip') || 'unknown';
+  return 'unknown';
 }

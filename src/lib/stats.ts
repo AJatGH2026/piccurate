@@ -101,6 +101,36 @@ export async function reserveIpDailyPhotos(ip: string, photos: number): Promise<
   }
 }
 
+/**
+ * Upstash-backed fixed-window rate limit. Global across all serverless
+ * instances (unlike the in-memory limiter). Returns null when Upstash isn't
+ * configured, so the caller can fall back to the in-memory limiter.
+ */
+export async function rateLimitRedis(
+  key: string,
+  limit: number,
+  windowSec: number
+): Promise<{ ok: boolean; retryAfter: number } | null> {
+  const r = getClient();
+  if (!r) return null;
+  const nowSec = Math.floor(Date.now() / 1000);
+  const k = `rl:${key}:${Math.floor(nowSec / windowSec)}`;
+  try {
+    const p = r.pipeline();
+    p.incr(k);
+    p.expire(k, windowSec);
+    const res = (await p.exec()) as unknown[];
+    const count = Number(res[0]);
+    if (count > limit) {
+      return { ok: false, retryAfter: windowSec - (nowSec % windowSec) };
+    }
+    return { ok: true, retryAfter: 0 };
+  } catch (err) {
+    console.warn('[stats] rateLimitRedis failed:', err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
 export interface StatsSnapshot {
   configured: boolean;
   lifetime: { photos: number; jobs: number; inputTokens: number; outputTokens: number; estCostEur: number };

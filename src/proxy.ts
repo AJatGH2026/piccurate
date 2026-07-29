@@ -33,7 +33,18 @@ function isAuthorized(req: NextRequest): boolean {
   const user = decoded.slice(0, sep);
   const pass = decoded.slice(sep + 1);
   const expectedUser = process.env.SITE_USER || 'demo';
-  return user === expectedUser && pass === password;
+  return safeEqual(user, expectedUser) && safeEqual(pass, password);
+}
+
+// Constant-time string comparison. The Edge runtime has no Node `crypto`
+// (only Web Crypto), and `isAuthorized` is sync, so we hand-roll an XOR
+// compare. The length pre-check leaks length only — negligible for a Basic
+// Auth password and far better than `===`, which short-circuits per character.
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 
 // The German marketing domain (auswahlbuddy.de) should always land on the

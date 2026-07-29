@@ -6,8 +6,15 @@ import { existsSync } from 'fs';
 import { tmpdir } from 'os';
 import { join, dirname } from 'path';
 import { randomUUID } from 'crypto';
+import { checkRateLimit, clientIp } from '@/lib/rate-limit';
 
 const execFileAsync = promisify(execFile);
+
+// Generous per-IP limit: a legit upload of a 250-photo HEIC album fires many
+// convert calls in a burst, so this must sit well above that while still
+// capping a sustained abuse/DoS loop. Backed by Upstash when configured.
+const CONVERT_RL_LIMIT = 400;
+const CONVERT_RL_WINDOW_MS = 60_000;
 
 export const maxDuration = 30;
 const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30 MB
@@ -119,8 +126,17 @@ async function tryVips(buffer: Buffer): Promise<Buffer | null> {
  */
 export async function POST(request: NextRequest) {
   try {
-    const contentLength = parseInt(request.headers.get('content-length') || '0', 10);
+    const ip = clientIp(request);
+    const rl = await checkRateLimit(`convert:${ip}`, CONVERT_RL_LIMIT, CONVERT_RL_WINDOW_MS);
+    if (!rl.ok) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please slow down and try again shortly.' },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } }
+      );
+    }
 
+    // Fast-path reject on the declared size (best-effort; header is spoofable).
+    const contentLength = parseInt(request.headers.get('content-length') || '0', 10);
     if (contentLength > MAX_FILE_SIZE) {
       return NextResponse.json(
         { error: `File too large (max ${MAX_FILE_SIZE / 1024 / 1024} MB)` },
@@ -129,6 +145,15 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await request.arrayBuffer());
+
+    // Authoritative size check on the ACTUAL bytes — a client can omit/spoof
+    // Content-Length, so the header check above is not sufficient on its own.
+    if (buffer.length > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `File too large (max ${MAX_FILE_SIZE / 1024 / 1024} MB)` },
+        { status: 413 }
+      );
+    }
 
     if (buffer.length === 0) {
       return NextResponse.json({ error: 'Empty file' }, { status: 400 });

@@ -1,11 +1,14 @@
 /* eslint-disable @next/next/no-img-element */
+import crypto from 'crypto';
+import { notFound } from 'next/navigation';
 import { readStats } from '@/lib/stats';
 import { readBetaSignals } from '@/lib/beta';
 
-// Admin usage dashboard. Sits at /admin/stats (locale-free), protected by the
-// site-wide Basic Auth gate (src/proxy.ts) — so the same SITE_PASSWORD that
-// guards the prototype gates the dashboard. robots.txt already disallows
-// /admin/* via the catch-all rule, but we belt-and-brace with metadata.
+// Admin usage dashboard at /admin/stats (locale-free). Protected by its OWN
+// token (ADMIN_TOKEN), INDEPENDENT of the site-wide Basic Auth gate — the gate
+// is off during the public beta, so relying on it (or on robots.txt) would
+// leave cost figures and user feedback public. Access via ?key=<ADMIN_TOKEN>.
+// If ADMIN_TOKEN is unset, the page 404s (dashboard disabled).
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -15,6 +18,15 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
+/** Constant-time token check over SHA-256 digests (avoids length leaks). */
+function adminTokenOk(provided: string | undefined): boolean {
+  const expected = process.env.ADMIN_TOKEN;
+  if (!expected || !provided) return false;
+  const a = crypto.createHash('sha256').update(provided).digest();
+  const b = crypto.createHash('sha256').update(expected).digest();
+  return crypto.timingSafeEqual(a, b);
+}
+
 function fmt(n: number): string {
   return n.toLocaleString('de-DE');
 }
@@ -23,7 +35,16 @@ function fmtEur(n: number): string {
   return `€${n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export default async function AdminStatsPage() {
+export default async function AdminStatsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ key?: string }>;
+}) {
+  const { key } = await searchParams;
+  if (!adminTokenOk(key)) {
+    notFound();
+  }
+
   const [stats, beta] = await Promise.all([readStats(7), readBetaSignals()]);
 
   return (

@@ -687,6 +687,10 @@ export default function ConfigurePage() {
                 const runBatch = async (b: number) => {
                   const batch = toAnalyze.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE);
                   const formData = new FormData();
+                  // Consent attestation — this fetch only runs when the UI's
+                  // 18+/terms gate (canAnalyze) is satisfied, so assert it to
+                  // the server (which enforces it independently).
+                  formData.append('consent', '1');
                   formData.append(
                     'metadata',
                     JSON.stringify(
@@ -700,6 +704,9 @@ export default function ConfigurePage() {
                   // Gemini has no cross-request memory, so each request needs
                   // to carry the references. Only marginally more tokens.
                   if (personLabels.length) {
+                    // Explicit biometric consent (GDPR Art. 9) — required
+                    // server-side whenever reference photos are sent.
+                    formData.append('personsConsent', '1');
                     formData.append('personNames', JSON.stringify(personLabels));
                     for (let i = 0; i < personBlobs.length; i++) {
                       formData.append('personRefs', personBlobs[i], `person-${i}.jpg`);
