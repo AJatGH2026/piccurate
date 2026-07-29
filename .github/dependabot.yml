@@ -1,0 +1,35 @@
+# Dependabot — automated dependency-update PRs.
+# Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates
+#
+# NOTE: This file enables scheduled *version-update* PRs. Dependabot *security*
+# alerts + security-fix PRs are a separate toggle in the repo:
+#   Settings → Code security and analysis → enable "Dependabot alerts" and
+#   "Dependabot security updates". Turn those on so CVEs (like the current
+#   Next.js/sharp advisories) get flagged and auto-PR'd going forward.
+version: 2
+updates:
+  # ── npm (the Next.js app) ────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    groups:
+      # One grouped PR for routine minor/patch bumps to cut review noise;
+      # major bumps still come as individual PRs so they get proper attention.
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ── GitHub Actions workflows (e.g. a future CodeQL workflow) ──
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
