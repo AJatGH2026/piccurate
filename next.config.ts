@@ -23,13 +23,16 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: [
-          { key: "X-Frame-Options", value: "DENY" },
+          // SAMEORIGIN (not DENY) so our own pages can be embedded in a
+          // same-origin iframe — e.g. the legal-text modal on the configure
+          // page. Cross-origin framing (clickjacking) stays blocked.
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
           {
             key: "Content-Security-Policy",
-            value: "frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
+            value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'",
           },
         ],
       },
