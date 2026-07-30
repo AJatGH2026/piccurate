@@ -250,6 +250,15 @@
     "error": "Please enter a valid email.",
     "dismiss": "Dismiss"
   },
+  "resultsFeedback": {
+    "title": "We'd love to learn from you",
+    "intro": "We'd love to hear what you liked or what we should improve. Send us an email or drop your feedback right here. Thank you!",
+    "placeholder": "What did you like? What should we improve?",
+    "submit": "Send feedback",
+    "sending": "Sending…",
+    "thanks": "Thank you for your feedback!",
+    "error": "Couldn't send — please email us instead."
+  },
   "consent": {
     "text": "We use cookies for analytics and marketing (Google) to improve the beta and measure campaigns. Essential features work without cookies.",
     "accept": "Accept",

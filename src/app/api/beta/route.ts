@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, clientIp } from '@/lib/rate-limit';
 import { logFunnel, saveFeedback, saveEmail } from '@/lib/beta';
+import { emailConfigured, sendFeedbackEmail } from '@/lib/email';
 
 /**
  * POST /api/beta — beta signals: funnel events, feedback, email capture.
@@ -40,10 +41,15 @@ export async function POST(request: NextRequest) {
   }
 
   if (type === 'feedback') {
-    const ok = await saveFeedback(String(body.message || ''), {
-      locale: String(body.locale || ''),
-      path: String(body.path || ''),
-    });
+    const message = String(body.message || '');
+    const meta = { locale: String(body.locale || ''), path: String(body.path || '') };
+    // Prefer emailing feedback to our inbox (no storage). Fall back to Upstash
+    // only when email isn't configured or the send failed, so nothing is lost.
+    let ok = false;
+    if (emailConfigured()) {
+      ok = await sendFeedbackEmail({ message, locale: meta.locale, path: meta.path });
+    }
+    if (!ok) ok = await saveFeedback(message, meta);
     return NextResponse.json({ ok });
   }
 

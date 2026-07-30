@@ -9,6 +9,7 @@ import { reverseGeocode } from '@/utils/geocode';
 import { trackEvent, trackAdsConversion } from '@/lib/analytics';
 import { logBeta } from '@/lib/beta-client';
 import { EmailCapture } from '@/components/beta/EmailCapture';
+import { ResultsFeedback } from '@/components/beta/ResultsFeedback';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
@@ -318,6 +319,9 @@ export default function ResultsPage() {
 
         {/* Beta email capture — its own card, visually separated from the download. */}
         <EmailCapture />
+
+        {/* Beta feedback — same prominent amber treatment; forwards to our inbox. */}
+        <ResultsFeedback />
 
         {/* Save to cloud (only when a provider is configured) */}
         {cloudProviders.length > 0 && (
