@@ -345,7 +345,7 @@ export default function ResultsPage() {
         )}
 
         {/* Photobook CTA */}
-        <div className="mt-6 rounded-2xl border-2 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-6">
+        <div className="mt-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6">
           <div className="flex items-start gap-4">
             <div className="text-3xl">📖</div>
             <div className="flex-1">
@@ -359,7 +359,7 @@ export default function ResultsPage() {
                 href={ceweUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-3 inline-flex items-center gap-2 rounded-full bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 transition-colors"
+                className="mt-3 inline-flex items-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-600 px-5 py-2.5 text-sm font-semibold text-zinc-800 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
               >
                 {t('photobookCta')}
                 <span className="text-xs">↗</span>

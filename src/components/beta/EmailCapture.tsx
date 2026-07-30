@@ -27,7 +27,7 @@ export function EmailCapture() {
   };
 
   return (
-    <div className="mt-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4">
+    <div className="mt-4 rounded-xl border-2 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-4">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{t('title')}</h3>
         <button
@@ -54,7 +54,7 @@ export function EmailCapture() {
             <button
               onClick={send}
               disabled={state === 'sending' || !email.trim()}
-              className="rounded-full bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-full bg-amber-500 px-4 py-1.5 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {state === 'sending' ? t('sending') : t('submit')}
             </button>
