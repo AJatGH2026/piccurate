@@ -314,9 +314,10 @@ export default function ResultsPage() {
             {downloading ? t('downloading') : t('downloadAction', { count: selectedCount })}
           </button>
 
-          {/* Optional beta email capture — build a notify list without a login. */}
-          <EmailCapture />
         </div>
+
+        {/* Beta email capture — its own card, visually separated from the download. */}
+        <EmailCapture />
 
         {/* Save to cloud (only when a provider is configured) */}
         {cloudProviders.length > 0 && (

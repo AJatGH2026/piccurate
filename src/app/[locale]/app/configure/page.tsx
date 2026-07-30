@@ -8,6 +8,7 @@ import { MAX_PERSONS } from '@/types/criteria';
 import { generateThumbnail } from '@/utils/image';
 import { trackEvent } from '@/lib/analytics';
 import Link from 'next/link';
+import { LegalModal } from '@/components/legal/LegalModal';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { logBeta } from '@/lib/beta-client';
@@ -566,9 +567,7 @@ export default function ConfigurePage() {
               />
               <span>
                 {t('personsConfirm')}{' '}
-                <Link href={`/${locale}/persons-info`} target="_blank" className="underline hover:text-purple-700">
-                  {t('personsInfoLink')}
-                </Link>
+                <LegalModal href={`/${locale}/persons-info`} label={t('personsInfoLink')} linkClassName="underline hover:text-purple-700" />
               </span>
             </label>
           )}
@@ -605,9 +604,7 @@ export default function ConfigurePage() {
           />
           <span>
             {t('ageConfirm')}{' '}
-            <Link href={`/${locale}/terms`} target="_blank" className="underline hover:text-indigo-600">
-              {t('termsShort')}
-            </Link>
+            <LegalModal href={`/${locale}/terms`} label={t('termsShort')} linkClassName="underline hover:text-indigo-600" />
           </span>
         </label>
 

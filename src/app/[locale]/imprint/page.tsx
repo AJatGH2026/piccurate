@@ -2,6 +2,7 @@ import { setRequestLocale } from 'next-intl/server';
 import { brandName } from '@/lib/brand';
 import { routing } from '../../../../i18n/routing';
 import Link from 'next/link';
+import { BackButton } from '@/components/legal/BackButton';
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -52,12 +53,16 @@ export default async function ImprintPage({ params }: Props) {
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950">
       <header className="border-b border-zinc-200 dark:border-zinc-800">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 flex items-center h-14">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
           <Link href={`/${locale}`} className="text-lg font-bold text-indigo-600">{brandName(locale)}</Link>
+          <BackButton locale={locale} />
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-12 prose dark:prose-invert prose-zinc">
+      <main className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-10 text-zinc-800 dark:text-zinc-200 leading-relaxed [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h2]:mt-8 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-zinc-900 dark:[&_h2]:text-zinc-100 [&_h3]:mt-6 [&_h3]:mb-1 [&_h3]:font-semibold [&_p]:mb-3 [&_p]:text-sm">
         {locale === 'de' ? <GermanBody /> : <EnglishBody />}
+        <div className="mt-10 border-t border-zinc-200 dark:border-zinc-800 pt-6">
+          <BackButton locale={locale} />
+        </div>
       </main>
     </div>
   );
