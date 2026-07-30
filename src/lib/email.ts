@@ -35,8 +35,10 @@ export async function sendFeedbackEmail(opts: {
 
   const to = feedbackAddress(opts.locale);
   const brand = opts.locale === 'de' ? 'AuswahlBuddy' : 'ShortlistBuddy';
-  // "from" must be on a Resend-verified domain — we use the same domain as "to".
-  const from = `${brand} Feedback <${to}>`;
+  // "from" must be on a Resend-verified domain. Only shortlistbuddy.com is
+  // verified, so ALL mail is sent from there; delivery still goes to the
+  // locale inbox (`to`), e.g. feedback@auswahlbuddy.de for German feedback.
+  const from = `${brand} Feedback <feedback@shortlistbuddy.com>`;
   const text = [
     message,
     '',
