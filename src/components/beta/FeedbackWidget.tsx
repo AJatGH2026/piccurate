@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useParams, usePathname } from 'next/navigation';
 import { submitFeedback } from '@/lib/beta-client';
@@ -19,6 +19,12 @@ export function FeedbackWidget() {
   const [msg, setMsg] = useState('');
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
+  const [embedded, setEmbedded] = useState(false);
+  useEffect(() => {
+    // Hide inside the legal modal iframe (configure page) — it would overlap the
+    // modal and doesn't belong on the AGB view.
+    setEmbedded(typeof window !== 'undefined' && window.self !== window.top);
+  }, []);
 
   const send = async () => {
     if (!msg.trim()) return;
@@ -32,6 +38,8 @@ export function FeedbackWidget() {
       setOpen(false);
     }, 1800);
   };
+
+  if (embedded) return null;
 
   return (
     <div className="fixed bottom-4 left-4 z-40 print:hidden">
