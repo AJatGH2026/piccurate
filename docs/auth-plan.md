@@ -32,6 +32,29 @@ shortlistbuddy.com. Full flow works: register → confirmation email (Resend SMT
   signup, else `otp_expired / access_denied`. Added `http://localhost:3000/**`
   to Supabase Redirect URLs for local testing; production uses the app-URL
   fallback in `config.ts` (`https://shortlistbuddy.com`).
+- **Corporate link-scanners pre-click confirmation links.** Microsoft Safe
+  Links / Proofpoint URL Defense / Mimecast fetch every URL in an inbound mail
+  to scan it — which consumes the one-time confirmation token and flips the
+  account to confirmed *without the user clicking*, then often quarantines the
+  mail so the user never sees it. Observed live: a corporate signup's
+  `email_confirmed_at` was set with no user action. This is NOT an app bug —
+  confirmation happens at Supabase's `/auth/v1/verify` endpoint server-side,
+  before the redirect to `/auth/callback`. Enforcement is intact (`signIn`
+  blocks unconfirmed accounts).
+- **Callback design (revised 2026-07-31): confirm → login page, no auto-login.**
+  `/auth/callback` no longer calls `exchangeCodeForSession`; it just redirects to
+  `/[locale]/auth/login?confirmed=1` (or `?confirm_error=1`). Rationale: the mail
+  is already confirmed at the verify step, and NOT exchanging avoids a session
+  being established by whoever/whatever clicked the link (real user OR scanner).
+  Everyone lands on login and authenticates explicitly. Login shows a green/amber
+  banner from the query flag (read via `window.location`, no Suspense needed).
+- **Email deliverability to corporate inboxes.** DNS for `auth.shortlistbuddy.com`
+  is correct — DKIM (`resend._domainkey`), SPF (`send.` → `include:amazonses.com`),
+  MX return-path (`feedback-smtp.eu-west-1.amazonses.com`, EU), DMARC inherited
+  from org domain (`p=none`). Spam-filtering of corporate mail is reputation/
+  newness of the fresh subdomain, not misconfiguration — builds with volume over
+  time. Optional later: org DMARC → `p=quarantine` once reputation is established,
+  add a `rua=` reporting address.
 
 ### Follow-ups before public launch (not blockers)
 1. ~~**Auth sender domain**~~ ✅ **DONE (2026-07-31)** — verified

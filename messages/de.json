@@ -219,7 +219,9 @@
     "termsLink": "Nutzungsbedingungen",
     "privacyLink": "Datenschutzerklärung",
     "checkEmailTitle": "Prüf deine E-Mails",
-    "checkEmailDesc": "Wir haben einen Bestätigungslink an {email} gesendet. Bitte prüf dein Postfach und klick auf den Link, um dein Konto zu aktivieren."
+    "checkEmailDesc": "Wir haben einen Bestätigungslink an {email} gesendet. Bitte prüf dein Postfach und klick auf den Link, um dein Konto zu aktivieren.",
+    "confirmedBanner": "Deine E-Mail ist bestätigt — bitte melde dich an.",
+    "confirmErrorBanner": "Dieser Bestätigungslink ist ungültig oder abgelaufen. Bitte melde dich an oder registriere dich erneut."
   },
   "common": {
     "loading": "Wird geladen...",

@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { brandName } from '@/lib/brand';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -16,6 +16,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmMsg, setConfirmMsg] = useState<'ok' | 'error' | null>(null);
+
+  // Read the flag set by the /auth/callback redirect. We use window.location
+  // instead of useSearchParams so the page doesn't require a Suspense boundary
+  // (keeps it statically renderable).
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get('confirmed')) setConfirmMsg('ok');
+    else if (sp.get('confirm_error')) setConfirmMsg('error');
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +55,17 @@ export default function LoginPage() {
             {t('login')}
           </h1>
         </div>
+
+        {confirmMsg === 'ok' && (
+          <div className="mb-4 p-3 rounded-lg bg-green-50 text-green-700 text-sm dark:bg-green-900/20 dark:text-green-400">
+            {t('confirmedBanner')}
+          </div>
+        )}
+        {confirmMsg === 'error' && (
+          <div className="mb-4 p-3 rounded-lg bg-amber-50 text-amber-700 text-sm dark:bg-amber-900/20 dark:text-amber-400">
+            {t('confirmErrorBanner')}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
