@@ -6,6 +6,8 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 import { clientConfig } from '@/lib/config';
 import { PRICING_PLANS } from '@/types/pricing';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { LogoutButton } from '@/components/auth/LogoutButton';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -95,9 +97,12 @@ export default async function LandingPage({ params }: Props) {
   );
 }
 
-function Header({ locale }: { locale: string }) {
-  const t = useTranslations('nav');
+async function Header({ locale }: { locale: string }) {
+  const t = await getTranslations('nav');
   const otherLocale = locale === 'en' ? 'de' : 'en';
+
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   return (
     <header className="border-b border-zinc-200 dark:border-zinc-800">
@@ -112,18 +117,27 @@ function Header({ locale }: { locale: string }) {
           >
             {otherLocale.toUpperCase()}
           </Link>
-          <Link
-            href={`/${locale}/auth/login`}
-            className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          >
-            {t('login')}
-          </Link>
-          <Link
-            href={`/${locale}/auth/register`}
-            className="rounded-full bg-indigo-600 px-4 py-2 text-white text-sm font-medium hover:bg-indigo-700 transition-colors"
-          >
-            {t('register')}
-          </Link>
+          {user ? (
+            <>
+              <span className="text-zinc-500 text-xs hidden sm:block">{user.email}</span>
+              <LogoutButton locale={locale} />
+            </>
+          ) : (
+            <>
+              <Link
+                href={`/${locale}/auth/login`}
+                className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              >
+                {t('login')}
+              </Link>
+              <Link
+                href={`/${locale}/auth/register`}
+                className="rounded-full bg-indigo-600 px-4 py-2 text-white text-sm font-medium hover:bg-indigo-700 transition-colors"
+              >
+                {t('register')}
+              </Link>
+            </>
+          )}
         </nav>
       </div>
     </header>

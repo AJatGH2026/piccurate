@@ -102,7 +102,11 @@ function GermanBody() {
       <p>Deutschland</p>
       <h2>14. Widerspruch gegen Verarbeitungen nach Art. 6 Abs. 1 Buchst. f DSGVO</h2>
       <p>Du kannst aus Gründen, die sich aus deiner besonderen Situation ergeben, jederzeit gegen Verarbeitungen Widerspruch einlegen, die wir auf Art. 6 Abs. 1 Buchst. f DSGVO stützen. Wir verarbeiten die betreffenden Daten dann nicht mehr, es sei denn, wir können zwingende schutzwürdige Gründe nachweisen, die deine Interessen, Rechte und Freiheiten überwiegen, oder die Verarbeitung dient der Geltendmachung, Ausübung oder Verteidigung von Rechtsansprüchen.</p>
-      <h2>15. Änderungen dieser Datenschutzerklärung</h2>
+      <h2>15. Konto und Nutzerregistrierung</h2>
+      <p>Wenn du ein Nutzerkonto erstellst, verarbeiten wir deine E-Mail-Adresse, dein verschlüsseltes Passwort, die gewählte Sprache (Spracheinstellung) sowie Zeitpunkt und Nachweis der erteilten Einwilligung in Datenschutzerklärung und Nutzungsbedingungen. Rechtsgrundlage ist Art. 6 Abs. 1 Buchst. b DSGVO (Vertragserfüllung).</p>
+      <p>Wir setzen Supabase (Supabase Inc., 970 Trestle Glen Rd, Oakland, CA 94610, USA) als Auftragsverarbeiter für Authentifizierung und Profildatenspeicherung ein. Supabase hostet die Daten auf Servern in der EU-Region Frankfurt (AWS eu-central-1). Mit Supabase besteht ein Auftragsverarbeitungsvertrag nach Art. 28 DSGVO; für Übermittlungen in die USA dienen EU-Standardvertragsklauseln als Grundlage.</p>
+      <p>Deine Kontodaten werden gespeichert, solange das Konto besteht. Du kannst dein Konto jederzeit löschen; nach Löschung werden deine Daten innerhalb von 30 Tagen endgültig entfernt. Dein Auskunfts-, Berichtigungs- und Löschungsrecht kannst du jederzeit über unseren Datenschutzkontakt ausüben.</p>
+      <h2>16. Änderungen dieser Datenschutzerklärung</h2>
       <p>Wir aktualisieren diese Datenschutzerklärung, wenn sich Funktionen, Dienstleister oder Rechtslage ändern. Maßgeblich ist die jeweils auf der Website veröffentlichte Fassung. Wesentliche Änderungen, die eine neue Einwilligung erfordern, setzen wir nicht ohne diese Einwilligung um.</p>
     </>
   );
@@ -200,7 +204,11 @@ function EnglishBody() {
       <p>Germany</p>
       <h2>14. Objection to processing under Article 6(1)(f) GDPR</h2>
       <p>You may object at any time, on grounds relating to your particular situation, to processing based on Article 6(1)(f) GDPR. We will then cease processing unless we demonstrate compelling legitimate grounds that override your interests, rights and freedoms or the processing is required to establish, exercise or defend legal claims.</p>
-      <h2>15. Changes to this Privacy Policy</h2>
+      <h2>15. User Account and Registration</h2>
+      <p>When you create a user account, we process your email address, your encrypted password, the selected language (locale setting), and the timestamp and record of consent given to this Privacy Policy and the Terms of Use. The legal basis is Article 6(1)(b) GDPR (performance of contract).</p>
+      <p>We use Supabase (Supabase Inc., 970 Trestle Glen Rd, Oakland, CA 94610, USA) as a processor for authentication and profile data storage. Supabase hosts data on servers in the EU region Frankfurt (AWS eu-central-1). We have concluded a data processing agreement with Supabase under Article 28 GDPR; EU Standard Contractual Clauses provide the basis for transfers to the USA.</p>
+      <p>Account data is stored for as long as the account exists. You can delete your account at any time; upon deletion your data will be permanently removed within 30 days. You may exercise your rights of access, rectification and erasure at any time through our privacy contact.</p>
+      <h2>16. Changes to this Privacy Policy</h2>
       <p>We update this Privacy Policy when functions, providers or the law change. The version published on the website applies. We will not implement material changes requiring new consent without obtaining that consent.</p>
     </>
   );

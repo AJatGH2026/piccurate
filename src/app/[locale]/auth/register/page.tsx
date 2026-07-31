@@ -5,6 +5,8 @@ import { brandName } from '@/lib/brand';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { clientConfig } from '@/lib/config';
 
 export default function RegisterPage() {
   const t = useTranslations('auth');
@@ -15,6 +17,7 @@ export default function RegisterPage() {
   const [gdprConsent, setGdprConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,15 +28,56 @@ export default function RegisterPage() {
     setLoading(true);
     setError(null);
 
-    try {
-      // In production: call Supabase auth.signUp with metadata { locale, gdpr_consent_at }
-      alert(`Registration would happen here for: ${email}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
-    } finally {
+    const supabase = createClient();
+    const appUrl = clientConfig.appUrl;
+
+    const { error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          locale,
+          gdpr_consent_at: new Date().toISOString(),
+        },
+        emailRedirectTo: `${appUrl}/${locale}/auth/callback`,
+      },
+    });
+
+    if (authError) {
+      setError(authError.message);
+      setLoading(false);
+    } else {
+      setEmailSent(true);
       setLoading(false);
     }
   };
+
+  if (emailSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4">
+        <div className="w-full max-w-sm text-center">
+          <Link href={`/${locale}`} className="text-2xl font-bold text-indigo-600">
+            {brandName(locale)}
+          </Link>
+          <div className="mt-8 p-6 rounded-2xl bg-white dark:bg-zinc-900 shadow-sm ring-1 ring-zinc-100 dark:ring-zinc-800">
+            <div className="text-4xl mb-4">📬</div>
+            <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+              {t('checkEmailTitle')}
+            </h1>
+            <p className="text-sm text-zinc-500 leading-relaxed">
+              {t('checkEmailDesc', { email })}
+            </p>
+          </div>
+          <p className="mt-6 text-sm text-zinc-500">
+            {t('hasAccount')}{' '}
+            <Link href={`/${locale}/auth/login`} className="text-indigo-600 hover:text-indigo-700 font-medium">
+              {t('loginCta')}
+            </Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4">

@@ -4,12 +4,14 @@ import { useTranslations } from 'next-intl';
 import { brandName } from '@/lib/brand';
 import { useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const t = useTranslations('auth');
   const params = useParams();
   const locale = params.locale as string;
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,14 +22,15 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    try {
-      // In production: call Supabase auth.signInWithPassword
-      // For now, show that the flow works
-      alert(`Login would happen here for: ${email}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
-    } finally {
+    const supabase = createClient();
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (authError) {
+      setError(authError.message);
       setLoading(false);
+    } else {
+      router.push(`/${locale}`);
+      router.refresh();
     }
   };
 

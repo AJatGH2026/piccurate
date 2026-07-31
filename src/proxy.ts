@@ -1,5 +1,6 @@
 import createMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 import { routing } from '../i18n/routing';
 
 const intlMiddleware = createMiddleware(routing);
@@ -60,7 +61,7 @@ const GERMAN_MARKETING_HOSTS = new Set([
   'www.auswahlbuddy.de',
 ]);
 
-export default function proxy(req: NextRequest) {
+export default async function proxy(req: NextRequest) {
   const host = (req.headers.get('host') ?? '').toLowerCase();
   if (GERMAN_MARKETING_HOSTS.has(host)) {
     const url = req.nextUrl.clone();
@@ -86,15 +87,50 @@ export default function proxy(req: NextRequest) {
     });
   }
 
+  // Refresh the Supabase session cookie on every request so long-lived sessions
+  // stay active. We collect pending cookie writes and apply them to whatever
+  // response we return — this avoids depending on supabaseResponse and lets
+  // intlMiddleware control redirects independently.
+  type CookieToSet = { name: string; value: string; options: Record<string, unknown> };
+  const pendingCookies: CookieToSet[] = [];
+
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          getAll() {
+            return req.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach((c) => pendingCookies.push(c as CookieToSet));
+          },
+        },
+      }
+    );
+    // Refreshes the access token if it is about to expire.
+    await supabase.auth.getUser();
+  }
+
   // Only the next-intl middleware handles locale routing — and only for page
   // routes (root or /en|/de…). API routes and the metadata files (robots.txt,
   // sitemap.xml, llms.txt) must pass through untouched, otherwise next-intl
   // would try to redirect them under a locale prefix.
   const { pathname } = req.nextUrl;
+  let response: NextResponse;
   if (pathname === '/' || /^\/(en|de)(\/|$)/.test(pathname)) {
-    return intlMiddleware(req);
+    response = intlMiddleware(req) as NextResponse;
+  } else {
+    response = NextResponse.next();
   }
-  return NextResponse.next();
+
+  // Apply any Supabase session cookie updates to the final response.
+  pendingCookies.forEach(({ name, value, options }) => {
+    response.cookies.set(name, value, options as Parameters<typeof response.cookies.set>[2]);
+  });
+
+  return response;
 }
 
 export const config = {

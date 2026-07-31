@@ -217,7 +217,9 @@
     "hasAccount": "Bereits ein Konto?",
     "gdprConsent": "Ich stimme den {terms} und der {privacy} zu. Meine Fotos werden von KI für die Kuration verarbeitet. Ich kann meine Daten jederzeit löschen.",
     "termsLink": "Nutzungsbedingungen",
-    "privacyLink": "Datenschutzerklärung"
+    "privacyLink": "Datenschutzerklärung",
+    "checkEmailTitle": "Prüf deine E-Mails",
+    "checkEmailDesc": "Wir haben einen Bestätigungslink an {email} gesendet. Bitte prüf dein Postfach und klick auf den Link, um dein Konto zu aktivieren."
   },
   "common": {
     "loading": "Wird geladen...",
