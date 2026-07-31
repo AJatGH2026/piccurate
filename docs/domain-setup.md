@@ -50,6 +50,28 @@ Notes:
   issues the SSL certificate automatically (Let's Encrypt). No cert needed at
   the registrar.
 
+### 2b. Email sending domains (Resend) — separate from the web records above
+
+Transactional email goes through **Resend** (which sends over AWS SES infra).
+Each sending subdomain is verified independently in Resend and gets its own DNS
+records at Checkdomain. Verified 2026-07-31.
+
+| Subdomain | Used for | Records (all present + verified) |
+|---|---|---|
+| `auth.shortlistbuddy.com` | **Supabase auth mails** (signup confirmation) | DKIM `resend._domainkey.auth…`, SPF `send.auth…` = `v=spf1 include:amazonses.com ~all`, MX `send.auth…` → `feedback-smtp.eu-west-1.amazonses.com` (EU) |
+| `feedback.shortlistbuddy.com` | feedback feature mails | same record shape under `feedback.` |
+| `_dmarc.shortlistbuddy.com` (org-level) | DMARC for all subdomains | `v=DMARC1; p=none;` (inherited by subdomains) |
+
+Learnings:
+- **The SMTP *Sender email* must match a verified subdomain exactly**, else Resend
+  rejects with `550 "This API key is not authorized to send emails from <domain>"`.
+  Supabase auth sender = `noreply@auth.shortlistbuddy.com`.
+- A wrong/missing Resend API key → SMTP `535 Authentication credentials invalid`.
+- A brand-new sending subdomain has **no reputation** → strict corporate gateways
+  may spam-filter early mail even with SPF/DKIM/DMARC correct. Builds with volume;
+  not a misconfiguration. Later: tighten org DMARC to `p=quarantine` + add `rua=`.
+- Full auth-email context: [auth-plan.md](auth-plan.md).
+
 ---
 
 ## 3. Code responsibilities (do NOT move these to Vercel)
