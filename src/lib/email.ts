@@ -35,10 +35,11 @@ export async function sendFeedbackEmail(opts: {
 
   const to = feedbackAddress(opts.locale);
   const brand = opts.locale === 'de' ? 'AuswahlBuddy' : 'ShortlistBuddy';
-  // "from" must be on a Resend-verified domain. Only shortlistbuddy.com is
-  // verified, so ALL mail is sent from there; delivery still goes to the
-  // locale inbox (`to`), e.g. feedback@auswahlbuddy.de for German feedback.
-  const from = `${brand} Feedback <feedback@shortlistbuddy.com>`;
+  // "from" must be on the Resend-verified SENDING domain — the subdomain
+  // feedback.shortlistbuddy.com. Delivery still goes to the locale inbox (`to`),
+  // e.g. feedback@auswahlbuddy.de for German feedback. Reply-To points at the
+  // real inbox so replies thread there rather than to the no-reply sender.
+  const from = `${brand} Feedback <noreply@feedback.shortlistbuddy.com>`;
   const text = [
     message,
     '',
@@ -58,6 +59,7 @@ export async function sendFeedbackEmail(opts: {
       body: JSON.stringify({
         from,
         to: [to],
+        reply_to: to,
         subject: `Beta feedback (${opts.locale || '?'})`,
         text,
       }),
