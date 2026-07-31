@@ -11,11 +11,13 @@ shortlistbuddy.com. Full flow works: register → confirmation email (Resend SMT
 `locale` + `gdpr_consent_at` populated (trigger verified end-to-end).
 
 ### Learnings (email delivery — this ate most of the debugging time)
-- **Resend verified domain is `feedback.shortlistbuddy.com`** (the subdomain set
-  up for the feedback feature), NOT the root. Supabase SMTP *Sender email* must
-  match the verified domain exactly, so it's currently
+- **Resend requires the SMTP *Sender email* to match a verified domain exactly.**
+  Initially the only verified domain was `feedback.shortlistbuddy.com` (the
+  subdomain for the feedback feature), so signup first went out from
   `noreply@feedback.shortlistbuddy.com`. A mismatched sender → Resend `550 "This
-  API key is not authorized to send emails from <domain>"`.
+  API key is not authorized to send emails from <domain>"`. **Now** a dedicated
+  `auth.shortlistbuddy.com` is verified and the sender is
+  `noreply@auth.shortlistbuddy.com`.
 - **API key must be authorized for the sender domain** (not scoped to a different
   domain). Wrong/missing key → SMTP `535 Authentication credentials invalid`;
   right key but wrong domain scope → the `550` above.
@@ -32,12 +34,16 @@ shortlistbuddy.com. Full flow works: register → confirmation email (Resend SMT
   fallback in `config.ts` (`https://shortlistbuddy.com`).
 
 ### Follow-ups before public launch (not blockers)
-1. **Auth sender domain** — `noreply@feedback.shortlistbuddy.com` is semantically
-   off for confirmation mails. Verify a proper auth domain in Resend (root
-   `shortlistbuddy.com` or `auth.shortlistbuddy.com`), then switch the Supabase
-   sender. See [domain-setup.md](domain-setup.md).
-2. **Dependabot** — the auth push surfaced 9 GitHub vulnerabilities (8 high, 1
-   moderate) on `master`. Review before launch.
+1. ~~**Auth sender domain**~~ ✅ **DONE (2026-07-31)** — verified
+   `auth.shortlistbuddy.com` in Resend; Supabase SMTP sender switched to
+   `noreply@auth.shortlistbuddy.com`. (Was `feedback.shortlistbuddy.com`, which
+   is semantically off for confirmation mails.)
+2. ~~**Dependabot**~~ 🟡 **partly done (2026-07-31)** — patched to 6 high (from
+   8): bumped `sharp` → 0.35 (libvips CVEs on the `/api/convert` HEIC path) and
+   `npm audit fix` for brace-expansion + js-yaml. Remaining 6 are transitive
+   inside `next` / `@huggingface/transformers` (bundled postcss + sharp, adm-zip
+   via onnxruntime) — no fix without a Next downgrade; low real risk (build-time
+   or trusted-CDN model unpacking). Re-check when Next ships a patch release.
 3. Move off Basic-Auth site gate (`SITE_PASSWORD`) when going public.
 
 ---
