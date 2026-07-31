@@ -3,6 +3,47 @@
 Picked up in a fresh session (the thread that scoped this got too long). This is
 the next work item: wire real login/registration so the beta can collect users.
 
+## STATUS: DONE — live in production (2026-07-31)
+
+All 8 build tasks shipped to `master` (commit `5380665`) and verified on
+shortlistbuddy.com. Full flow works: register → confirmation email (Resend SMTP)
+→ callback → logged in; login; header shows email + logout; `profiles` row has
+`locale` + `gdpr_consent_at` populated (trigger verified end-to-end).
+
+### Learnings (email delivery — this ate most of the debugging time)
+- **Resend verified domain is `feedback.shortlistbuddy.com`** (the subdomain set
+  up for the feedback feature), NOT the root. Supabase SMTP *Sender email* must
+  match the verified domain exactly, so it's currently
+  `noreply@feedback.shortlistbuddy.com`. A mismatched sender → Resend `550 "This
+  API key is not authorized to send emails from <domain>"`.
+- **API key must be authorized for the sender domain** (not scoped to a different
+  domain). Wrong/missing key → SMTP `535 Authentication credentials invalid`;
+  right key but wrong domain scope → the `550` above.
+- Resend SMTP: host `smtp.resend.com`, port `465` (or 587/2465/2587 TLS), user is
+  the literal string `resend`, password = the API key. The Resend Settings→SMTP
+  page is read-only reference (`YOUR_API_KEY` is a placeholder, not an input).
+- Supabase saves settings instantly — no "commit". Real SMTP error text lives in
+  **Logs → Auth source** (the API-gateway logs only show `500`).
+- Supabase free-tier built-in mailer is rate-limited to ~3/hour and min-interval
+  60s/user (left at 60s — fine for beta). Custom SMTP removes the 3/hour cap.
+- PKCE gotcha: confirmation link domain must match the browser that started
+  signup, else `otp_expired / access_denied`. Added `http://localhost:3000/**`
+  to Supabase Redirect URLs for local testing; production uses the app-URL
+  fallback in `config.ts` (`https://shortlistbuddy.com`).
+
+### Follow-ups before public launch (not blockers)
+1. **Auth sender domain** — `noreply@feedback.shortlistbuddy.com` is semantically
+   off for confirmation mails. Verify a proper auth domain in Resend (root
+   `shortlistbuddy.com` or `auth.shortlistbuddy.com`), then switch the Supabase
+   sender. See [domain-setup.md](domain-setup.md).
+2. **Dependabot** — the auth push surfaced 9 GitHub vulnerabilities (8 high, 1
+   moderate) on `master`. Review before launch.
+3. Move off Basic-Auth site gate (`SITE_PASSWORD`) when going public.
+
+---
+
+## Original plan (below) — for reference
+
 ## Current state — scaffolding exists, it's a WIRING job (not from scratch)
 - `src/lib/supabase/client.ts` — browser client (`createBrowserClient`, anon key). ✅
 - `src/lib/supabase/server.ts` — server client (cookies) + `createAdminClient` (service role). ✅
