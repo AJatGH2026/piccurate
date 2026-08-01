@@ -90,13 +90,23 @@ continue:
   — final state, DNS records, the Vercel-vs-code redirect split, and the
   learnings (avoid the apex↔www redirect loop; `NEXT_PUBLIC_*` build-time
   inlining; verification-tool blind spots). Read it before changing any domain.
-- **Cost/quota lever:** `NEXT_PUBLIC_HEIC_SERVER_MAX_MB` controls HEIC
-  routing. Default `4` = small HEICs use the fast server path. Set to `0` to
-  route all HEIC decoding to the browser and drive `/api/convert` "Fast Origin
-  Transfer" to ~0 (used during a Vercel free-tier quota crunch; trade-off is
-  slower client-side uploads). See [src/utils/image.ts](src/utils/image.ts).
-- **Usage dashboard:** `/admin/stats` (behind the Basic Auth gate) — shows
-  photos / tokens / estimated cost when Upstash Redis is configured.
+- **HEIC routing lever:** `NEXT_PUBLIC_HEIC_SERVER_MAX_MB` controls where HEIC
+  is decoded. Code default `4` = small HEICs take the fast server path; `0`
+  routes all decoding to the browser and drives `/api/convert` "Fast Origin
+  Transfer" to ~0, at the cost of slower client-side uploads. See
+  [src/utils/image.ts](src/utils/image.ts).
+  It was overridden to `0` in the Vercel env vars during the July 2026
+  **Hobby**-tier quota crunch. **Hosting is on Vercel Pro now (AJ GmbH), so that
+  constraint is gone** and the override can be dropped — see
+  [docs/product-pipeline.md](docs/product-pipeline.md) §9.10. Note that
+  `NEXT_PUBLIC_*` is inlined at build time: changing it needs a redeploy without
+  build cache.
+- **Usage dashboard:** `/admin/stats` — shows photos / tokens / estimated cost
+  when Upstash Redis is configured.
+  ⚠️ It used to be covered by the Basic Auth gate, but **`SITE_PASSWORD` is
+  currently unset**, so that gate protects nothing. `/admin/*` is excluded in
+  `robots.txt`, which keeps crawlers away but is not access control. Decide
+  before the public launch whether the dashboard needs its own protection.
 - **Analysis engine:** Google Gemini 2.5 Flash via `/api/analyze-demo`
   (won a 381-photo eval vs. Sonnet 4.6 / GPT-4.1 mini at ~1/6 the cost).
   The eval harness in `scripts/` still supports multiple providers.
