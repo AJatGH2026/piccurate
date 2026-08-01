@@ -54,11 +54,16 @@ small curated keeper set to review and download / export to a photo book.
 `4` = small HEICs take the fast server path (`/api/convert`).
 Code default is `4` (see [src/utils/image.ts](src/utils/image.ts)).
 
-It was overridden to `0` in the Vercel env vars during the July 2026 Hobby-tier
-quota crunch. **On Pro that constraint is gone** — the override can be dropped so
-uploads take the faster path again. Check the current value in the Vercel
-dashboard; `NEXT_PUBLIC_*` is inlined at build time, so changing it needs a
-redeploy without build cache.
+**History — the lever has always been the code default, never a Vercel env var.**
+`b44e4b3` (2026-07-18) set it to `0` during the Hobby-tier quota crunch;
+`eb52d43` (2026-07-25) set it back to `4` with the reason "now on Vercel Pro".
+Verified 2026-08-02 via the Vercel CLI: `NEXT_PUBLIC_HEIC_SERVER_MAX_MB` is set
+in **no** environment. The fast server path is live and nothing is pending.
+
+If you ever do set it in Vercel: `NEXT_PUBLIC_*` is inlined at build time, so it
+needs a redeploy **without build cache**. And never leave the key with an empty
+value — `??` only catches `undefined`, so `Number('')` yields `0`, the opposite
+of the intent.
 
 ## Key documents
 
