@@ -6,8 +6,11 @@ Workspace-specific context for the AuswahlBuddy app. Global identity, Accenture
 context, and universal behaviours live in `~/.claude/CLAUDE.md`.
 
 > **This is a personal product / tool, NOT a CGRT client engagement.** Keep it
-> in its own workspace — launch Claude from `C:\CLAUDE\MyProjects\tpai`, not from
-> the CGRT account-planning workspace, so history and memory stay separate.
+> in its own workspace, separate from the CGRT account-planning workspace, so
+> history and memory stay separate. Working copy: `C:\Dev\piccurate` (the older
+> `C:\CLAUDE\MyProjects\tpai` path is gone). Keep the clone **outside**
+> `Documents` — Windows Controlled Folder Access blocks writes there and reports
+> the failure misleadingly as `No such file or directory`.
 
 ## What this is
 
@@ -15,9 +18,10 @@ AuswahlBuddy — an AI-powered travel-photo curation web app. Users upload holid
 photos; the app scores them, collapses near-duplicate series, and proposes a
 small curated keeper set to review and download / export to a photo book.
 
-- **Live:** https://shortlistbuddy.com (leading/canonical domain; auswahlbuddy.de redirects here). German at /de, English at /en. Basic Auth gate until public launch. Vercel deployment URL: piccurate.vercel.app.
-- **Repo:** `AJatGH2026/piccurate` (branch `master`) — Vercel auto-deploys on push
-- **Deploy target:** Vercel (Hobby / free tier)
+- **Live:** https://shortlistbuddy.com (leading/canonical domain; auswahlbuddy.de redirects here). German at /de, English at /en. The Basic Auth gate (`SITE_PASSWORD`) is **currently off** — the landing page is public for the beta. Vercel deployment URL: piccurate.vercel.app.
+- **Repo:** `AJatGH2026/piccurate` (branch `master`, **public**) — Vercel auto-deploys on push
+- **Deploy target:** Vercel **Pro**, held by **AJ GmbH** (HRB 33249). Not Hobby — the free-tier limits described in older doc sections no longer apply.
+- **⚠️ AJ GmbH is the interim vehicle for the beta only.** A dedicated company is planned once the beta succeeds; every entity-bound detail (imprint, privacy, terms, persons-info, supervisory authority, and the account holders at Vercel/Stripe/domains/Google/Supabase/Resend) is provisional. Never treat it as final — see [docs/product-pipeline.md](docs/product-pipeline.md) §10.1.
 
 ## Stack
 
@@ -30,21 +34,31 @@ small curated keeper set to review and download / export to a photo book.
 
 ## Working conventions
 
-- **Do heavy, test-repetitive iteration on `localhost` (`npm run dev`), NOT
-  against the live Vercel app** — inbound image uploads to functions burn
-  "Fast Origin Transfer" free-tier quota fast (see the July 2026 incident).
+- **Default flow is push → Vercel Preview → promote to Production.** That is how
+  the product owner works, and on Pro there is no quota reason to avoid it. (The
+  old "never iterate against the live app" rule came from the Hobby-tier Fast
+  Origin Transfer cap in the July 2026 incident — obsolete since the move to Pro.)
+- Use `localhost` (`npm run dev`) for fast UI iteration and for the pre-push
+  check below. Anything needing real infrastructure — Supabase auth callbacks,
+  Resend mail, domain redirects — is only meaningfully testable on a Preview.
 - Verify before pushing: `npx tsc --noEmit && npm run build`.
 - Commit style: Conventional Commits; end messages with the `Co-Authored-By`
   trailer. Push only when asked.
 - **Secrets never in git.** `.env.local` is gitignored; production values live in
   Vercel env vars. See `.env.example` for the full list of variable names.
 
-## Quota lever
+## HEIC routing lever
 
-`NEXT_PUBLIC_HEIC_SERVER_MAX_MB` controls HEIC routing:
-`0` = all HEIC decoded in the browser (quota-safe, slower uploads);
-`4` = small HEICs use the fast server path (`/api/convert`).
-Currently `0` while the Vercel Fast Origin Transfer quota recovers (~early August 2026).
+`NEXT_PUBLIC_HEIC_SERVER_MAX_MB` controls where HEIC is decoded:
+`0` = all in the browser (slower uploads, near-zero origin transfer);
+`4` = small HEICs take the fast server path (`/api/convert`).
+Code default is `4` (see [src/utils/image.ts](src/utils/image.ts)).
+
+It was overridden to `0` in the Vercel env vars during the July 2026 Hobby-tier
+quota crunch. **On Pro that constraint is gone** — the override can be dropped so
+uploads take the faster path again. Check the current value in the Vercel
+dashboard; `NEXT_PUBLIC_*` is inlined at build time, so changing it needs a
+redeploy without build cache.
 
 ## Key documents
 
