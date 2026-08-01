@@ -101,12 +101,15 @@ continue:
   [docs/product-pipeline.md](docs/product-pipeline.md) §9.10. Note that
   `NEXT_PUBLIC_*` is inlined at build time: changing it needs a redeploy without
   build cache.
-- **Usage dashboard:** `/admin/stats` — shows photos / tokens / estimated cost
-  when Upstash Redis is configured.
-  ⚠️ It used to be covered by the Basic Auth gate, but **`SITE_PASSWORD` is
-  currently unset**, so that gate protects nothing. `/admin/*` is excluded in
-  `robots.txt`, which keeps crawlers away but is not access control. Decide
-  before the public launch whether the dashboard needs its own protection.
+- **Usage dashboard:** `/admin/stats` (locale-free) — shows photos / tokens /
+  estimated cost when Upstash Redis is configured, plus beta feedback.
+  Protected by its **own** `ADMIN_TOKEN`, deliberately independent of the
+  site-wide Basic Auth gate (which is off during the public beta). Access via
+  `?key=<ADMIN_TOKEN>`; the token is compared in constant time over SHA-256
+  digests. **Without a valid key the page returns 404** — so a plain 404 is the
+  designed behaviour, not a broken route. If `ADMIN_TOKEN` is unset the
+  dashboard is disabled entirely. `ADMIN_TOKEN` is set in Vercel for Production
+  and Preview.
 - **Analysis engine:** Google Gemini 2.5 Flash via `/api/analyze-demo`
   (won a 381-photo eval vs. Sonnet 4.6 / GPT-4.1 mini at ~1/6 the cost).
   The eval harness in `scripts/` still supports multiple providers.
