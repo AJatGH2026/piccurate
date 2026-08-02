@@ -55,11 +55,12 @@ next-env.d.ts
 dev.cmd
 
 # Internal documents — kept LOCAL only, never in this public repo.
-# Business strategy (pricing, margins, roadmap), the identity/PII scrub runbook,
-# and the commented legal drafts. Archived under
-# Documents\2_11_ShortlistBuddy\Claude ShortlistBuddy\.
+# Business strategy (pricing, margins, roadmap) and the commented legal drafts.
+# Archived under Documents\2_11_ShortlistBuddy\IT\Code ShortlistBuddy-backup\.
 docs/PicCurate-WorkLog.md
 docs/product-pipeline.md
+# Deleted 2026-08-02 (customer-reference plan dropped); the rule stays so a
+# restored copy can never be committed into this public repo.
 docs/kundenkonservierung-pii-scrub.md
 docs/legal/
 docs/*.docx

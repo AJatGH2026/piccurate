@@ -2,12 +2,12 @@
 
 # AuswahlBuddy (tpai) — Project Instructions
 
-Workspace-specific context for the AuswahlBuddy app. Global identity, Accenture
-context, and universal behaviours live in `~/.claude/CLAUDE.md`.
+Workspace-specific context for the AuswahlBuddy app. Global identity and
+universal behaviours live in `~/.claude/CLAUDE.md`.
 
-> **This is a personal product / tool, NOT a CGRT client engagement.** Keep it
-> in its own workspace, separate from the CGRT account-planning workspace, so
-> history and memory stay separate. Working copy: `C:\Dev\piccurate` (the older
+> **This is a personal product / tool.** Keep it in its own workspace, separate
+> from unrelated work, so history and memory stay separate.
+> Working copy: `C:\Dev\piccurate` (the older
 > `C:\CLAUDE\MyProjects\tpai` path is gone). Keep the clone **outside**
 > `Documents` — Windows Controlled Folder Access blocks writes there and reports
 > the failure misleadingly as `No such file or directory`.
@@ -88,10 +88,10 @@ of the intent.
 - [HANDOVER.md](HANDOVER.md) — resume/backup guide (what to save, how to resume, cloud options)
 - [docs/auth-plan.md](docs/auth-plan.md) — Supabase auth (login/register/confirm): status DONE, design, Resend SMTP + corporate-scanner learnings
 - [docs/domain-setup.md](docs/domain-setup.md) — live domains, DNS (web + email/Resend), Vercel/code redirect split + learnings (read before touching domains)
-- `docs/product-pipeline.md` — full project history & rationale (German, dated changelog). **Local only**, gitignored: it holds pricing, margins and strategy and must not be published. Same for `docs/kundenkonservierung-pii-scrub.md` (identity/PII scrub runbook), `docs/legal/` (commented legal drafts) and `.eval/reference.json` (hand-labelled ground truth). All archived under `Documents\2_11_ShortlistBuddy\Claude ShortlistBuddy\`.
+- `docs/product-pipeline.md` — full project history & rationale (German, dated changelog). **Local only**, gitignored: it holds pricing, margins and strategy and must not be published. Same for `docs/legal/` (commented legal drafts) and `.eval/reference.json` (hand-labelled ground truth). All archived under `Documents\2_11_ShortlistBuddy\IT\Code ShortlistBuddy-backup\`.
 - [docs/PicCurate-WorkLog.md](docs/PicCurate-WorkLog.md) — chronological work log (Jun 4 → Jul 18 2026)
 - [.env.example](.env.example) — all environment variables
 
 ## Onboarding
 
-[x] Onboarded 2026-07-21 — andreas.jahnke@accenture.com (project split out from CGRT workspace)
+[x] Onboarded 2026-07-21 — project split out into its own workspace
