@@ -51,6 +51,16 @@ small curated keeper set to review and download / export to a photo book.
   `git log --grep="<subject>"` or `git log --since=… --until=…`.
 - **Secrets never in git.** `.env.local` is gitignored; production values live in
   Vercel env vars. See `.env.example` for the full list of variable names.
+- **⚠️ THIS REPO IS PUBLIC — check before every push.** Anything committed is
+  world-readable the moment it lands, and a later removal needs a history
+  rewrite (done once on 2026-08-02; GitHub would not garbage-collect the old
+  objects, so the repo had to be deleted and recreated). Before pushing, review
+  `git diff --stat` against the branch you are pushing to and stop if anything
+  touches: credentials or tokens; personal or entity data (names, addresses,
+  register numbers, private file names); pricing, margins or business strategy;
+  legal drafts under review; customer material; or the eval ground truth. When
+  in doubt, say so and ask — do not push and clean up afterwards. `.gitignore`
+  already covers the known cases; never override it with `git add -f`.
 
 ## HEIC routing lever
 
