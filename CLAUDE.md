@@ -44,6 +44,11 @@ small curated keeper set to review and download / export to a photo book.
 - Verify before pushing: `npx tsc --noEmit && npm run build`.
 - Commit style: Conventional Commits; end messages with the `Co-Authored-By`
   trailer. Push only when asked.
+- **Reference past commits by date + subject, never by hash.** A hash is derived
+  from the commit's content and its parent's hash, so any history rewrite
+  invalidates every one of them — it happened on 2026-08-02 and broke every hash
+  cited in the docs. Dates and subjects survive, and stay findable with
+  `git log --grep="<subject>"` or `git log --since=… --until=…`.
 - **Secrets never in git.** `.env.local` is gitignored; production values live in
   Vercel env vars. See `.env.example` for the full list of variable names.
 
@@ -55,8 +60,11 @@ small curated keeper set to review and download / export to a photo book.
 Code default is `4` (see [src/utils/image.ts](src/utils/image.ts)).
 
 **History — the lever has always been the code default, never a Vercel env var.**
-`b44e4b3` (2026-07-18) set it to `0` during the Hobby-tier quota crunch;
-`eb52d43` (2026-07-25) set it back to `4` with the reason "now on Vercel Pro".
+**2026-07-18** *"perf(heic): back to browser-only — Vercel quota still exhausted"*
+set it to `0`; **2026-07-25** *"perf(heic): restore fast server path (default 4)
+— now on Vercel Pro"* set it back to `4`. (Referenced by date + subject, not by
+hash: the history was rewritten on 2026-08-02 and all hashes changed. Find them
+with `git log --grep="restore fast server path"`.)
 Verified 2026-08-02 via the Vercel CLI: `NEXT_PUBLIC_HEIC_SERVER_MAX_MB` is set
 in **no** environment. The fast server path is live and nothing is pending.
 

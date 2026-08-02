@@ -5,7 +5,8 @@ the next work item: wire real login/registration so the beta can collect users.
 
 ## STATUS: DONE — live in production (2026-07-31)
 
-All 8 build tasks shipped to `master` (commit `5380665`) and verified on
+All 8 build tasks shipped to `master` (2026-07-31, *"feat: wire Supabase Auth —
+login, register, callback, session refresh"*) and verified on
 shortlistbuddy.com. Full flow works: register → confirmation email (Resend SMTP)
 → callback → logged in; login; header shows email + logout; `profiles` row has
 `locale` + `gdpr_consent_at` populated (trigger verified end-to-end).

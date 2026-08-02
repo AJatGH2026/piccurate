@@ -96,8 +96,9 @@ continue:
   Transfer" to ~0, at the cost of slower client-side uploads. See
   [src/utils/image.ts](src/utils/image.ts).
   The lever has always been this **code default**, not a Vercel env var:
-  `b44e4b3` (2026-07-18) set it to `0` during the Hobby quota crunch, `eb52d43`
-  (2026-07-25) set it back to `4` — "now on Vercel Pro". Verified 2026-08-02 via
+  **2026-07-18** *"perf(heic): back to browser-only"* set it to `0`,
+  **2026-07-25** *"perf(heic): restore fast server path (default 4) — now on
+  Vercel Pro"* set it back to `4`. Verified 2026-08-02 via
   the Vercel CLI: the variable is set in **no** environment, so the fast server
   path is live. See `docs/product-pipeline.md` §9.10 (local only).
 - **Usage dashboard:** `/admin/stats` (locale-free) — shows photos / tokens /
