@@ -69,9 +69,14 @@ shape" — it describes the intent, not reality. Neither end works:
 - **Sending:** `resend._domainkey.feedback…` and `send.feedback…` return
   NXDOMAIN — not one record exists, so the subdomain cannot be verified in
   Resend and every send from `noreply@feedback.shortlistbuddy.com` is rejected.
-  Fix: add the domain in Resend and enter its three records at Checkdomain,
-  exactly as for `auth.`. Until then, point `FEEDBACK_FROM` at the verified
-  `noreply@auth.shortlistbuddy.com`.
+  The records are gone because `feedback.` **was** the verified domain and got
+  replaced by `auth.` (see auth-plan.md) — the Resend **Free plan has exactly
+  one domain slot**, so the two never coexisted.
+  Fix without paying for Pro: a verified domain covers **every local part**, so
+  send feedback from the domain that is already verified —
+  `FEEDBACK_FROM=noreply@auth.shortlistbuddy.com`. A second sending subdomain
+  only buys reputation isolation, which is worth its price at volume, not in
+  beta.
 - **Receiving:** `shortlistbuddy.com` has **no MX at all**. Checkdomain's mail
   reception is switched off for the domain ("Individuelle Konfiguration via
   MX-Records"), and the only MX under it is `send.auth…` — a *sending*
