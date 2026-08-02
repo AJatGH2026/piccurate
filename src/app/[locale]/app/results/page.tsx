@@ -20,6 +20,11 @@ export default function ResultsPage() {
   const locale = params.locale as string;
   useEffect(() => { logBeta('results'); }, []);
   const [downloading, setDownloading] = useState(false);
+  // Photos whose source file could not be read when the archive was built —
+  // moved, renamed, deleted or edited after the upload. `degraded` still made it
+  // in as the 512px preview; `missing` could not be included at all.
+  const [sourceIssues, setSourceIssues] = useState<{ degraded: string[]; missing: string[] } | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   // 'flat' = one folder for the whole trip (best for photo-book auto-import);
   // 'byday' = one subfolder per day (best for the user's own organisation).
   const [zipMode, setZipMode] = useState<'flat' | 'byday'>('flat');
@@ -73,8 +78,19 @@ export default function ResultsPage() {
     };
   }, [dayGroups, locale]);
 
+  // A browser File is only a path reference plus a size/mtime snapshot, not a
+  // copy — so reading one only fails once the user has moved, renamed, deleted
+  // or edited the source file. Cap the list so a whole missing folder does not
+  // produce an unreadable wall of filenames.
+  const nameList = (names: string[]) =>
+    names.length <= 5
+      ? names.join(', ')
+      : `${names.slice(0, 5).join(', ')} ${t('moreFiles', { count: names.length - 5 })}`;
+
   const handleDownload = async () => {
     setDownloading(true);
+    setSourceIssues(null);
+    setDownloadError(null);
     try {
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
@@ -97,6 +113,10 @@ export default function ResultsPage() {
         '----|----------------|----------------------------------|---------------------|-----------------------------|------------',
       ];
 
+      // Collected while building the archive, reported to the user afterwards.
+      const degraded: string[] = [];
+      const missing: string[] = [];
+
       for (let i = 0; i < sorted.length; i++) {
         const photo = sorted[i];
         const dateStr = photo.dateTaken
@@ -105,15 +125,40 @@ export default function ResultsPage() {
         const folder = dateStr;
         const prefix = zipMode === 'byday' ? `${folder}/` : ''; // flat = no subfolders
 
-        // Add photo (flat folder or per-day subfolder)
+        // Add photo (flat folder or per-day subfolder). One unreadable source
+        // file must not abort the whole archive, so every read is guarded and
+        // falls back to the 512px preview, which lives in memory as a blob and
+        // is therefore independent of the source folder.
+        let added = false;
+        let sourceUnreadable = false;
         if (photo.originalFile) {
-          const buffer = await photo.originalFile.arrayBuffer();
-          zip.file(`${prefix}${photo.filename}`, buffer);
-        } else {
-          const response = await fetch(photo.thumbnailUrl);
-          const blob = await response.blob();
-          zip.file(`${prefix}${photo.filename.replace(/\.heic$/i, '.jpg')}`, blob);
+          try {
+            const buffer = await photo.originalFile.arrayBuffer();
+            zip.file(`${prefix}${photo.filename}`, buffer);
+            added = true;
+          } catch {
+            sourceUnreadable = true;
+          }
         }
+        if (!added) {
+          try {
+            const response = await fetch(photo.thumbnailUrl);
+            const blob = await response.blob();
+            zip.file(`${prefix}${photo.filename.replace(/\.heic$/i, '.jpg')}`, blob);
+            added = true;
+            // Only a photo that *had* a source file is degraded; without one the
+            // preview has always been the intended content (server-side HEIC).
+            if (sourceUnreadable) degraded.push(photo.filename);
+          } catch {
+            // Preview gone too — nothing left to include for this photo.
+            missing.push(photo.filename);
+          }
+        }
+        const note = !added
+          ? '  ** NOT INCLUDED — source file could not be read'
+          : sourceUnreadable
+            ? '  ** reduced resolution — source file could not be read'
+            : '';
 
         // Build summary line
         const dateDisplay = photo.dateTaken
@@ -125,7 +170,7 @@ export default function ResultsPage() {
             : '';
         const num = String(i + 1).padStart(3);
         summaryLines.push(
-          `${num} | ${folder.padEnd(14)} | ${photo.filename.padEnd(32)} | ${dateDisplay.padEnd(19)} | ${location.padEnd(27)} | ${photo.sceneType}`
+          `${num} | ${folder.padEnd(14)} | ${photo.filename.padEnd(32)} | ${dateDisplay.padEnd(19)} | ${location.padEnd(27)} | ${photo.sceneType}${note}`
         );
       }
 
@@ -144,6 +189,24 @@ export default function ResultsPage() {
         }
       }
 
+      // Nothing readable at all — an empty archive would only confuse. Say what
+      // happened instead of handing the user a ZIP with just an index file.
+      if (missing.length === sorted.length && sorted.length > 0) {
+        setDownloadError(t('sourceAllGone'));
+        return;
+      }
+
+      if (degraded.length > 0 || missing.length > 0) {
+        summaryLines.push(
+          '',
+          '',
+          'Note: some source files could not be read when this archive was built',
+          '(moved, renamed, deleted or edited after the upload).',
+          `  reduced to 512px preview: ${degraded.length}`,
+          `  not included at all:      ${missing.length}`
+        );
+      }
+
       zip.file('_index.txt', summaryLines.join('\n'));
 
       const zipBlob = await zip.generateAsync({ type: 'blob' });
@@ -155,13 +218,19 @@ export default function ResultsPage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      if (degraded.length > 0 || missing.length > 0) setSourceIssues({ degraded, missing });
       // Primary conversion: a completed download = the user got value.
-      trackEvent('download', { photos: selectedCount, zip_mode: zipMode });
+      trackEvent('download', {
+        photos: selectedCount,
+        zip_mode: zipMode,
+        degraded: degraded.length,
+        missing: missing.length,
+      });
       trackAdsConversion();
       logBeta('download');
     } catch (err) {
       console.error('ZIP creation failed:', err);
-      alert(t('zipFailed'));
+      setDownloadError(t('zipFailed'));
     } finally {
       setDownloading(false);
     }
@@ -172,18 +241,44 @@ export default function ResultsPage() {
     setCloudStatus(null);
     try {
       const files: { name: string; blob: Blob }[] = [];
+      const degraded: string[] = [];
+      const missing: string[] = [];
       for (const photo of selectedPhotos) {
+        let source: Blob | null = null;
+        let sourceUnreadable = false;
         if (photo.originalFile) {
-          files.push({ name: photo.filename, blob: photo.originalFile });
-        } else {
-          const r = await fetch(photo.thumbnailUrl);
-          files.push({ name: photo.filename, blob: await r.blob() });
+          try {
+            // Probe with a single byte instead of buffering the file: it fails
+            // the same way when the source is gone, but keeps the upload lazy —
+            // reading every original up front would blow up memory on a large
+            // selection. The provider streams the File itself.
+            await photo.originalFile.slice(0, 1).arrayBuffer();
+            source = photo.originalFile;
+          } catch {
+            sourceUnreadable = true;
+          }
         }
+        if (!source) {
+          try {
+            const r = await fetch(photo.thumbnailUrl);
+            source = await r.blob();
+            if (sourceUnreadable) degraded.push(photo.filename);
+          } catch {
+            missing.push(photo.filename);
+            continue;
+          }
+        }
+        files.push({ name: photo.filename, blob: source });
+      }
+      if (files.length === 0) {
+        setCloudStatus(t('sourceAllGone'));
+        return;
       }
       const res = await provider.uploadSelection(files, (p) =>
         setCloudStatus(t('cloudUploading', { provider: provider.label, done: p.done, total: p.total }))
       );
       setCloudStatus(t('cloudDone', { count: res.uploaded, folder: res.folderName }));
+      if (degraded.length > 0 || missing.length > 0) setSourceIssues({ degraded, missing });
     } catch (err) {
       setCloudStatus(t('cloudFailed', { error: err instanceof Error ? err.message : 'Unknown error' }));
     } finally {
@@ -314,6 +409,37 @@ export default function ResultsPage() {
           >
             {downloading ? t('downloading') : t('downloadAction', { count: selectedCount })}
           </button>
+
+          {downloadError && (
+            <p className="mt-3 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
+              {downloadError}
+            </p>
+          )}
+
+          {/* Source files that vanished mid-session. Named explicitly so the user
+              can put them back and re-download at full resolution. */}
+          {sourceIssues && (
+            <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+              <p className="font-medium">{t('sourceIssuesTitle')}</p>
+              {sourceIssues.degraded.length > 0 && (
+                <p className="mt-1">
+                  {t('sourceDegraded', {
+                    count: sourceIssues.degraded.length,
+                    names: nameList(sourceIssues.degraded),
+                  })}
+                </p>
+              )}
+              {sourceIssues.missing.length > 0 && (
+                <p className="mt-1">
+                  {t('sourceMissing', {
+                    count: sourceIssues.missing.length,
+                    names: nameList(sourceIssues.missing),
+                  })}
+                </p>
+              )}
+              <p className="mt-2 text-xs">{t('sourceIssuesHint')}</p>
+            </div>
+          )}
 
         </div>
 

@@ -88,6 +88,14 @@ export default function UploadPage() {
           />
         </div>
 
+        {/* The browser only holds a reference to each file, so the originals must
+            stay put until the download. Said here, before the upload, because
+            afterwards it can only be reported as damage (results page). */}
+        <p className="mt-3 flex items-start gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+          <span aria-hidden="true">📁</span>
+          <span>{t('keepFilesNote')}</span>
+        </p>
+
         {/* Cloud import */}
         {dropboxConfigured() && (
           <div className="mt-3 flex items-center gap-2">

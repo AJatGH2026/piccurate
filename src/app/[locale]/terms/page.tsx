@@ -32,6 +32,7 @@ function GermanBody() {
       <h2>4. Technische Voraussetzungen und Datensicherung</h2>
       <p>Der Nutzer ist für ein kompatibles Endgerät, einen aktuellen Browser, eine ausreichend stabile Internetverbindung und die sichere Aufbewahrung seiner Originaldateien verantwortlich.</p>
       <p>AuswahlBuddy ist kein Backup- oder Archivierungsdienst. Der Nutzer muss vor der Analyse und vor jeder Löschung eine unabhängige Sicherungskopie seiner Originalfotos aufbewahren. Die Nutzung des Auswahlvorschlags darf nicht als automatische Löschfreigabe verstanden werden.</p>
+      <p>Während eines laufenden Vorgangs — vom Hochladen über die Analyse bis zum Herunterladen der Auswahl — müssen die ausgewählten Originaldateien an ihrem Speicherort unverändert verfügbar bleiben. Werden sie zwischenzeitlich verschoben, umbenannt, gelöscht oder bearbeitet, kann der Browser sie beim Erstellen des ZIP-Archivs nicht mehr lesen. Betroffene Fotos werden dann nur in verkleinerter Vorschauauflösung oder gar nicht übernommen; AuswahlBuddy weist im Ergebnis darauf hin.</p>
       <p>Hochauflösende Originaldateien sollen nach der beschriebenen technischen Konzeption auf dem Endgerät verbleiben. Sollte eine zukünftige Funktion hiervon abweichen, wird dies vor der Übermittlung transparent angezeigt und die Datenschutzerklärung angepasst.</p>
       <h2>5. Rechte an Fotos und erforderliche Nutzungsbefugnis</h2>
       <p>Der Nutzer behält seine Rechte an den Fotos. AJ GmbH erwirbt kein Eigentum an ihnen.</p>
@@ -100,6 +101,7 @@ function EnglishBody() {
       <h2>4. Technical requirements and backups</h2>
       <p>The user is responsible for a compatible device, an up-to-date browser, a sufficiently stable internet connection and safe storage of the original files.</p>
       <p>ShortlistBuddy is not a backup or archiving service. Before analysis and before deleting any file, the user must retain an independent backup of all originals. A proposed selection must never be treated as an automatic deletion approval.</p>
+      <p>While a job is running — from upload through analysis to downloading the selection — the selected original files must remain available and unchanged in their location. If they are moved, renamed, deleted or edited in the meantime, the browser can no longer read them when the ZIP archive is built. The affected photos are then included only as reduced previews, or not at all; ShortlistBuddy points this out in the results.</p>
       <p>Under the described architecture, high-resolution originals remain on the device. If a future feature changes this, the transfer will be clearly disclosed in advance and the Privacy Policy will be updated.</p>
       <h2>5. Rights in photos and required authority</h2>
       <p>The user retains all rights in the photos. AJ GmbH does not acquire ownership.</p>
