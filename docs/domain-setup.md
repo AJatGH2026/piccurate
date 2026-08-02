@@ -59,30 +59,46 @@ records at Checkdomain. Verified 2026-07-31.
 | Subdomain | Used for | Records (all present + verified) |
 |---|---|---|
 | `auth.shortlistbuddy.com` | **Supabase auth mails** (signup confirmation) | DKIM `resend._domainkey.auth…`, SPF `send.auth…` = `v=spf1 include:amazonses.com ~all`, MX `send.auth…` → `feedback-smtp.eu-west-1.amazonses.com` (EU) |
-| `feedback.shortlistbuddy.com` | feedback feature mails | ⚠️ **NOT SET UP** — see below |
+| `feedback.shortlistbuddy.com` | ~~feedback feature mails~~ | **Does not exist.** It *was* the verified domain and was replaced by `auth.` — the Resend **Free plan has exactly one domain slot**, so the two never coexisted. A verified domain covers **every local part**, so feedback sends from `auth.` too (`FEEDBACK_FROM`). Never add a second sending domain for this. |
 | `_dmarc.shortlistbuddy.com` (org-level) | DMARC for all subdomains | `v=DMARC1; p=none;` (inherited by subdomains) |
 
-**⚠️ Feedback mail is broken at both ends (verified by DNS query 2026-08-02).**
-This table previously claimed `feedback.shortlistbuddy.com` had "the same record
-shape" — it describes the intent, not reality. Neither end works:
+### 2c. Mail reception — and the Checkdomain trap that cost an evening
 
-- **Sending:** `resend._domainkey.feedback…` and `send.feedback…` return
-  NXDOMAIN — not one record exists, so the subdomain cannot be verified in
-  Resend and every send from `noreply@feedback.shortlistbuddy.com` is rejected.
-  The records are gone because `feedback.` **was** the verified domain and got
-  replaced by `auth.` (see auth-plan.md) — the Resend **Free plan has exactly
-  one domain slot**, so the two never coexisted.
-  Fix without paying for Pro: a verified domain covers **every local part**, so
-  send feedback from the domain that is already verified —
-  `FEEDBACK_FROM=noreply@auth.shortlistbuddy.com`. A second sending subdomain
-  only buys reputation isolation, which is worth its price at volume, not in
-  beta.
-- **Receiving:** `shortlistbuddy.com` has **no MX at all**. Checkdomain's mail
-  reception is switched off for the domain ("Individuelle Konfiguration via
-  MX-Records"), and the only MX under it is `send.auth…` — a *sending*
-  return-path for SES, not reception. So `feedback@shortlistbuddy.com` cannot
-  receive mail; `feedback@auswahlbuddy.de` can (MX `mx1/mx2.auswahlbuddy.de`).
-  Fix: re-enable mail reception for the apex, or add a forwarding provider's MX.
+**End-to-end proven 2026-08-02, 23:02** (browser → Supabase → Resend → SES →
+`mx03.secure-mailgate.com` → mailbox). Reception for `shortlistbuddy.com` runs on
+Checkdomain's **standard** mail service (`mx03`/`mx04.secure-mailgate.com`);
+`auswahlbuddy.de` on `mx1`/`mx2`. All published addresses — `support@`,
+`feedback@`, `contact@`, `privacy@` — exist on both domains as aliases of the
+mailbox `support@shortlistbuddy.com`.
+
+**The trap:** the "E-Mail Empfang" dropdown must stay on **checkdomain standard**.
+Switching it to "Individuelle Konfiguration via MX-Records" *deprovisions the
+domain in Checkdomain's mail system* while leaving the MX pointing at their
+servers. The result is invisible from DNS: every record looks right, but the MX
+answers `451 relay not permitted!` to **every** recipient — valid or not — and
+senders silently queue the mail instead of bouncing it. Adding any custom MX row
+in the E-Mails section flips the mode back automatically, which is exactly how it
+happened.
+
+**Consequence:** the SES return-path MX on `send.auth…` **cannot** be entered
+through the UI while standard reception is on — the Profi-Einstellungen section
+offers no MX type. Without it, receiving servers reject the app's mail with
+`550 Sender (send.auth.shortlistbuddy.com) has no A, AAAA, or MX DNS records`,
+because the envelope sender domain must resolve. This hits **Supabase auth mails
+too** — same envelope domain.
+
+**Interim workaround in place:** an **A record** `send.auth.shortlistbuddy.com →
+216.150.1.1` satisfies the receivers' sender check (the error names A/AAAA/MX as
+alternatives). Proven working. It does **not** satisfy Resend, which lists the MX
+under "Enable Sending" — its "Verified" badge is a cached result and will flip.
+**Open: have Checkdomain support add the MX server-side, then remove the A record.**
+
+**Diagnostic that settled it:** talk to the MX directly and stop before `DATA` —
+no mail is sent. `RCPT TO:` answers tell you whether the server hosts the domain
+(`451 relay not permitted` = it does not), whether an address exists
+(`550 User unknown in virtual mailbox table`), or both are fine (`250 Accepted`).
+Use a *resolvable* sender in `MAIL FROM:`, otherwise sender verification masks
+the answer. Faster and more certain than sending test mails and waiting.
 
 Since 2026-08-02 the code no longer depends on any of this: feedback is written
 to Supabase (`public.feedback`, migration 003) first and the mail is only a
