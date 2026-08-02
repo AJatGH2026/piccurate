@@ -8,8 +8,29 @@ function required(key: string): string {
   return value;
 }
 
+// Deliberately truthiness, not `??`: an env var that exists with an EMPTY value
+// is the common real-world case (a key left blank in a dashboard, or a
+// placeholder written by `vercel env pull` for a sensitive variable). `??` only
+// catches undefined and would hand that empty string straight through.
 function optional(key: string, defaultValue: string = ''): string {
-  return process.env[key] ?? defaultValue;
+  const value = process.env[key];
+  return value && value.trim() !== '' ? value : defaultValue;
+}
+
+/**
+ * A base URL that `new URL()` accepts. Anything else — empty, no scheme, a bare
+ * hostname — falls back rather than throwing, because the value ends up in
+ * `metadataBase` and a bad one fails the whole production build at prerender
+ * time, not at request time where it would be obvious.
+ */
+function appUrlOrDefault(raw: string | undefined, fallback: string): string {
+  if (!raw || raw.trim() === '') return fallback;
+  try {
+    const u = new URL(raw.trim());
+    return u.protocol === 'http:' || u.protocol === 'https:' ? raw.trim() : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 /**
@@ -50,13 +71,13 @@ export const serverConfig = {
   resendApiKey: () => optional('RESEND_API_KEY'),
 
   // App
-  appUrl: () => optional('NEXT_PUBLIC_APP_URL', DEFAULT_APP_URL),
+  appUrl: () => appUrlOrDefault(process.env.NEXT_PUBLIC_APP_URL, DEFAULT_APP_URL),
 };
 
 /** Client-side configuration (exposed via NEXT_PUBLIC_ prefix) */
 export const clientConfig = {
-  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-  supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
-  stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '',
-  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? DEFAULT_APP_URL,
+  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+  stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+  appUrl: appUrlOrDefault(process.env.NEXT_PUBLIC_APP_URL, DEFAULT_APP_URL),
 };
