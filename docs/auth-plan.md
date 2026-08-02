@@ -130,7 +130,7 @@ shortlistbuddy.com. Full flow works: register → confirmation email (Resend SMT
    merge to master.
 
 ## Context pointers
-- Overall project state: [HANDOVER.md](../HANDOVER.md), [docs/product-pipeline.md](product-pipeline.md),
+- Overall project state: [HANDOVER.md](../HANDOVER.md), `docs/product-pipeline.md` (local only),
   [docs/domain-setup.md](domain-setup.md).
 - Recently done (not auth): domains live, security hardening + Next 16.2.12 upgrade,
   feedback-via-Resend (pending RESEND domain verify — falls back to Upstash),

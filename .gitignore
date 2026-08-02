@@ -37,9 +37,11 @@ yarn-error.log*
 # local storage (dev mode thumbnail storage)
 /.storage/
 
-# evaluation harness artifacts (regenerable) — keep only the hand-labeled reference
-/.eval/*
-!/.eval/reference.json
+# evaluation harness artifacts — kept LOCAL only.
+# reference.json is the hand-labelled 381-photo ground truth: a competitive
+# asset, and it carries private photo filenames + timestamps. The eval scripts
+# read it from disk; it must exist locally but must never be published.
+/.eval/
 /public/eval/
 
 # vercel
@@ -52,8 +54,15 @@ next-env.d.ts
 # Local dev launcher with secrets — never commit
 dev.cmd
 
-# Personal work log — kept local by user request (not versioned)
+# Internal documents — kept LOCAL only, never in this public repo.
+# Business strategy (pricing, margins, roadmap), the identity/PII scrub runbook,
+# and the commented legal drafts. Archived under
+# Documents\2_11_ShortlistBuddy\Claude ShortlistBuddy\.
 docs/PicCurate-WorkLog.md
+docs/product-pipeline.md
+docs/kundenkonservierung-pii-scrub.md
+docs/legal/
+docs/*.docx
 
 # Local archive / export artifacts (offline backups, code exports) — never commit
 *.bundle

@@ -21,7 +21,7 @@ small curated keeper set to review and download / export to a photo book.
 - **Live:** https://shortlistbuddy.com (leading/canonical domain; auswahlbuddy.de redirects here). German at /de, English at /en. The Basic Auth gate (`SITE_PASSWORD`) is **currently off** — the landing page is public for the beta. Vercel deployment URL: piccurate.vercel.app.
 - **Repo:** `AJatGH2026/piccurate` (branch `master`, **public**) — Vercel auto-deploys on push
 - **Deploy target:** Vercel **Pro**, held by **AJ GmbH** (HRB 33249). Not Hobby — the free-tier limits described in older doc sections no longer apply.
-- **⚠️ AJ GmbH is the interim vehicle for the beta only.** A dedicated company is planned once the beta succeeds; every entity-bound detail (imprint, privacy, terms, persons-info, supervisory authority, and the account holders at Vercel/Stripe/domains/Google/Supabase/Resend) is provisional. Never treat it as final — see [docs/product-pipeline.md](docs/product-pipeline.md) §10.1.
+- **⚠️ AJ GmbH is the interim vehicle for the beta only.** A dedicated company is planned once the beta succeeds; every entity-bound detail (imprint, privacy, terms, persons-info, supervisory authority, and the account holders at Vercel/Stripe/domains/Google/Supabase/Resend) is provisional. Never treat it as final — see `docs/product-pipeline.md` §10.1 (local only, see below).
 
 ## Stack
 
@@ -70,7 +70,7 @@ of the intent.
 - [HANDOVER.md](HANDOVER.md) — resume/backup guide (what to save, how to resume, cloud options)
 - [docs/auth-plan.md](docs/auth-plan.md) — Supabase auth (login/register/confirm): status DONE, design, Resend SMTP + corporate-scanner learnings
 - [docs/domain-setup.md](docs/domain-setup.md) — live domains, DNS (web + email/Resend), Vercel/code redirect split + learnings (read before touching domains)
-- [docs/product-pipeline.md](docs/product-pipeline.md) — full project history & rationale (German, dated changelog)
+- `docs/product-pipeline.md` — full project history & rationale (German, dated changelog). **Local only**, gitignored: it holds pricing, margins and strategy and must not be published. Same for `docs/kundenkonservierung-pii-scrub.md` (identity/PII scrub runbook), `docs/legal/` (commented legal drafts) and `.eval/reference.json` (hand-labelled ground truth). All archived under `Documents\2_11_ShortlistBuddy\Claude ShortlistBuddy\`.
 - [docs/PicCurate-WorkLog.md](docs/PicCurate-WorkLog.md) — chronological work log (Jun 4 → Jul 18 2026)
 - [.env.example](.env.example) — all environment variables
 

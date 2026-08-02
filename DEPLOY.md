@@ -180,5 +180,5 @@ Vercel deployt jeden Push automatisch neu.
   nicht mit der echten URL überein → korrigieren + neu deployen.
 - **Rate-Limit** auf `/api/analyze-demo` ist In-Memory (pro Server-Instanz,
   best-effort) — der echte Kostendeckel ist das Google-Cloud-Budget.
-- **Kosten-/Missbrauchsschutz** insgesamt: siehe `docs/product-pipeline.md`
+- **Kosten-/Missbrauchsschutz** insgesamt: siehe `docs/product-pipeline.md` (lokal, nicht im Repo)
   §4.2.1 (Free-Tier-Blocker, noch nicht durchgesetzt).
