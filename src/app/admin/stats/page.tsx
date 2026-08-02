@@ -52,20 +52,28 @@ export default async function AdminStatsPage({
     readFeedbackFromDb(20),
   ]);
 
-  // Feedback lives in Supabase since migration 003. The Upstash list is only
-  // the fallback store, and still holds everything submitted before that — show
-  // whichever source is available, so no era of feedback becomes invisible.
-  const feedback = db
-    ? db.entries.map((f) => ({
-        ts: f.created_at,
-        text: f.message,
-        locale: f.locale || '',
-        path: f.path || '',
-        emailed: f.emailed as boolean | null,
-      }))
-    : beta.recentFeedback.map((f) => ({ ...f, emailed: null as boolean | null }));
-  const feedbackCount = db ? db.count : beta.feedbackCount;
-  const feedbackSource = db ? 'Supabase' : 'Upstash';
+  // Feedback lives in Supabase since migration 003; everything submitted before
+  // that is in the Upstash list and nowhere else. MERGE both — showing only the
+  // configured source hid the entire pre-migration history behind the first new
+  // row. The two never overlap: a successful DB insert skips the Upstash write.
+  const feedback = [
+    ...(db?.entries ?? []).map((f) => ({
+      ts: f.created_at,
+      text: f.message,
+      locale: f.locale || '',
+      path: f.path || '',
+      emailed: f.emailed as boolean | null,
+      src: 'Supabase',
+    })),
+    ...beta.recentFeedback.map((f) => ({
+      ...f,
+      emailed: null as boolean | null,
+      src: 'Upstash',
+    })),
+  ]
+    .sort((a, b) => (b.ts || '').localeCompare(a.ts || ''))
+    .slice(0, 20);
+  const feedbackCount = (db?.count ?? 0) + beta.feedbackCount;
 
   return (
     <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
@@ -146,7 +154,7 @@ export default async function AdminStatsPage({
             Supabase and must stay visible even when Redis is unconfigured. */}
         <div className="mt-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
           <h2 className="font-semibold">
-            Feedback <span className="font-normal text-zinc-400 text-sm">({fmt(feedbackCount)} · {feedbackSource})</span>
+            Feedback <span className="font-normal text-zinc-400 text-sm">({fmt(feedbackCount)} gesamt, neueste 20)</span>
           </h2>
           {feedback.length === 0 ? (
             <p className="mt-2 text-sm text-zinc-500">Noch kein Feedback eingegangen.</p>
@@ -156,7 +164,7 @@ export default async function AdminStatsPage({
                 <li key={i} className="rounded-lg border border-zinc-100 dark:border-zinc-800 px-3 py-2 text-sm">
                   <div className="text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap break-words">{f.text}</div>
                   <div className="mt-1 text-xs text-zinc-400">
-                    {f.ts?.slice(0, 16).replace('T', ' ')} · {f.locale || '—'} · {f.path || '—'}
+                    {f.ts?.slice(0, 16).replace('T', ' ')} · {f.locale || '—'} · {f.path || '—'} · {f.src}
                     {f.emailed === false && <span className="text-amber-600 dark:text-amber-500"> · Mail nicht versandt</span>}
                   </div>
                 </li>
