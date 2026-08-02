@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { notFound } from 'next/navigation';
 import { readStats } from '@/lib/stats';
 import { readBetaSignals } from '@/lib/beta';
+import { readFeedbackFromDb } from '@/lib/feedback';
 
 // Admin usage dashboard at /admin/stats (locale-free). Protected by its OWN
 // token (ADMIN_TOKEN), INDEPENDENT of the site-wide Basic Auth gate — the gate
@@ -45,7 +46,26 @@ export default async function AdminStatsPage({
     notFound();
   }
 
-  const [stats, beta] = await Promise.all([readStats(7), readBetaSignals()]);
+  const [stats, beta, db] = await Promise.all([
+    readStats(7),
+    readBetaSignals(),
+    readFeedbackFromDb(20),
+  ]);
+
+  // Feedback lives in Supabase since migration 003. The Upstash list is only
+  // the fallback store, and still holds everything submitted before that — show
+  // whichever source is available, so no era of feedback becomes invisible.
+  const feedback = db
+    ? db.entries.map((f) => ({
+        ts: f.created_at,
+        text: f.message,
+        locale: f.locale || '',
+        path: f.path || '',
+        emailed: f.emailed as boolean | null,
+      }))
+    : beta.recentFeedback.map((f) => ({ ...f, emailed: null as boolean | null }));
+  const feedbackCount = db ? db.count : beta.feedbackCount;
+  const feedbackSource = db ? 'Supabase' : 'Upstash';
 
   return (
     <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
@@ -115,26 +135,33 @@ export default async function AdminStatsPage({
               </div>
               <p className="mt-3 text-sm text-zinc-500">
                 Manuelle Korrekturen: <span className="font-medium text-zinc-700 dark:text-zinc-300">+{fmt(beta.selection.added)}</span> hinzugefügt,{' '}
-                <span className="font-medium text-zinc-700 dark:text-zinc-300">−{fmt(beta.selection.removed)}</span> entfernt · Feedback:{' '}
-                <span className="font-medium text-zinc-700 dark:text-zinc-300">{fmt(beta.feedbackCount)}</span> · E-Mails:{' '}
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">−{fmt(beta.selection.removed)}</span> entfernt · E-Mails:{' '}
                 <span className="font-medium text-zinc-700 dark:text-zinc-300">{fmt(beta.emailCount)}</span>
               </p>
-              {beta.recentFeedback.length > 0 && (
-                <div className="mt-4">
-                  <h3 className="text-sm font-medium">Letztes Feedback</h3>
-                  <ul className="mt-2 space-y-2">
-                    {beta.recentFeedback.map((f, i) => (
-                      <li key={i} className="rounded-lg border border-zinc-100 dark:border-zinc-800 px-3 py-2 text-sm">
-                        <div className="text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap break-words">{f.text}</div>
-                        <div className="mt-1 text-xs text-zinc-400">
-                          {f.ts?.slice(0, 16).replace('T', ' ')} · {f.locale || '—'} · {f.path || '—'}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </>
+          )}
+        </div>
+
+        {/* Feedback — own card, independent of Upstash: it is stored in
+            Supabase and must stay visible even when Redis is unconfigured. */}
+        <div className="mt-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="font-semibold">
+            Feedback <span className="font-normal text-zinc-400 text-sm">({fmt(feedbackCount)} · {feedbackSource})</span>
+          </h2>
+          {feedback.length === 0 ? (
+            <p className="mt-2 text-sm text-zinc-500">Noch kein Feedback eingegangen.</p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {feedback.map((f, i) => (
+                <li key={i} className="rounded-lg border border-zinc-100 dark:border-zinc-800 px-3 py-2 text-sm">
+                  <div className="text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap break-words">{f.text}</div>
+                  <div className="mt-1 text-xs text-zinc-400">
+                    {f.ts?.slice(0, 16).replace('T', ' ')} · {f.locale || '—'} · {f.path || '—'}
+                    {f.emailed === false && <span className="text-amber-600 dark:text-amber-500"> · Mail nicht versandt</span>}
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </div>

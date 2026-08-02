@@ -8,9 +8,13 @@ const FEEDBACK_TO: Record<string, string> = {
   en: 'feedback@shortlistbuddy.com',
 };
 
-/** The locale-appropriate feedback inbox address (also shown in the UI). */
+/**
+ * The locale-appropriate feedback inbox address (also shown in the UI).
+ * `FEEDBACK_TO_OVERRIDE` sends every locale to one inbox — useful while
+ * shortlistbuddy.com has no mail reception (see docs/domain-setup.md §2b).
+ */
 export function feedbackAddress(locale: string): string {
-  return FEEDBACK_TO[locale] ?? FEEDBACK_TO.en;
+  return process.env.FEEDBACK_TO_OVERRIDE || FEEDBACK_TO[locale] || FEEDBACK_TO.en;
 }
 
 /** True when a Resend API key is present (server-side only). */
@@ -39,7 +43,11 @@ export async function sendFeedbackEmail(opts: {
   // feedback.shortlistbuddy.com. Delivery still goes to the locale inbox (`to`),
   // e.g. feedback@auswahlbuddy.de for German feedback. Reply-To points at the
   // real inbox so replies thread there rather than to the no-reply sender.
-  const from = `${brand} Feedback <noreply@feedback.shortlistbuddy.com>`;
+  // `FEEDBACK_FROM` overrides the address without a code change — needed while
+  // feedback.shortlistbuddy.com is unverified in Resend, where the verified
+  // noreply@auth.shortlistbuddy.com works today.
+  const fromAddress = process.env.FEEDBACK_FROM || 'noreply@feedback.shortlistbuddy.com';
+  const from = `${brand} Feedback <${fromAddress}>`;
   const text = [
     message,
     '',
@@ -65,7 +73,12 @@ export async function sendFeedbackEmail(opts: {
       }),
     });
     if (!res.ok) {
-      console.warn('[email] Resend send failed:', res.status);
+      // Log Resend's reason, not just the status: an unverified sending domain
+      // and a bad API key both come back as 4xx and are otherwise
+      // indistinguishable in the logs. That cost weeks of silently lost
+      // feedback once already.
+      const detail = await res.text().catch(() => '');
+      console.warn(`[email] Resend send failed (${res.status}) from=${fromAddress} to=${to}:`, detail.slice(0, 300));
       return false;
     }
     return true;

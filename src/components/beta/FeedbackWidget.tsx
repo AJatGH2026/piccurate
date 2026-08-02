@@ -19,6 +19,7 @@ export function FeedbackWidget() {
   const [msg, setMsg] = useState('');
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [embedded, setEmbedded] = useState(false);
   useEffect(() => {
     // Hide inside the legal modal iframe (configure page) — it would overlap the
@@ -29,8 +30,16 @@ export function FeedbackWidget() {
   const send = async () => {
     if (!msg.trim()) return;
     setSending(true);
-    await submitFeedback(msg, locale, pathname || '');
+    setFailed(false);
+    // Report the actual result. Thanking the user unconditionally hid a broken
+    // backend for weeks — and it also throws away text the user cannot recover,
+    // so on failure the message stays in the box for a retry.
+    const ok = await submitFeedback(msg, locale, pathname || '');
     setSending(false);
+    if (!ok) {
+      setFailed(true);
+      return;
+    }
     setDone(true);
     setMsg('');
     setTimeout(() => {
@@ -74,6 +83,9 @@ export function FeedbackWidget() {
               >
                 {sending ? t('sending') : t('submit')}
               </button>
+              {failed && (
+                <p className="mt-2 text-xs text-red-600 dark:text-red-400">{t('error')}</p>
+              )}
             </>
           )}
         </div>

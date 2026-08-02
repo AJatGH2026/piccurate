@@ -249,6 +249,7 @@
     "submit": "Send",
     "sending": "Sending…",
     "thanks": "Thanks for your feedback!",
+    "error": "Couldn't send — your text is still here, please try again.",
     "close": "Close"
   },
   "emailCapture": {

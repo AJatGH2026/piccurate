@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, clientIp } from '@/lib/rate-limit';
 import { logFunnel, saveFeedback, saveEmail } from '@/lib/beta';
 import { emailConfigured, sendFeedbackEmail } from '@/lib/email';
+import { saveFeedbackToDb, markFeedbackEmailed } from '@/lib/feedback';
 
 /**
  * POST /api/beta — beta signals: funnel events, feedback, email capture.
@@ -43,14 +44,21 @@ export async function POST(request: NextRequest) {
   if (type === 'feedback') {
     const message = String(body.message || '');
     const meta = { locale: String(body.locale || ''), path: String(body.path || '') };
-    // Prefer emailing feedback to our inbox (no storage). Fall back to Upstash
-    // only when email isn't configured or the send failed, so nothing is lost.
-    let ok = false;
+
+    // Store FIRST, notify second — the two are independent. An earlier version
+    // only stored when the mail failed, so a silently broken mail setup dropped
+    // every message. Upstash stays as the fallback store for when Supabase is
+    // unavailable; the request counts as handled if either one kept the text.
+    const rowId = await saveFeedbackToDb(message, meta);
+    const stored = rowId !== null ? true : await saveFeedback(message, meta);
+
+    let mailed = false;
     if (emailConfigured()) {
-      ok = await sendFeedbackEmail({ message, locale: meta.locale, path: meta.path });
+      mailed = await sendFeedbackEmail({ message, locale: meta.locale, path: meta.path });
+      if (mailed && rowId) await markFeedbackEmailed(rowId);
     }
-    if (!ok) ok = await saveFeedback(message, meta);
-    return NextResponse.json({ ok });
+
+    return NextResponse.json({ ok: stored || mailed });
   }
 
   if (type === 'email') {

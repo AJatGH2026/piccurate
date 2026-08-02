@@ -59,8 +59,29 @@ records at Checkdomain. Verified 2026-07-31.
 | Subdomain | Used for | Records (all present + verified) |
 |---|---|---|
 | `auth.shortlistbuddy.com` | **Supabase auth mails** (signup confirmation) | DKIM `resend._domainkey.auth…`, SPF `send.auth…` = `v=spf1 include:amazonses.com ~all`, MX `send.auth…` → `feedback-smtp.eu-west-1.amazonses.com` (EU) |
-| `feedback.shortlistbuddy.com` | feedback feature mails | same record shape under `feedback.` |
+| `feedback.shortlistbuddy.com` | feedback feature mails | ⚠️ **NOT SET UP** — see below |
 | `_dmarc.shortlistbuddy.com` (org-level) | DMARC for all subdomains | `v=DMARC1; p=none;` (inherited by subdomains) |
+
+**⚠️ Feedback mail is broken at both ends (verified by DNS query 2026-08-02).**
+This table previously claimed `feedback.shortlistbuddy.com` had "the same record
+shape" — it describes the intent, not reality. Neither end works:
+
+- **Sending:** `resend._domainkey.feedback…` and `send.feedback…` return
+  NXDOMAIN — not one record exists, so the subdomain cannot be verified in
+  Resend and every send from `noreply@feedback.shortlistbuddy.com` is rejected.
+  Fix: add the domain in Resend and enter its three records at Checkdomain,
+  exactly as for `auth.`. Until then, point `FEEDBACK_FROM` at the verified
+  `noreply@auth.shortlistbuddy.com`.
+- **Receiving:** `shortlistbuddy.com` has **no MX at all**. Checkdomain's mail
+  reception is switched off for the domain ("Individuelle Konfiguration via
+  MX-Records"), and the only MX under it is `send.auth…` — a *sending*
+  return-path for SES, not reception. So `feedback@shortlistbuddy.com` cannot
+  receive mail; `feedback@auswahlbuddy.de` can (MX `mx1/mx2.auswahlbuddy.de`).
+  Fix: re-enable mail reception for the apex, or add a forwarding provider's MX.
+
+Since 2026-08-02 the code no longer depends on any of this: feedback is written
+to Supabase (`public.feedback`, migration 003) first and the mail is only a
+notification on top. Fix the DNS to get notified; nothing is lost meanwhile.
 
 Learnings:
 - **The SMTP *Sender email* must match a verified subdomain exactly**, else Resend
