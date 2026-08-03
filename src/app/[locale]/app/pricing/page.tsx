@@ -72,6 +72,12 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
+              {/* TODO(age-gate-18): when this button actually starts a checkout,
+                  it needs its own confirmation — "18 or older, or with a
+                  guardian's consent" — because that is where a contract is
+                  formed (limited capacity, §§ 104 ff. BGB). The 16 on the
+                  configure page covers GDPR consent only and is NOT enough
+                  here. Keep the two declarations separate, as there. */}
               <button
                 className={`mt-6 w-full text-center rounded-full py-2.5 text-sm font-semibold transition-colors ${
                   plan.highlight

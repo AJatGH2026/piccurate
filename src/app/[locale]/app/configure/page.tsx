@@ -48,18 +48,33 @@ export default function ConfigurePage() {
   const { criteria, toggleCriterion, setWeight, updateCriterion, addCustom, removeCustom, setCustomWeight, reset } =
     useCriteria();
   const [customInput, setCustomInput] = useState('');
-  // A3: 18+/terms confirmation required before analysis. A2: reference-photo
-  // collective confirmation required before persons are transmitted.
+  // A3: age + terms, deliberately two separate declarations — they answer to
+  // different rules. The age here is 16, the GDPR Art. 8 threshold for consent
+  // in Germany. The 18 of limited contractual capacity only bites where money
+  // changes hands, so it belongs at checkout, not in front of the analysis.
+  // A2: reference-photo collective confirmation before persons are transmitted.
   const [ageAccepted, setAgeAccepted] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [personsConfirmed, setPersonsConfirmed] = useState(false);
   const personsNeedConfirm = persons.length > 0 && !hasAnalyzed;
-  const canAnalyze = ageAccepted && (!personsNeedConfirm || personsConfirmed);
+  const canAnalyze = ageAccepted && termsAccepted && (!personsNeedConfirm || personsConfirmed);
   useEffect(() => { logBeta('configure'); }, []);
   // Age/terms acceptance is remembered (localStorage) — confirm once, not again
   // when changing criteria or re-running. (The reference-photo confirmation A2
   // stays per analysis, as the legal text requires it before each transfer.)
   useEffect(() => {
-    try { if (localStorage.getItem('piccurate-age-ok') === '1') setAgeAccepted(true); } catch { /* ignore */ }
+    try {
+      // The old single checkbox bundled both statements ("18+ AND terms"), so a
+      // stored yes covers both of the new ones — 18 implies 16. Migrated once,
+      // then the old key is dropped.
+      if (localStorage.getItem('piccurate-age-ok') === '1') {
+        localStorage.setItem('sb-age-ok', '1');
+        localStorage.setItem('sb-terms-ok', '1');
+        localStorage.removeItem('piccurate-age-ok');
+      }
+      if (localStorage.getItem('sb-age-ok') === '1') setAgeAccepted(true);
+      if (localStorage.getItem('sb-terms-ok') === '1') setTermsAccepted(true);
+    } catch { /* ignore */ }
   }, []);
 
   const criteriaItems = [
@@ -591,19 +606,32 @@ export default function ConfigurePage() {
           {t('aiNotice')}
         </div>
 
-        {/* A3: 18+ / terms confirmation (required, not preselected). */}
+        {/* A3: two separate declarations, neither preselected. Kept apart so a
+            later change to one threshold does not silently restate the other. */}
         <label className="mt-3 flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300">
           <input
             type="checkbox"
             checked={ageAccepted}
             onChange={(e) => {
               setAgeAccepted(e.target.checked);
-              try { localStorage.setItem('piccurate-age-ok', e.target.checked ? '1' : '0'); } catch { /* ignore */ }
+              try { localStorage.setItem('sb-age-ok', e.target.checked ? '1' : '0'); } catch { /* ignore */ }
+            }}
+            className="mt-0.5 accent-indigo-600"
+          />
+          <span>{t('ageConfirm16')}</span>
+        </label>
+        <label className="mt-2 flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+          <input
+            type="checkbox"
+            checked={termsAccepted}
+            onChange={(e) => {
+              setTermsAccepted(e.target.checked);
+              try { localStorage.setItem('sb-terms-ok', e.target.checked ? '1' : '0'); } catch { /* ignore */ }
             }}
             className="mt-0.5 accent-indigo-600"
           />
           <span>
-            {t('ageConfirm')}{' '}
+            {t('termsConfirm')}{' '}
             <LegalModal href={`/${locale}/terms`} label={t('termsShort')} linkClassName="underline hover:text-indigo-600" />
           </span>
         </label>
