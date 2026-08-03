@@ -10,6 +10,8 @@ import { trackEvent, trackAdsConversion } from '@/lib/analytics';
 import { logBeta } from '@/lib/beta-client';
 import { EmailCapture } from '@/components/beta/EmailCapture';
 import { ResultsFeedback } from '@/components/beta/ResultsFeedback';
+import { LogoutButton } from '@/components/auth/LogoutButton';
+import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
@@ -30,6 +32,25 @@ export default function ResultsPage() {
   const [zipMode, setZipMode] = useState<'flat' | 'byday'>('flat');
   const [cloudBusy, setCloudBusy] = useState(false);
   const [cloudStatus, setCloudStatus] = useState<string | null>(null);
+  // Signed-in users get a sign-out option here; demo users have no account.
+  // Client-side check because this page is a client component — and it stays
+  // silent when Supabase isn't configured, so the demo flow never breaks.
+  const [user, setUser] = useState<{ email?: string } | null>(null);
+  useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
+    let cancelled = false;
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => {
+        if (!cancelled) setUser(data.user ?? null);
+      })
+      .catch(() => {
+        /* not signed in, or auth unreachable — leave the button hidden */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const cloudProviders = enabledCloudProviders();
 
   const photos = usePhotoStore((s) => s.photos);
@@ -301,7 +322,13 @@ export default function ResultsPage() {
             </Link>
             <Link href={`/${locale}`} className="text-lg font-bold text-indigo-600">{brandName(locale)}</Link>
           </div>
-          <span className="text-sm text-zinc-500">{tc('stepOf', { current: 4, total: 4 })}</span>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-zinc-500">{tc('stepOf', { current: 4, total: 4 })}</span>
+            {/* The results page is where a session actually ends, so this is
+                where signing out belongs. Demo users have no account — nothing
+                is shown for them. */}
+            {user && <LogoutButton locale={locale} />}
+          </div>
         </div>
       </header>
 

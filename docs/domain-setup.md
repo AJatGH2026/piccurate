@@ -104,6 +104,28 @@ Since 2026-08-02 the code no longer depends on any of this: feedback is written
 to Supabase (`public.feedback`, migration 003) first and the mail is only a
 notification on top. Fix the DNS to get notified; nothing is lost meanwhile.
 
+### 2d. OAuth redirect URIs are origin-bound — update them when the domain moves
+
+The cloud integrations build their redirect URI from the **browser origin**:
+`<origin>/en/cloud/callback` (locale-fixed on purpose — the callback is a
+machine-only page). See `redirectUri()` in `src/lib/cloud/dropbox.ts` and
+`onedrive.ts`.
+
+That means every origin users can start from must be registered with the
+provider, or OAuth dies with `Invalid redirect_uri … must exactly match one of
+the redirect URIs you've pre-configured`. Making shortlistbuddy.com the leading
+domain broke exactly this — the Dropbox app still had the old origin.
+
+Register in the **Dropbox App Console** and the **Azure app registration**:
+
+- `https://shortlistbuddy.com/en/cloud/callback` — production
+- `http://localhost:3000/en/cloud/callback` — local dev
+
+`www.shortlistbuddy.com` and `auswahlbuddy.de` need no entry: both answer 308 to
+the apex, so the OAuth flow never starts there. **Preview deployments cannot
+work** — their origin changes per deploy and cannot be pre-registered. Test cloud
+import/export on production or locally.
+
 Learnings:
 - **The SMTP *Sender email* must match a verified subdomain exactly**, else Resend
   rejects with `550 "This API key is not authorized to send emails from <domain>"`.
