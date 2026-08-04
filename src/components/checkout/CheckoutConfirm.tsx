@@ -16,6 +16,14 @@ import { LegalModal } from '@/components/legal/LegalModal';
  *
  * Bundling them into one box would make both hard to evidence and is exactly
  * what we untangled on the configure page.
+ *
+ * ⚠️ BLOCKER before enabling Stripe: **there is no Widerrufsbelehrung yet.**
+ * `/[locale]/terms` covers a free beta ("AuswahlBuddy wird derzeit als
+ * kostenlose Beta bereitgestellt", §2) and has no withdrawal section and no
+ * Muster-Widerrufsformular. Collecting the consent below without providing the
+ * policy it refers to does not satisfy Art. 246a EGBGB — the withdrawal period
+ * does not start, and it can run for up to a year. The link therefore points at
+ * the terms and is labelled as such until that section exists.
  */
 export function CheckoutConfirm({
   tierLabel,
