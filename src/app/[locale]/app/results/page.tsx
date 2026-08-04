@@ -42,7 +42,10 @@ export default function ResultsPage() {
     createClient()
       .auth.getUser()
       .then(({ data }) => {
-        if (!cancelled) setUser(data.user ?? null);
+        // Anonymous sign-in means demo users now have a session too — but there
+        // is nothing for them to sign out of, and offering it would suggest they
+        // had an account. Only real accounts get the button.
+        if (!cancelled) setUser(data.user && !data.user.is_anonymous ? data.user : null);
       })
       .catch(() => {
         /* not signed in, or auth unreachable — leave the button hidden */

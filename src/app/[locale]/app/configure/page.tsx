@@ -109,9 +109,14 @@ export default function ConfigurePage() {
     const res = await fetch('/api/jobs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tier }),
+      body: JSON.stringify({ tier, photoCount }),
     });
     const json = await res.json();
+    // Refused for lack of daily budget: say how much is left, in the user's
+    // language, instead of passing the server's English sentence through.
+    if (res.status === 429 && typeof json?.remaining === 'number') {
+      throw new Error(t('budgetExceeded', { remaining: json.remaining, requested: photoCount }));
+    }
     if (!res.ok || !json?.data?.jobId) {
       throw new Error(json?.error || 'Could not create job');
     }
@@ -799,11 +804,23 @@ export default function ConfigurePage() {
                   setProgress(t('progressAnalysing', { done: ++done, total: totalBatches }));
                 };
 
-                // Concurrency pool
+                // Concurrency pool. A failing batch must NOT discard the ones that
+                // already succeeded: a daily cap hit at batch 36 of 38 used to
+                // throw away ~700 analysed photos the user had just paid and
+                // waited for. The first error stops the pool, everything already
+                // analysed is kept, and the rest is reported as unfinished.
                 let nextBatch = 0;
+                let failure: string | null = null;
                 const worker = async () => {
-                  while (nextBatch < totalBatches) {
-                    await runBatch(nextBatch++);
+                  while (nextBatch < totalBatches && !failure) {
+                    const b = nextBatch++;
+                    try {
+                      await runBatch(b);
+                    } catch (e) {
+                      // First error wins; the other workers see `failure` and
+                      // stop instead of hammering an endpoint that just refused.
+                      failure ??= e instanceof Error ? e.message : String(e);
+                    }
                   }
                 };
                 await Promise.all(
@@ -814,7 +831,26 @@ export default function ConfigurePage() {
                 // A1: translate the neutral labels the model returned back to the
                 // real (lowercased) names, so selection matching + review chips
                 // work exactly as before. Google only ever saw "Person A".
-                const flatResults = batchResults.flat();
+                // Only the batches that actually returned count as analysed, and
+                // their photo ids must line up with them — otherwise photos would
+                // be marked "analysed" that the model never saw, and a re-run
+                // would skip them forever.
+                const flatResults: any[] = [];
+                const analysedIds: string[] = [];
+                for (let b = 0; b < totalBatches; b++) {
+                  const res = batchResults[b];
+                  if (!res) continue;
+                  flatResults.push(...res);
+                  analysedIds.push(
+                    ...toAnalyze.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE).map((p) => p.id)
+                  );
+                }
+
+                // Nothing survived — then it really is a plain failure.
+                if (flatResults.length === 0) {
+                  throw new Error(failure ?? 'Analysis failed');
+                }
+
                 for (const r of flatResults) {
                   if (r && Array.isArray(r.persons)) {
                     r.persons = r.persons.map(
@@ -822,9 +858,22 @@ export default function ConfigurePage() {
                     );
                   }
                 }
-                applyAnalysisResults(flatResults, criteria, toAnalyze.map((p) => p.id));
-                trackEvent('analysis_complete', { photos: toAnalyze.length });
+                applyAnalysisResults(flatResults, criteria, analysedIds);
+                trackEvent('analysis_complete', {
+                  photos: analysedIds.length,
+                  requested: toAnalyze.length,
+                  partial: failure ? 1 : 0,
+                });
                 logBeta('analysis');
+                // Say what happened before showing the result, so nobody wonders
+                // why some photos are missing from the review.
+                if (failure) {
+                  alert(t('analysisPartial', {
+                    done: analysedIds.length,
+                    total: toAnalyze.length,
+                    error: failure,
+                  }));
+                }
                 router.push(`/${locale}/app/review`);
               } catch (err) {
                 console.error('Analysis failed:', err);

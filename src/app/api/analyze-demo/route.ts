@@ -5,7 +5,13 @@ import { parseAnalysisResponse } from '@/lib/anthropic/parser';
 import { checkRateLimit, clientIp } from '@/lib/rate-limit';
 import { trackAnalyze, getTodayPhotos, reserveIpDailyPhotos } from '@/lib/stats';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { betaOpenAccess, ACCESS_ERRORS } from '@/lib/access';
+import {
+  betaOpenAccess,
+  ACCESS_ERRORS,
+  BETA_MAX_PHOTOS_PER_REQUEST,
+  BETA_DAILY_PHOTO_CAP,
+  BETA_IP_DAILY_PHOTO_CAP,
+} from '@/lib/access';
 
 // Strip control characters and cap length on any user-supplied string that
 // flows into the model prompt (person names, custom terms, EXIF camera model).
@@ -32,9 +38,8 @@ const RL_WINDOW_MS = 60_000; // per minute
 // - Daily + per-IP caps: Upstash-backed budget backstops, now ON by default.
 //   They only bite when Upstash is configured; the provider-side Gemini billing
 //   spend limit remains the hard backstop. All three are tunable via env.
-const BETA_MAX_PHOTOS_PER_REQUEST = Number(process.env.BETA_MAX_PHOTOS_PER_REQUEST ?? '250');
-const BETA_DAILY_PHOTO_CAP = Number(process.env.BETA_DAILY_PHOTO_CAP ?? '20000');
-const BETA_IP_DAILY_PHOTO_CAP = Number(process.env.BETA_IP_DAILY_PHOTO_CAP ?? '750');
+// Defined in lib/access so /api/jobs can pre-flight the same numbers and refuse
+// a run before it starts, instead of letting it die half way through.
 
 /**
  * POST /api/analyze-demo

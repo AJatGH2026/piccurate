@@ -84,6 +84,22 @@ export async function getTodayPhotos(): Promise<number | null> {
 }
 
 /**
+ * Read this IP's daily photo counter without reserving anything. Used to refuse
+ * a run *before* it starts — reserving here would burn budget on a check.
+ */
+export async function getIpDailyPhotos(ip: string): Promise<number | null> {
+  const r = getClient();
+  if (!r) return null;
+  try {
+    const v = await r.get(`beta:ip:${ip}:${todayKey()}`);
+    return v == null ? 0 : Number(v);
+  } catch (err) {
+    console.warn('[stats] getIpDailyPhotos failed:', err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+/**
  * Atomically add `photos` to this IP's daily counter and return the new total
  * (null if Upstash isn't configured). Used by the beta per-IP daily cap — a
  * best-effort guard against a single client draining the free-beta budget.

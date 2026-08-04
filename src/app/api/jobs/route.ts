@@ -4,7 +4,8 @@ import { JobManager } from '@/services/job-manager';
 import type { CreateJobRequest, CreateJobResponse, ApiResponse } from '@/types/api';
 import type { Tier } from '@/types/job';
 import { getPlan } from '@/types/pricing';
-import { betaOpenAccess, ACCESS_ERRORS } from '@/lib/access';
+import { betaOpenAccess, remainingPhotoBudget, ACCESS_ERRORS } from '@/lib/access';
+import { clientIp } from '@/lib/rate-limit';
 
 const VALID_TIERS: Tier[] = ['free', 'small', 'medium', 'large'];
 
@@ -38,6 +39,21 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Invalid tier' },
         { status: 400 }
       );
+    }
+
+    // Refuse a run the daily caps cannot finish, before a job exists and before
+    // a single token is spent. `photoCount` is advisory (the client's plan for
+    // this run); the per-request and per-IP caps in the analysis route remain
+    // the hard guards.
+    const photoCount = Number((body as { photoCount?: number }).photoCount ?? 0);
+    if (photoCount > 0) {
+      const remaining = await remainingPhotoBudget(clientIp(request));
+      if (remaining != null && photoCount > remaining) {
+        return NextResponse.json(
+          { success: false, error: ACCESS_ERRORS.budgetExceeded, remaining },
+          { status: 429, headers: { 'Retry-After': '3600' } }
+        );
+      }
     }
 
     const jobManager = new JobManager(supabase);

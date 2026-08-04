@@ -102,7 +102,11 @@ async function Header({ locale }: { locale: string }) {
   const otherLocale = locale === 'en' ? 'de' : 'en';
 
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  // Anonymous sign-in gives demo visitors a session. They are not "logged in"
+  // in any sense they would recognise — showing them a sign-out link and an
+  // empty email would be a puzzle, so the header stays in its signed-out state.
+  const user = authUser && !authUser.is_anonymous ? authUser : null;
 
   return (
     <header className="border-b border-zinc-200 dark:border-zinc-800">

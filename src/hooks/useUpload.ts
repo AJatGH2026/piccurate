@@ -33,6 +33,9 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
   const [error, setError] = useState<string | null>(null);
   const processingQueue = useRef<ClientPhoto[]>([]);
   const activeCount = useRef(0);
+  // Photos accepted so far, kept in a ref so the tier limit is checked against
+  // the real total even when several imports land within one render.
+  const acceptedCount = useRef(0);
 
   const processedCount = photos.filter(
     (p) => p.status === 'ready' || p.status === 'uploading' || p.status === 'uploaded'
@@ -138,8 +141,12 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
         return;
       }
 
-      // Check limit
-      const currentCount = photos.length;
+      // Check limit against a synchronous counter, NOT against `photos.length`.
+      // React state is one render behind, and the Dropbox import calls this
+      // several times in a row before a re-render: every call then saw "0 so
+      // far" and admitted another full tier's worth. That is how a 250-photo
+      // free tier ended up holding 750 photos.
+      const currentCount = acceptedCount.current;
       const available = maxPhotos - currentCount;
       if (available <= 0) {
         setError(`Maximum of ${maxPhotos} photos reached.`);
@@ -167,6 +174,7 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
         error: null,
       }));
 
+      acceptedCount.current += newPhotos.length;
       setPhotos((prev) => [...prev, ...newPhotos]);
 
       // Add to processing queue and start
@@ -175,7 +183,7 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
         processNext();
       }
     },
-    [photos.length, maxPhotos, processNext]
+    [maxPhotos, processNext]
   );
 
   // Re-process only the photos that failed (e.g. a flaky HEIC conversion).
@@ -201,6 +209,7 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
       if (photo?.thumbnailUrl) {
         URL.revokeObjectURL(photo.thumbnailUrl);
       }
+      if (photo) acceptedCount.current = Math.max(0, acceptedCount.current - 1);
       return prev.filter((p) => p.id !== id);
     });
     // Remove from queue if still pending
@@ -213,6 +222,7 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
     });
     setPhotos([]);
     processingQueue.current = [];
+    acceptedCount.current = 0;
     setError(null);
   }, [photos]);
 
