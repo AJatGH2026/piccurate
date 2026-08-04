@@ -12,6 +12,9 @@ import { LegalModal } from '@/components/legal/LegalModal';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { logBeta } from '@/lib/beta-client';
+import { createClient } from '@/lib/supabase/client';
+import { getTierForPhotoCount } from '@/types/pricing';
+import type { Tier } from '@/types/job';
 
 const BATCH_SIZE = 20;
 
@@ -76,6 +79,44 @@ export default function ConfigurePage() {
       if (localStorage.getItem('sb-terms-ok') === '1') setTermsAccepted(true);
     } catch { /* ignore */ }
   }, []);
+
+  /**
+   * Make sure there is a session and a job, and return the job id.
+   *
+   * Anonymous sign-in gives every visitor a real auth user, so the job (and with
+   * it the photo limit and the once-per-user free tier) always has an owner.
+   * During the beta `BETA_OPEN_ACCESS` lets that owner stay anonymous; when it
+   * is switched off, the server demands a permanent account here and the call
+   * fails with a readable message rather than silently analysing for free.
+   */
+  const ensureJob = async (photoCount: number): Promise<string> => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      const { error } = await supabase.auth.signInAnonymously();
+      if (error) throw new Error(error.message);
+    }
+
+    let tier: Tier;
+    try {
+      tier = getTierForPhotoCount(photoCount);
+    } catch {
+      // Above the largest tier there is no plan at all — say so instead of
+      // letting the exception surface as "Analysis failed".
+      throw new Error(t('tooManyForAnyTier'));
+    }
+
+    const res = await fetch('/api/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier }),
+    });
+    const json = await res.json();
+    if (!res.ok || !json?.data?.jobId) {
+      throw new Error(json?.error || 'Could not create job');
+    }
+    return json.data.jobId as string;
+  };
 
   const criteriaItems = [
     { key: 'preferFaces' as const, label: t('faces'), desc: t('facesDesc') },
@@ -640,11 +681,6 @@ export default function ConfigurePage() {
         <div className="mt-6 flex justify-end">
           <button
             onClick={async () => {
-              // TODO(free-tier-blocker): this demo flow starts analysis directly,
-              // bypassing job creation — so the "free 250 photos once per user"
-              // rule is NOT enforced here. When accounts/auth land (Phase 3),
-              // gate this on the free_tier_used check (see JobManager.createJob
-              // and product-pipeline.md §4.2.1) before spending API budget.
               // A2/A3: record the confirmations (date-keyed) before processing.
               logBeta('terms_accepted');
               if (personsNeedConfirm) logBeta('persons_confirmed');
@@ -701,6 +737,13 @@ export default function ConfigurePage() {
                   return;
                 }
 
+                // One job per analysis run — the server enforces the tier's photo
+                // limit and the once-per-user free tier against it. Created here,
+                // as late as possible: the anonymous auth user is only minted when
+                // someone actually analyses, so crawlers never create accounts
+                // (they would count towards Supabase's monthly active users).
+                const jobId = await ensureJob(toAnalyze.length);
+
                 // Split into batches, then analyse them with bounded concurrency
                 // (parallel requests are ~3-5x faster than sequential). Results map
                 // back to the analysed photos by id, so saved/skipped photos are untouched.
@@ -712,8 +755,9 @@ export default function ConfigurePage() {
                 const runBatch = async (b: number) => {
                   const batch = toAnalyze.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE);
                   const formData = new FormData();
+                  formData.append('jobId', jobId);
                   // Consent attestation — this fetch only runs when the UI's
-                  // 18+/terms gate (canAnalyze) is satisfied, so assert it to
+                  // age/terms gate (canAnalyze) is satisfied, so assert it to
                   // the server (which enforces it independently).
                   formData.append('consent', '1');
                   formData.append(

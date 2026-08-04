@@ -4,6 +4,7 @@ import { JobManager } from '@/services/job-manager';
 import type { CreateJobRequest, CreateJobResponse, ApiResponse } from '@/types/api';
 import type { Tier } from '@/types/job';
 import { getPlan } from '@/types/pricing';
+import { betaOpenAccess, ACCESS_ERRORS } from '@/lib/access';
 
 const VALID_TIERS: Tier[] = ['free', 'small', 'medium', 'large'];
 
@@ -16,6 +17,16 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json<ApiResponse>(
         { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Anonymous accounts are real auth users, so a job can always be attached to
+    // one — but once the beta ends they must convert to a permanent account
+    // before starting a job, otherwise `free_tier_used` guards nothing.
+    if (user.is_anonymous && !betaOpenAccess()) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: ACCESS_ERRORS.accountRequired },
         { status: 401 }
       );
     }

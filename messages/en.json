@@ -136,6 +136,7 @@
     "personModeExclude": "Without",
     "personFilterActive": "Exclusion filter active — photos with {name} are always removed, regardless of other criteria.",
     "aiNotice": "Note: ShortlistBuddy uses artificial intelligence to create a non-binding selection proposal. Only reduced previews are sent to Google Gemini for analysis; Google may retain transmitted images and outputs for abuse monitoring for up to 55 days. Please review the result and keep your originals separately.",
+    "tooManyForAnyTier": "That many photos cannot be processed in one run. Please split them across several runs.",
     "ageConfirm16": "I am at least 16 years old.",
     "termsConfirm": "I accept the Terms of Use.",
     "termsShort": "read Terms",

@@ -4,6 +4,8 @@ import { ANALYSIS_SYSTEM_PROMPT } from '@/lib/anthropic/prompts';
 import { parseAnalysisResponse } from '@/lib/anthropic/parser';
 import { checkRateLimit, clientIp } from '@/lib/rate-limit';
 import { trackAnalyze, getTodayPhotos, reserveIpDailyPhotos } from '@/lib/stats';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { betaOpenAccess, ACCESS_ERRORS } from '@/lib/access';
 
 // Strip control characters and cap length on any user-supplied string that
 // flows into the model prompt (person names, custom terms, EXIF camera model).
@@ -80,6 +82,55 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
+
+    // Every analysis runs against a real job owned by the caller. One code path:
+    // `BETA_OPEN_ACCESS` relaxes who the owner may be and whether a paid tier is
+    // already settled, but never removes the job itself. Without this the free
+    // tier and the paid tiers guard nothing — the flow used to call this
+    // endpoint directly, so the limits existed only on paper.
+    const jobId = String(formData.get('jobId') || '');
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!jobId || !user) {
+      return NextResponse.json({ error: ACCESS_ERRORS.jobRequired }, { status: 401 });
+    }
+    if (user.is_anonymous && !betaOpenAccess()) {
+      return NextResponse.json({ error: ACCESS_ERRORS.accountRequired }, { status: 401 });
+    }
+
+    const { data: job } = await supabase
+      .from('jobs')
+      .select('id, user_id, tier, photo_count, photo_limit, payment_status, expires_at')
+      .eq('id', jobId)
+      .single();
+
+    // RLS already restricts this to the caller's own jobs; the explicit check
+    // keeps the failure legible if a policy is ever loosened.
+    if (!job || job.user_id !== user.id) {
+      return NextResponse.json({ error: ACCESS_ERRORS.jobRequired }, { status: 404 });
+    }
+    if (job.expires_at && new Date(job.expires_at) < new Date()) {
+      return NextResponse.json({ error: ACCESS_ERRORS.jobRequired }, { status: 410 });
+    }
+    if (job.tier !== 'free' && job.payment_status !== 'paid' && !betaOpenAccess()) {
+      return NextResponse.json({ error: ACCESS_ERRORS.paymentRequired }, { status: 402 });
+    }
+    // The tier's photo limit, enforced across the whole job rather than per
+    // request — the client sends batches, so a per-request check would be
+    // trivially bypassed by splitting. Read-then-write races between concurrent
+    // batches can overshoot slightly; this is a budget guard, not a security
+    // boundary, and the per-IP/day caps below bound the damage.
+    if (job.photo_count + files.length > job.photo_limit) {
+      return NextResponse.json(
+        { error: ACCESS_ERRORS.jobExhausted, limit: job.photo_limit },
+        { status: 402 }
+      );
+    }
+    await supabase
+      .from('jobs')
+      .update({ photo_count: job.photo_count + files.length, status: 'analyzing' })
+      .eq('id', job.id);
 
     // Beta cost/abuse guards (§10). Per-request cap first (cheap, always on).
     if (files.length > BETA_MAX_PHOTOS_PER_REQUEST) {
