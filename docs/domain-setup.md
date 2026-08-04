@@ -50,6 +50,45 @@ Notes:
   issues the SSL certificate automatically (Let's Encrypt). No cert needed at
   the registrar.
 
+### 2a. "Haupt-IP-Adresse" is the real switch — not the Profi-Einstellungen
+
+**The single most misleading field in the Checkdomain UI.** The *Haupt-IP-Adresse*
+block publishes an **A record from its IPv4 field and an AAAA record from its IPv6
+field**, at the apex, **in addition to** anything entered under
+*Profi-Einstellungen*. Correcting only the Profi entry leaves two contradictory
+answers in DNS.
+
+That is what happened to `auswahlbuddy.de` on 2026-08-04 (Vercel mailed
+"1 domain need configuration"): Profi held the correct `216.150.1.1`, while
+Haupt-IP still held Checkdomain's `88.99.101.251` **plus an IPv6 address**.
+Measured per target: Vercel's IP answered `308 → shortlistbuddy.com`, Checkdomain's
+answered **no HTTPS at all** and `301 → standby.checkdomain.de` over plain HTTP.
+And because browsers prefer IPv6, the broken path won for *most* visitors, not
+half of them — an AAAA nobody entered by hand outranked everything.
+
+Correct state, identical on both domains: Haupt-IP IPv4 = `216.150.1.1`, **IPv6
+field empty**, "Inklusive www" = **Nein** (otherwise Checkdomain publishes its own
+www record that collides with the CNAME).
+
+**When a domain misbehaves, check the apex for A *and* AAAA before anything else** —
+`Resolve-DnsName <domain> -Type AAAA -Server ns.checkdomain.de`. A stray AAAA is
+invisible in every "is my A record right?" check.
+
+### 2a-bis. Domain forwarding and mail forwarding are ONE object
+
+In Checkdomain's UI both live on the same page, and the **Löschen button removes
+both**: the HTTP forwarding *and* every email forwarding rule under it. For
+`auswahlbuddy.de` that is nine addresses (`andreas@`, `contact@`, `datenschutz@`,
+`feedback@`, `info@`, `kontakt@`, `paul@`, `privacy@`, `support@`) all forwarding
+to `support@shortlistbuddy.com`.
+
+So **never "switch off the forwarding" to clean up a web record.** Technically the
+two are unrelated — HTTP rides the A record, mail rides the MX (`mx1`/`mx2`, which
+resolve to entirely different hosts) — but the UI does not let you separate them.
+Fix web records in the Haupt-IP block instead and leave the forwarding object
+alone. Verify afterwards with an `RCPT TO:` probe (see §2c) that every forwarded
+address still answers `250 Accepted`.
+
 ### 2b. Email sending domains (Resend) — separate from the web records above
 
 Transactional email goes through **Resend** (which sends over AWS SES infra).
