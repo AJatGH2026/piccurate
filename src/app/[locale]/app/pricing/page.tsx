@@ -3,11 +3,66 @@
 import { useTranslations, useLocale } from 'next-intl';
 import { brandName } from '@/lib/brand';
 import { PRICING_PLANS } from '@/types/pricing';
+import type { Tier } from '@/types/job';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { CheckoutConfirm } from '@/components/checkout/CheckoutConfirm';
 
 export default function PricingPage() {
   const t = useTranslations('pricing');
+  const tc = useTranslations('checkout');
   const locale = useLocale();
+  const router = useRouter();
+  const [chosen, setChosen] = useState<Tier | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  /**
+   * Turn a chosen tier into a Stripe Checkout session.
+   *
+   * A purchase always requires a **permanent** account, regardless of
+   * `BETA_OPEN_ACCESS`: an anonymous session can vanish with the browser
+   * profile, and a paid job that its owner can never reach again is worse than
+   * a refused sale. So an anonymous or absent user is sent to sign up first.
+   */
+  const startCheckout = async (tier: Tier) => {
+    setBusy(true);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.is_anonymous) {
+        const next = encodeURIComponent(`/${locale}/app/pricing`);
+        router.push(`/${locale}/auth/register?next=${next}`);
+        return;
+      }
+
+      const jobRes = await fetch('/api/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier }),
+      });
+      const jobJson = await jobRes.json();
+      if (!jobRes.ok || !jobJson?.data?.jobId) {
+        throw new Error(jobJson?.error || 'Could not create job');
+      }
+
+      const coRes = await fetch('/api/payments/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId: jobJson.data.jobId, tier, locale }),
+      });
+      const coJson = await coRes.json();
+      if (!coRes.ok || !coJson?.data?.checkoutUrl) {
+        throw new Error(coJson?.error || 'Could not start checkout');
+      }
+      window.location.href = coJson.data.checkoutUrl;
+    } catch (err) {
+      alert(tc('failed', { error: err instanceof Error ? err.message : 'Unknown error' }));
+      setBusy(false);
+      setChosen(null);
+    }
+  };
 
   // Photo volume is the primary tier differentiator; Custom Criteria (§5a) is
   // a paid-only feature per the pricing plan (see product-pipeline.md §9.3).
@@ -72,24 +127,56 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              {/* TODO(age-gate-18): when this button actually starts a checkout,
-                  it needs its own confirmation — "18 or older, or with a
-                  guardian's consent" — because that is where a contract is
-                  formed (limited capacity, §§ 104 ff. BGB). The 16 on the
-                  configure page covers GDPR consent only and is NOT enough
-                  here. Keep the two declarations separate, as there. */}
-              <button
-                className={`mt-6 w-full text-center rounded-full py-2.5 text-sm font-semibold transition-colors ${
-                  plan.highlight
-                    ? 'bg-white text-indigo-600 hover:bg-indigo-50'
-                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                }`}
-              >
-                {t('cta')}
-              </button>
+              {plan.tier === 'free' ? (
+                <Link
+                  href={`/${locale}/app/upload`}
+                  className={`mt-6 w-full text-center rounded-full py-2.5 text-sm font-semibold transition-colors ${
+                    plan.highlight
+                      ? 'bg-white text-indigo-600 hover:bg-indigo-50'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                  }`}
+                >
+                  {t('cta')}
+                </Link>
+              ) : plan.stripePriceId ? (
+                <button
+                  onClick={() => setChosen(plan.tier)}
+                  disabled={busy}
+                  className={`mt-6 w-full text-center rounded-full py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 ${
+                    plan.highlight
+                      ? 'bg-white text-indigo-600 hover:bg-indigo-50'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                  }`}
+                >
+                  {t('cta')}
+                </button>
+              ) : (
+                // No Stripe price configured for this tier — say so instead of
+                // offering a button that would fail on click.
+                <p
+                  className={`mt-6 w-full text-center rounded-full py-2.5 text-sm ${
+                    plan.highlight ? 'bg-indigo-500/40 text-indigo-100' : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-300'
+                  }`}
+                >
+                  {tc('notYetAvailable')}
+                </p>
+              )}
             </div>
           ))}
         </div>
+
+        {chosen && (
+          <CheckoutConfirm
+            tierLabel={
+              chosen === 'small' ? t('small') : chosen === 'medium' ? t('medium') : t('large')
+            }
+            priceDisplay={PRICING_PLANS.find((p) => p.tier === chosen)!.priceDisplay}
+            locale={locale}
+            busy={busy}
+            onConfirm={() => startCheckout(chosen)}
+            onCancel={() => setChosen(null)}
+          />
+        )}
       </main>
     </div>
   );
