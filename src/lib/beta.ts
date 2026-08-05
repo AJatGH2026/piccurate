@@ -25,7 +25,11 @@ const todayKey = () => new Date().toISOString().slice(0, 10);
 const DAY_TTL_S = 90 * 24 * 3600;
 
 // Funnel steps that make up the flow, plus the two selection-correction signals.
-export const FUNNEL_STEPS = ['upload', 'configure', 'analysis', 'review', 'results', 'download'] as const;
+// `photobook_click` is the step *after* download: the user follows the partner
+// link. It is the leading indicator for the affiliate revenue stream, which the
+// business plan treats as the second-largest contribution — so it has to be
+// countable long before the first commission is earned.
+export const FUNNEL_STEPS = ['upload', 'configure', 'analysis', 'review', 'results', 'download', 'photobook_click'] as const;
 const ALLOWED = new Set<string>([
   ...FUNNEL_STEPS,
   'finalize',

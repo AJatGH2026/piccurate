@@ -64,6 +64,9 @@ docs/product-pipeline.md
 docs/kundenkonservierung-pii-scrub.md
 docs/legal/
 docs/*.docx
+# Business-Model-Unterlagen: Preise, Margen, Erlösszenarien, Wettbewerbsanalyse —
+# und fremdes Vorlesungsmaterial. Nichts davon gehört in ein öffentliches Repo.
+docs/Business Model/
 
 # Local archive / export artifacts (offline backups, code exports) — never commit
 *.bundle

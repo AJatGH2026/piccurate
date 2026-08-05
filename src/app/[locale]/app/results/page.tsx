@@ -515,10 +515,18 @@ export default function ResultsPage() {
               <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                 {t('photobookDesc')}
               </p>
+              {/* Counted through the beta funnel (aggregate counter in Upstash),
+                  so it works without GA4 and without a consent banner. Until a
+                  real partner link with a tracking id exists, this click is the
+                  only signal we have for the affiliate revenue stream. */}
               <a
                 href={ceweUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => {
+                  logBeta('photobook_click');
+                  trackEvent('photobook_click');
+                }}
                 className="mt-3 inline-flex items-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-600 px-5 py-2.5 text-sm font-semibold text-zinc-800 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
               >
                 {t('photobookCta')}
