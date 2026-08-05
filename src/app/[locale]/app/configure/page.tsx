@@ -13,8 +13,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { logBeta } from '@/lib/beta-client';
 import { createClient } from '@/lib/supabase/client';
-import { getTierForPhotoCount } from '@/types/pricing';
-import type { Tier } from '@/types/job';
+import { getTierForPhotoCount, MAX_TIER_PHOTOS } from '@/types/pricing';
 
 const BATCH_SIZE = 20;
 
@@ -24,6 +23,9 @@ export default function ConfigurePage() {
   const params = useParams();
   const router = useRouter();
   const locale = params.locale as string;
+  // Both addresses are aliases of the same mailbox — show the one that matches
+  // the site the user is currently on.
+  const supportAddress = locale === 'de' ? 'support@auswahlbuddy.de' : 'support@shortlistbuddy.com';
   const [analyzing, setAnalyzing] = useState(false);
   const [progress, setProgress] = useState('');
   const photos = usePhotoStore((s) => s.photos);
@@ -97,13 +99,15 @@ export default function ConfigurePage() {
       if (error) throw new Error(error.message);
     }
 
-    let tier: Tier;
-    try {
-      tier = getTierForPhotoCount(photoCount);
-    } catch {
-      // Above the largest tier there is no plan at all — say so instead of
-      // letting the exception surface as "Analysis failed".
-      throw new Error(t('tooManyForAnyTier'));
+    // Above the largest tier there is no plan to sell, so point the user at a
+    // human instead of failing with a generic error. Splitting the run would be
+    // the obvious advice, but at these volumes it is worth a conversation —
+    // that is exactly the customer we want to hear from.
+    const tier = getTierForPhotoCount(photoCount);
+    if (tier === null) {
+      throw new Error(
+        t('tooManyForAnyTier', { max: MAX_TIER_PHOTOS.toLocaleString(locale), email: supportAddress })
+      );
     }
 
     const res = await fetch('/api/jobs', {

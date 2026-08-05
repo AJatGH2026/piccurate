@@ -72,11 +72,22 @@ export function getPlan(tier: Tier): PricingPlan {
   return plan;
 }
 
-/** Determine which tier is needed for a given photo count */
-export function getTierForPhotoCount(count: number): Tier {
+/** Largest photo count any tier covers. Derived, so adding a tier updates it. */
+export const MAX_TIER_PHOTOS = Math.max(...PRICING_PLANS.map((p) => p.photoLimit));
+
+/**
+ * Which tier covers this photo count — or `null` when it exceeds every tier.
+ *
+ * Returns null rather than throwing: "more photos than any tier" is an expected
+ * situation with a defined answer (talk to support), not a programming error.
+ * The null forces every caller to handle it, which an exception did not — the
+ * previous version threw, and the one caller turned that into a bare "Analysis
+ * failed" with no hint at what to do about it.
+ */
+export function getTierForPhotoCount(count: number): Tier | null {
   if (count <= 250) return 'free';
   if (count <= 1000) return 'small';
   if (count <= 2500) return 'medium';
-  if (count <= 5000) return 'large';
-  throw new Error(`Photo count ${count} exceeds maximum tier (5000)`);
+  if (count <= MAX_TIER_PHOTOS) return 'large';
+  return null;
 }
