@@ -29,7 +29,7 @@ export interface SelectionResult {
 /** Grouped selection results by day/location */
 export interface SelectionGroup {
   date: string; // YYYY-MM-DD
-  location: string | null; // Reverse-geocoded name or null
+  location: string | null; // Place name derived by the AI from GPS, or null
   latitude: number | null;
   longitude: number | null;
   totalPhotos: number;

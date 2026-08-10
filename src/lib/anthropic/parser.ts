@@ -93,6 +93,10 @@ const aiAnalysisSchema = z.object({
   // Names of reference persons the model recognised (optional; only present
   // when reference photos were sent with the request).
   persons: z.array(z.string()).optional().default([]),
+  // Place name derived from the photo's GPS coordinates (optional; only
+  // present when coordinates were sent with the request). Empty when the
+  // photo had no coordinates.
+  place: z.string().optional().default(''),
 });
 
 const batchSchema = z.array(aiAnalysisSchema);
@@ -131,7 +135,7 @@ export function parseAnalysisResponse(
       aesthetic_score: 5, album_score: 5, sharpness_score: 5,
       face_analysis: { count: 0, eyes_open: true, facing_camera: true, expression: 'none' as const },
       animal_analysis: { present: false, clarity_score: 0, proximity_score: 0 },
-      scene_type: 'other' as const, secondary: [], content_tags: ['unanalyzed'], custom: [], persons: [],
+      scene_type: 'other' as const, secondary: [], content_tags: ['unanalyzed'], custom: [], persons: [], place: '',
     };
     while (result.data.length < expectedCount) {
       result.data.push(defaultResult);
@@ -162,5 +166,8 @@ export function parseAnalysisResponse(
     contentTags: item.content_tags,
     customMatches: item.custom.map((s) => String(s).toLowerCase().trim()).filter(Boolean),
     persons: item.persons.map((s) => String(s).toLowerCase().trim()).filter(Boolean),
+    // Kept in the model's own casing — this one is shown to the user, not
+    // matched against anything.
+    place: String(item.place ?? '').replace(/\s+/g, ' ').trim().slice(0, 80),
   }));
 }

@@ -24,6 +24,15 @@ function sanitizePromptField(s: unknown, max = 80): string {
   return out.replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
+// A GPS value we are willing to forward to the model: finite, in range, and
+// rounded to place-level precision. Mirrors GEO_SEND_PRECISION in utils/geo.ts
+// — kept as a literal so this server guard does not depend on a client module.
+function clampCoord(v: unknown, limit: number): number | null {
+  const n = typeof v === 'number' ? v : Number(v);
+  if (!Number.isFinite(n) || Math.abs(n) > limit) return null;
+  return Number(n.toFixed(2));
+}
+
 // Per-IP guard against a client hammering this (paid) endpoint. Generous
 // enough for a real demo job sent in batches, but caps runaway loops. Backed
 // by Upstash so it holds globally across Vercel instances (falls back to an
@@ -168,8 +177,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const metadata: { filename: string; dateTaken: string | null; cameraModel: string | null }[] =
-      JSON.parse(metaStr);
+    const metadata: {
+      filename: string;
+      dateTaken: string | null;
+      cameraModel: string | null;
+      lat?: number | null;
+      lon?: number | null;
+    }[] = JSON.parse(metaStr);
 
     // Optional user-defined terms to additionally tag (feature 5a).
     let customTerms: string[] = [];
@@ -260,11 +274,22 @@ export async function POST(request: NextRequest) {
     // Each analysis photo is labelled with its index + per-photo context, then
     // the image itself follows. Gemini sees the label immediately before the
     // pixels — no ambiguity about which JSON entry belongs to which image.
+    let anyCoords = false;
     for (let i = 0; i < files.length; i++) {
       const m = metadata[i] || {};
       const bits = [`Photo ${i}`];
       if (m.dateTaken) bits.push(`taken ${m.dateTaken.split('T')[0]}`);
       if (m.cameraModel) bits.push(sanitizePromptField(m.cameraModel, 60));
+      // Coordinates arrive already coarsened by the client (~1.1 km, see
+      // utils/geo.ts). Re-clamp here anyway: the client is not a trust
+      // boundary, and a full-precision pair must not reach the model just
+      // because someone crafted the request by hand.
+      const lat = clampCoord(m.lat, 90);
+      const lon = clampCoord(m.lon, 180);
+      if (lat != null && lon != null) {
+        bits.push(`GPS ${lat},${lon}`);
+        anyCoords = true;
+      }
       parts.push({ text: `[${bits.join(', ')}]` });
       const buffer = Buffer.from(await files[i].arrayBuffer());
       parts.push({
@@ -291,6 +316,17 @@ export async function POST(request: NextRequest) {
         `Use empty array [] when no reference person is recognisable. NEVER invent names outside the reference list. Be conservative but not timid: if two facial features clearly match (e.g. same face shape AND same glasses), include the name.` +
         `\n\nExample output shape for a batch of 2 photos, references "${names[0]}"${names[1] ? ` and "${names[1]}"` : ''}: ` +
         `[{...other fields..., "persons": ["${names[0]}"]}, {...other fields..., "persons": []}]`;
+    }
+    // Place names are shown to the user, so they follow the UI language.
+    const placeLang = formData.get('locale') === 'de' ? 'German' : 'English';
+    if (anyCoords) {
+      // Place naming from the coordinates in the per-photo labels. The label is
+      // the authority, not the pixels: a beach looks like any beach, so guessing
+      // from the image is how you end up with confident nonsense.
+      closing +=
+        `\n\nPLACE — some photos carry a "GPS lat,lon" value in their label. For each such photo, add a "place" field: the place those coordinates fall in, as "City, Country" (or "Region, Country" where no town applies), in ${placeLang}. ` +
+        `Derive it from the coordinates only — do NOT guess a place from what the image shows. The coordinates are rounded to about one kilometre, so name the town or region, never a street or building. ` +
+        `Use the same spelling for the same location across the batch. For photos with no GPS value in the label, set "place" to "".`;
     }
     parts.push({ text: closing });
 

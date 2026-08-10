@@ -36,6 +36,7 @@ export interface ProcessedPhoto {
   contentTags: string[];
   customMatches: string[]; // user-defined terms found in this photo (lowercased)
   persons: string[]; // reference-person names recognised in this photo (lowercased)
+  place: string; // AI-derived place name from GPS ("City, Country"); '' when no GPS
   selected: boolean;
   saved: boolean; // user-locked keeper: stays selected, excluded from re-selection pool
   reasonTag: string | null;
@@ -496,6 +497,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       contentTags: [],
       customMatches: [],
       persons: [],
+      place: '',
       selected: false,
       saved: false,
       reasonTag: null,
@@ -527,6 +529,9 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
           contentTags: r.contentTags,
           customMatches: r.customMatches || [],
           persons: r.persons || [],
+          // Keep a place already resolved for this photo if a later batch
+          // comes back empty — re-analysis must not blank the overview.
+          place: r.place || photos[idx].place || '',
           analyzed: true,
         };
       };

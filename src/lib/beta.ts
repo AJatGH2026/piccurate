@@ -83,6 +83,32 @@ export async function saveFeedback(
   }
 }
 
+/**
+ * Store a withdrawal declaration (§ 356a BGB). NOT capped and NOT trimmed:
+ * every other list here is a beta signal we can afford to lose, this one is
+ * evidence of a consumer exercising a statutory right. The mail to our inbox
+ * is the second, independent copy — if Upstash is unconfigured or fails, the
+ * caller must still treat the mail as the record.
+ */
+export async function saveWithdrawal(entry: {
+  name: string;
+  contractRef: string;
+  email: string;
+  note?: string;
+  receivedAt: string;
+  locale: string;
+}): Promise<boolean> {
+  const r = getClient();
+  if (!r) return false;
+  try {
+    await r.lpush('legal:withdrawals', JSON.stringify(entry));
+    return true;
+  } catch (err) {
+    console.warn('[beta] saveWithdrawal failed:', err instanceof Error ? err.message : err);
+    return false;
+  }
+}
+
 /** Store a captured email (capped list of the last 1000). Returns success. */
 export async function saveEmail(email: string, meta: { locale?: string }): Promise<boolean> {
   const r = getClient();

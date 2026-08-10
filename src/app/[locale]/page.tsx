@@ -90,9 +90,8 @@ export default async function LandingPage({ params }: Props) {
 
       {/* Pricing */}
       <PricingSection locale={locale} />
-
-      {/* Footer */}
-      <Footer locale={locale} />
+      {/* Footer now lives in the locale layout — it has to be on every page,
+          not just this one (§ 356a Abs. 1 BGB). */}
     </div>
   );
 }
@@ -405,34 +404,5 @@ function PricingSection({ locale }: { locale: string }) {
         </div>
       </div>
     </section>
-  );
-}
-
-function Footer({ locale }: { locale: string }) {
-  const t = useTranslations('footer');
-
-  return (
-    <footer className="border-t border-zinc-200 dark:border-zinc-800 py-8 mt-auto">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-zinc-500">
-        <div>
-          <span className="font-semibold text-zinc-700 dark:text-zinc-300">{brandName(locale)}</span>
-          {' '}&mdash; {t('tagline')}
-        </div>
-        <div className="flex gap-4">
-          <Link href={`/${locale}/guides`} className="hover:text-zinc-900 dark:hover:text-zinc-100">
-            {t('guides')}
-          </Link>
-          <Link href={`/${locale}/privacy`} className="hover:text-zinc-900 dark:hover:text-zinc-100">
-            {t('privacy')}
-          </Link>
-          <Link href={`/${locale}/terms`} className="hover:text-zinc-900 dark:hover:text-zinc-100">
-            {t('terms')}
-          </Link>
-          <Link href={`/${locale}/imprint`} className="hover:text-zinc-900 dark:hover:text-zinc-100">
-            {t('imprint')}
-          </Link>
-        </div>
-      </div>
-    </footer>
   );
 }

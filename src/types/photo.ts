@@ -45,6 +45,7 @@ export interface AIAnalysis {
   contentTags: string[]; // 3-5 descriptive tags
   customMatches: string[]; // user-defined terms the model found in this photo (lowercased)
   persons: string[]; // names of reference persons the model recognised in this photo (lowercased)
+  place: string; // place name derived from the photo's GPS ("City, Country"); '' when no GPS
 }
 
 /** A photo at various stages of processing */

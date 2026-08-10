@@ -3,9 +3,9 @@
 import { useTranslations } from 'next-intl';
 import { brandName } from '@/lib/brand';
 import { useEffect, useMemo, useState } from 'react';
-import { usePhotoStore } from '@/hooks/usePhotoStore';
+import { usePhotoStore, type ProcessedPhoto } from '@/hooks/usePhotoStore';
 import { enabledCloudProviders, type CloudProvider } from '@/lib/cloud';
-import { reverseGeocode } from '@/utils/geocode';
+import { dominantPlace, placeFolder } from '@/utils/geo';
 import { trackEvent, trackAdsConversion } from '@/lib/analytics';
 import { logBeta } from '@/lib/beta-client';
 import { EmailCapture } from '@/components/beta/EmailCapture';
@@ -29,7 +29,7 @@ export default function ResultsPage() {
   const [downloadError, setDownloadError] = useState<string | null>(null);
   // 'flat' = one folder for the whole trip (best for photo-book auto-import);
   // 'byday' = one subfolder per day (best for the user's own organisation).
-  const [zipMode, setZipMode] = useState<'flat' | 'byday'>('flat');
+  const [zipMode, setZipMode] = useState<'flat' | 'byday' | 'byplace'>('flat');
   const [cloudBusy, setCloudBusy] = useState(false);
   const [cloudStatus, setCloudStatus] = useState<string | null>(null);
   // Signed-in users get a sign-out option here; demo users have no account.
@@ -61,46 +61,38 @@ export default function ResultsPage() {
   const selectedCount = selectedPhotos.length;
   const totalCount = photos.length;
 
-  // Group the selected photos by day, with one representative GPS point each,
-  // for the trip overview (date + place name). Keyed on the stable store ref.
+  // Group the selected photos by day for the trip overview. The place label
+  // comes from the analysis (the model reads it off the coordinates that
+  // travelled with the photo), so there is no geocoding round-trip and no
+  // third-party recipient — see utils/geo.ts.
   const dayGroups = useMemo(() => {
-    const m = new Map<string, { date: string; lat: number | null; lon: number | null; count: number }>();
+    const m = new Map<string, { date: string; places: string[]; count: number }>();
     for (const p of photos) {
       if (!p.selected) continue;
       const date = p.dateTaken ? new Date(p.dateTaken).toISOString().split('T')[0] : 'undated';
-      const g = m.get(date) || { date, lat: null, lon: null, count: 0 };
+      const g = m.get(date) || { date, places: [], count: 0 };
       g.count++;
-      if (g.lat == null && p.latitude != null && p.longitude != null) {
-        g.lat = p.latitude;
-        g.lon = p.longitude;
-      }
+      if (p.place) g.places.push(p.place);
       m.set(date, g);
     }
-    return [...m.values()].sort((a, b) => a.date.localeCompare(b.date));
+    return [...m.values()]
+      .map((g) => ({ date: g.date, count: g.count, place: dominantPlace(g.places) }))
+      .sort((a, b) => a.date.localeCompare(b.date));
   }, [photos]);
 
-  // Resolve place names for the days that have GPS (cached, localized).
-  const [placeByDay, setPlaceByDay] = useState<Record<string, string>>({});
-  useEffect(() => {
-    // A5 (privacy): reverse geocoding sends GPS coordinates to a third party
-    // (BigDataCloud, outside the EU). DISABLED by default — no GPS leaves the
-    // app. Only re-enable behind explicit user consent + a DPA/SCC by setting
-    // NEXT_PUBLIC_ENABLE_GEOCODING=1 (see product-pipeline.md §10 / privacy §6).
-    if (process.env.NEXT_PUBLIC_ENABLE_GEOCODING !== '1') return;
-    let cancelled = false;
-    (async () => {
-      for (const g of dayGroups) {
-        if (g.lat == null || g.lon == null) continue;
-        const label = await reverseGeocode(g.lat, g.lon, locale);
-        if (label && !cancelled) {
-          setPlaceByDay((prev) => (prev[g.date] === label ? prev : { ...prev, [g.date]: label }));
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [dayGroups, locale]);
+  // Distinct places across the selection, most photos first — drives the
+  // "per place" ZIP layout and tells us whether offering it makes sense.
+  const placeGroups = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of photos) {
+      if (!p.selected || !p.place) continue;
+      m.set(p.place, (m.get(p.place) || 0) + 1);
+    }
+    return [...m.entries()]
+      .map(([place, count]) => ({ place, count }))
+      .sort((a, b) => b.count - a.count || a.place.localeCompare(b.place));
+  }, [photos]);
+  const hasPlaces = placeGroups.length > 0;
 
   // A browser File is only a path reference plus a size/mtime snapshot, not a
   // copy — so reading one only fails once the user has moved, renamed, deleted
@@ -119,12 +111,25 @@ export default function ResultsPage() {
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
 
-      // Sort selected photos by date taken (earliest first), undated last
-      const sorted = [...selectedPhotos].sort((a, b) => {
+      // Sort selected photos by date taken (earliest first), undated last.
+      // In "per place" mode, group by place first and keep the trip's
+      // chronology inside each one — a place folder that jumps around in
+      // time is harder to use than no folders at all.
+      const byDate = (a: ProcessedPhoto, b: ProcessedPhoto) => {
         if (!a.dateTaken && !b.dateTaken) return 0;
         if (!a.dateTaken) return 1;
         if (!b.dateTaken) return -1;
         return a.dateTaken.localeCompare(b.dateTaken);
+      };
+      const placeRank = new Map(placeGroups.map((g, i) => [g.place, i]));
+      const sorted = [...selectedPhotos].sort((a, b) => {
+        if (zipMode === 'byplace') {
+          // Photos without a place sort last, together.
+          const ra = a.place ? (placeRank.get(a.place) ?? 9998) : 9999;
+          const rb = b.place ? (placeRank.get(b.place) ?? 9998) : 9999;
+          if (ra !== rb) return ra - rb;
+        }
+        return byDate(a, b);
       });
 
       // Build summary lines for the index file
@@ -146,8 +151,9 @@ export default function ResultsPage() {
         const dateStr = photo.dateTaken
           ? new Date(photo.dateTaken).toISOString().split('T')[0]
           : 'undated';
-        const folder = dateStr;
-        const prefix = zipMode === 'byday' ? `${folder}/` : ''; // flat = no subfolders
+        const folder =
+          zipMode === 'byplace' ? placeFolder(photo.place || t('zipNoPlace')) : dateStr;
+        const prefix = zipMode === 'flat' ? '' : `${folder}/`; // flat = no subfolders
 
         // Add photo (flat folder or per-day subfolder). One unreadable source
         // file must not abort the whole archive, so every read is guarded and
@@ -188,10 +194,14 @@ export default function ResultsPage() {
         const dateDisplay = photo.dateTaken
           ? new Date(photo.dateTaken).toISOString().replace('T', ' ').slice(0, 19)
           : 'Unknown';
+        // Prefer the readable place name; fall back to raw coordinates. The
+        // full-precision pair stays local — only the coarsened one was sent
+        // for naming, and the ZIP never leaves the device.
         const location =
-          photo.latitude != null && photo.longitude != null
+          photo.place ||
+          (photo.latitude != null && photo.longitude != null
             ? `${photo.latitude.toFixed(4)}, ${photo.longitude.toFixed(4)}`
-            : '';
+            : '');
         const num = String(i + 1).padStart(3);
         summaryLines.push(
           `${num} | ${folder.padEnd(14)} | ${photo.filename.padEnd(32)} | ${dateDisplay.padEnd(19)} | ${location.padEnd(27)} | ${photo.sceneType}${note}`
@@ -379,9 +389,7 @@ export default function ResultsPage() {
                   <span className="font-medium text-zinc-700 dark:text-zinc-300 tabular-nums">
                     {g.date === 'undated' ? t('undatedLabel') : g.date}
                   </span>
-                  {placeByDay[g.date] && (
-                    <span className="text-zinc-500">· 📍 {placeByDay[g.date]}</span>
-                  )}
+                  {g.place && <span className="text-zinc-500">· 📍 {g.place}</span>}
                   <span className="ml-auto text-xs text-zinc-400">{g.count}</span>
                 </li>
               ))}
@@ -398,8 +406,10 @@ export default function ResultsPage() {
             {t('fullResNote', { count: selectedCount })}
           </p>
 
-          {/* ZIP structure choice */}
-          <div className="mt-4 grid grid-cols-2 gap-2">
+          {/* ZIP structure choice. The "per place" option only appears once
+              the analysis has actually produced place names — offering an
+              empty folder scheme would be a broken promise. */}
+          <div className={`mt-4 grid gap-2 ${hasPlaces ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <button
               type="button"
               onClick={() => setZipMode('flat')}
@@ -424,6 +434,22 @@ export default function ResultsPage() {
               <div className="font-medium text-zinc-900 dark:text-zinc-100">{t('zipByDay')}</div>
               <div className="text-xs text-zinc-500 mt-0.5">{t('zipByDayDesc')}</div>
             </button>
+            {hasPlaces && (
+              <button
+                type="button"
+                onClick={() => setZipMode('byplace')}
+                className={`rounded-xl border p-3 text-left text-sm transition-colors ${
+                  zipMode === 'byplace'
+                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30'
+                    : 'border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                }`}
+              >
+                <div className="font-medium text-zinc-900 dark:text-zinc-100">{t('zipByPlace')}</div>
+                <div className="text-xs text-zinc-500 mt-0.5">
+                  {t('zipByPlaceDesc', { count: placeGroups.length })}
+                </div>
+              </button>
+            )}
           </div>
 
           <button

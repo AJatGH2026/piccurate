@@ -7,6 +7,7 @@ import { Analytics } from '@vercel/analytics/next';
 import { GoogleTag } from '@/components/analytics/GoogleTag';
 import { ConsentBanner } from '@/components/analytics/ConsentBanner';
 import { FeedbackWidget } from '@/components/beta/FeedbackWidget';
+import { Footer } from '@/components/layout/Footer';
 import { routing } from '../../../i18n/routing';
 import { clientConfig } from '@/lib/config';
 import { Geist, Geist_Mono } from 'next/font/google';
@@ -78,6 +79,10 @@ export default async function LocaleLayout({ children, params }: Props) {
       <body className="min-h-full flex flex-col bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
         <NextIntlClientProvider messages={messages}>
           {children}
+          {/* Every page, not just the landing page: § 356a Abs. 1 BGB wants the
+              withdrawal function continuously available and easily accessible
+              for the whole withdrawal period. */}
+          <Footer locale={locale} />
           {/* Inside the intl provider — these use useTranslations. */}
           <ConsentBanner />
           <FeedbackWidget />

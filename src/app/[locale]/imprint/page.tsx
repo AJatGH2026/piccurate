@@ -3,6 +3,7 @@ import { brandName } from '@/lib/brand';
 import { routing } from '../../../../i18n/routing';
 import Link from 'next/link';
 import { BackButton } from '@/components/legal/BackButton';
+import { EnglishNotice } from '@/components/legal/EnglishNotice';
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -23,6 +24,8 @@ function GermanBody() {
       <p>Registergericht: Amtsgericht Wiesbaden<br />Handelsregister: HRB 33249</p>
       <h2>Umsatzsteuer-ID</h2>
       <p>Umsatzsteuer-Identifikationsnummer gemäß § 27a Umsatzsteuergesetz:<br />DE433664608</p>
+      <h2>Verantwortlich für den Inhalt (§ 18 Abs. 2 MStV)</h2>
+      <p>Dr. Andreas Jahnke<br />Anschrift wie oben</p>
       <h2>Verbraucherstreitbeilegung</h2>
       <p>Wir sind nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.</p>
     </>
@@ -33,6 +36,7 @@ function EnglishBody() {
   return (
     <>
       <h1>Imprint</h1>
+      <EnglishNotice />
       <p>Information pursuant to section 5 of the German Digital Services Act (DDG)<br />AJ GmbH<br />Danziger Str. 80<br />65191 Wiesbaden<br />Germany<br />Represented by the Managing Director:<br />Dr Andreas Jahnke</p>
       <h2>Contact</h2>
       <p>Email: contact@shortlistbuddy.com<br />Telephone or direct contact channel: +49 155 61229658</p>
@@ -40,6 +44,8 @@ function EnglishBody() {
       <p>Register court: Amtsgericht Wiesbaden<br />Commercial register number: HRB 33249</p>
       <h2>VAT identification number</h2>
       <p>VAT identification number pursuant to section 27a of the German VAT Act:<br />DE433664608</p>
+      <h2>Responsible for editorial content (section 18(2) MStV)</h2>
+      <p>Dr Andreas Jahnke<br />Address as above</p>
       <h2>Consumer dispute resolution</h2>
       <p>We are neither willing nor obliged to participate in dispute resolution proceedings before a consumer arbitration board.</p>
     </>

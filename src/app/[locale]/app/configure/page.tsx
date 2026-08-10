@@ -6,6 +6,7 @@ import { useCriteria } from '@/hooks/useCriteria';
 import { usePhotoStore, isNegativeCustom, stripNegativePrefix } from '@/hooks/usePhotoStore';
 import { MAX_PERSONS } from '@/types/criteria';
 import { generateThumbnail } from '@/utils/image';
+import { coarseCoord } from '@/utils/geo';
 import { trackEvent } from '@/lib/analytics';
 import Link from 'next/link';
 import { LegalModal } from '@/components/legal/LegalModal';
@@ -769,10 +770,20 @@ export default function ConfigurePage() {
                   // age/terms gate (canAnalyze) is satisfied, so assert it to
                   // the server (which enforces it independently).
                   formData.append('consent', '1');
+                  // Drives the language of the AI-derived place names.
+                  formData.append('locale', locale);
                   formData.append(
                     'metadata',
                     JSON.stringify(
-                      batch.map((p) => ({ filename: p.filename, dateTaken: p.dateTaken, cameraModel: p.cameraModel }))
+                      batch.map((p) => ({
+                        filename: p.filename,
+                        dateTaken: p.dateTaken,
+                        cameraModel: p.cameraModel,
+                        // Coarsened to ~1.1 km — enough to name the town, not
+                        // enough to point at a home. See utils/geo.ts.
+                        lat: coarseCoord(p.latitude),
+                        lon: coarseCoord(p.longitude),
+                      }))
                     )
                   );
                   if (customTerms.length) {
