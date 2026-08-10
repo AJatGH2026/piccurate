@@ -67,6 +67,10 @@ docs/*.docx
 # Business-Model-Unterlagen: Preise, Margen, Erlösszenarien, Wettbewerbsanalyse —
 # und fremdes Vorlesungsmaterial. Nichts davon gehört in ein öffentliches Repo.
 docs/Business Model/
+# Kampagnen- und Messkonzept: Anzeigenbudgets, Keyword-Strategie, Abbruch-
+# schwellen und die Kosten-je-Lauf-Rechnung. Wettbewerber lesen das öffentliche
+# Repo mit — die Mess-Spezifikation verrät zudem, worauf der Test optimiert.
+docs/Marketing/
 
 # Local archive / export artifacts (offline backups, code exports) — never commit
 *.bundle
