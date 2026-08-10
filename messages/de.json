@@ -361,6 +361,10 @@
     "doneBody": "Du kannst jetzt {photos} Fotos in einem Durchgang analysieren. Danke, dass du die Beta mitmachst.",
     "doneCta": "Los geht’s",
     "errorRateLimited": "Zu viele Versuche. Bitte versuch es später noch einmal.",
-    "errorGeneric": "Das hat leider nicht geklappt. Bitte versuch es erneut."
+    "errorGeneric": "Das hat leider nicht geklappt. Bitte versuch es erneut.",
+    "accountTitle": "Dafür brauchst du ein Konto",
+    "accountBody": "Die {photos} Freibilder hängen an deinem Konto — sonst wären sie weg, sobald du den Browser schließt. Melde dich an oder registriere dich; danach kommst du hierher zurück und das Angebot steht wieder offen.",
+    "accountLogin": "Anmelden",
+    "accountRegister": "Neues Konto erstellen"
   }
 }

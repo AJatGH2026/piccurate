@@ -2,11 +2,12 @@
 
 import { useTranslations } from 'next-intl';
 import { brandName } from '@/lib/brand';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { clientConfig } from '@/lib/config';
+import { readNextParam } from '@/lib/auth/next-path';
 
 export default function RegisterPage() {
   const t = useTranslations('auth');
@@ -18,6 +19,13 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
+  // Where to return once the account exists. Read after mount rather than
+  // during render: there is no window on the server, and an href that differs
+  // between server and client output is a hydration mismatch.
+  const [next, setNext] = useState<string | null>(null);
+  useEffect(() => setNext(readNextParam(locale)), [locale]);
+  const withNext = (path: string) =>
+    next && next !== `/${locale}` ? `${path}?next=${encodeURIComponent(next)}` : path;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +58,13 @@ export default function RegisterPage() {
           locale,
           gdpr_consent_at: new Date().toISOString(),
         },
-        emailRedirectTo: `${appUrl}/${locale}/auth/callback`,
+        // Carry the return path through the confirmation mail. The callback
+        // hands it on to the login page, so someone who came from the pricing
+        // page to unlock a beta grant ends up back there instead of on the home
+        // page with no memory of what they were doing.
+        emailRedirectTo: next && next !== `/${locale}`
+          ? `${appUrl}/${locale}/auth/callback?next=${encodeURIComponent(next)}`
+          : `${appUrl}/${locale}/auth/callback`,
       },
     });
 
@@ -81,7 +95,7 @@ export default function RegisterPage() {
           </div>
           <p className="mt-6 text-sm text-zinc-500">
             {t('hasAccount')}{' '}
-            <Link href={`/${locale}/auth/login`} className="text-indigo-600 hover:text-indigo-700 font-medium">
+            <Link href={withNext(`/${locale}/auth/login`)} className="text-indigo-600 hover:text-indigo-700 font-medium">
               {t('loginCta')}
             </Link>
           </p>
@@ -184,7 +198,7 @@ export default function RegisterPage() {
 
         <p className="mt-6 text-center text-sm text-zinc-500">
           {t('hasAccount')}{' '}
-          <Link href={`/${locale}/auth/login`} className="text-indigo-600 hover:text-indigo-700 font-medium">
+          <Link href={withNext(`/${locale}/auth/login`)} className="text-indigo-600 hover:text-indigo-700 font-medium">
             {t('loginCta')}
           </Link>
         </p>

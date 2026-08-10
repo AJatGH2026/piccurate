@@ -8,7 +8,7 @@ import { BetaOfferDialog } from '@/components/checkout/BetaOfferDialog';
 import type { Tier } from '@/types/job';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CheckoutConfirm } from '@/components/checkout/CheckoutConfirm';
 
@@ -19,6 +19,13 @@ export default function PricingPage() {
   const router = useRouter();
   const [chosen, setChosen] = useState<Tier | null>(null);
   const [offer, setOffer] = useState<'small' | 'medium' | 'large' | null>(null);
+  // Reopen the offer after the account detour. Without this the tester comes
+  // back to a pricing page that looks exactly as it did before they were sent
+  // away, and has to work out for themselves that they should click again.
+  useEffect(() => {
+    const wanted = new URLSearchParams(window.location.search).get('offer');
+    if (wanted === 'small' || wanted === 'medium' || wanted === 'large') setOffer(wanted);
+  }, []);
   const [busy, setBusy] = useState(false);
   // Photos the visitor already loaded, if any. Measurement only: it is what
   // makes the tier click readable — the allowance follows the tier, so the

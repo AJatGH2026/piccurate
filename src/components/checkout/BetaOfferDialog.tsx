@@ -36,9 +36,15 @@ export function BetaOfferDialog({
   const t = useTranslations('betaOffer');
   const router = useRouter();
   const [feedback, setFeedback] = useState('');
-  const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
+  const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error' | 'needsAccount'>(
+    'idle'
+  );
   const [granted, setGranted] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Where sign-in/sign-up should return to. Carries the tier so the offer
+  // reopens on the way back instead of leaving the tester on a page that looks
+  // untouched.
+  const returnPath = encodeURIComponent(`/${locale}/app/pricing?offer=${tier}`);
 
   const submit = async () => {
     setState('sending');
@@ -46,14 +52,20 @@ export function BetaOfferDialog({
     try {
       // A grant needs a permanent account, for the same reason a purchase would:
       // an anonymous session dies with the browser profile and takes the
-      // allowance with it. Send them to register, then back here.
+      // allowance with it.
+      //
+      // Note that an anonymous session counts as "no account" here even though
+      // the visitor is technically signed in — starting an analysis mints one
+      // silently, so someone who already registered can still land in this
+      // branch on a browser that never signed in. Teleporting them straight to
+      // the sign-up form was the confusing part: they have an account, they
+      // just need to use it. So we say what is needed and offer both doors.
       const supabase = createClient();
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user || user.is_anonymous) {
-        const next = encodeURIComponent(`/${locale}/app/pricing?offer=${tier}`);
-        router.push(`/${locale}/auth/register?next=${next}`);
+        setState('needsAccount');
         return;
       }
 
@@ -87,7 +99,36 @@ export function BetaOfferDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-md rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-xl">
-        {state === 'done' ? (
+        {state === 'needsAccount' ? (
+          <>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              {t('accountTitle')}
+            </h2>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+              {t('accountBody', { photos: photoLimit.toLocaleString(locale) })}
+            </p>
+            <div className="mt-6 flex flex-col gap-3">
+              <button
+                onClick={() => router.push(`/${locale}/auth/login?next=${returnPath}`)}
+                className="w-full rounded-full bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
+              >
+                {t('accountLogin')}
+              </button>
+              <button
+                onClick={() => router.push(`/${locale}/auth/register?next=${returnPath}`)}
+                className="w-full rounded-full border border-zinc-300 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              >
+                {t('accountRegister')}
+              </button>
+              <button
+                onClick={onClose}
+                className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+              >
+                {t('cancel')}
+              </button>
+            </div>
+          </>
+        ) : state === 'done' ? (
           <>
             <div className="text-3xl mb-3">🎁</div>
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">

@@ -361,6 +361,10 @@
     "doneBody": "You can now analyse {photos} photos in one run. Thanks for taking part in the beta.",
     "doneCta": "Get started",
     "errorRateLimited": "Too many attempts. Please try again later.",
-    "errorGeneric": "That did not work. Please try again."
+    "errorGeneric": "That did not work. Please try again.",
+    "accountTitle": "This needs an account",
+    "accountBody": "The {photos} free photos are tied to your account — otherwise they would be gone the moment you close the browser. Log in or sign up; you will come back here and the offer will still be waiting.",
+    "accountLogin": "Log in",
+    "accountRegister": "Create an account"
   }
 }

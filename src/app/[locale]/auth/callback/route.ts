@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { safeNextPath } from '@/lib/auth/next-path';
 
 /**
  * Email-confirmation landing.
@@ -22,9 +23,17 @@ export async function GET(
   const { searchParams } = new URL(request.url);
   const hasError = searchParams.get('error') || searchParams.get('error_code');
 
+  // Hand the return path on to the login page. Only a same-site absolute path
+  // is forwarded — this value came back from an email round-trip, so it must be
+  // treated as attacker-controlled: an unchecked `next` would turn our login
+  // into a redirect that starts on our domain and ends on someone else's.
+  const raw = searchParams.get('next');
+  const next = safeNextPath(raw, locale);
+  const carry = next !== `/${locale}` ? `&next=${encodeURIComponent(next)}` : '';
+
   const target = hasError
-    ? `/${locale}/auth/login?confirm_error=1`
-    : `/${locale}/auth/login?confirmed=1`;
+    ? `/${locale}/auth/login?confirm_error=1${carry}`
+    : `/${locale}/auth/login?confirmed=1${carry}`;
 
   return NextResponse.redirect(new URL(target, request.url));
 }

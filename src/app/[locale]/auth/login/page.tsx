@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { readNextParam } from '@/lib/auth/next-path';
 
 export default function LoginPage() {
   const t = useTranslations('auth');
@@ -41,7 +42,11 @@ export default function LoginPage() {
       setError(authError.message);
       setLoading(false);
     } else {
-      router.push(`/${locale}`);
+      // Back to whatever sent them here — the pricing page, typically, which
+      // bounced them because a beta grant needs a permanent account. Landing on
+      // the home page instead made that a loop: sign in, and the thing you were
+      // trying to do is three clicks away again.
+      router.push(readNextParam(locale));
       router.refresh();
     }
   };
