@@ -11,6 +11,10 @@ shortlistbuddy.com. Full flow works: register → confirmation email (Resend SMT
 → callback → logged in; login; header shows email + logout; `profiles` row has
 `locale` + `gdpr_consent_at` populated (trigger verified end-to-end).
 
+**Later addition:** password reset (2026-08-10) — see [Password reset](#password-reset--added-2026-08-10)
+below. Read that section before touching `/auth/callback` or the reset pages;
+the two flows differ on purpose.
+
 ### Learnings (email delivery — this ate most of the debugging time)
 - **Resend requires the SMTP *Sender email* to match a verified domain exactly.**
   Initially the only verified domain was `feedback.shortlistbuddy.com` (the
@@ -69,6 +73,73 @@ shortlistbuddy.com. Full flow works: register → confirmation email (Resend SMT
    via onnxruntime) — no fix without a Next downgrade; low real risk (build-time
    or trusted-CDN model unpacking). Re-check when Next ships a patch release.
 3. Move off Basic-Auth site gate (`SITE_PASSWORD`) when going public.
+
+---
+
+## Password reset — added 2026-08-10
+
+Shipped *"feat(auth): add the password reset that the neutral signup text now
+points at"*. Verified on shortlistbuddy.com: link clicked, password changed. The
+counter-cases (link reused, link opened in a different browser, address with no
+account) were checked locally only.
+
+Why it became urgent: the register confirmation text was made
+enumeration-neutral earlier the same day (*"fix(auth): stop promising a
+confirmation mail we may never have sent"*), so anyone whose address already has
+an account is now told to log in instead. Without a reset that is a dead end for
+exactly the people who cannot remember their password — and a startblocker for a
+paid product.
+
+- `/[locale]/auth/forgot-password` — `resetPasswordForEmail`, `redirectTo` =
+  `<appUrl>/<locale>/auth/reset-password`.
+- `/[locale]/auth/reset-password` — completes the PKCE exchange, `updateUser`,
+  then a **global** `signOut()` → `/auth/login?password_reset=1`. The global
+  scope revokes every other session on the account, which is the point of a
+  reset if somebody else had got in.
+- Links from the login page and from the register "check your mail" screen.
+
+**Deliberately NOT routed through `/auth/callback`** — the thing not to
+"simplify" later. That route refuses to turn a mail link into a session (see the
+callback-design bullet above); setting a password genuinely needs one, so the
+two flows cannot share a landing.
+
+**What makes a session safe here is PKCE.** `resetPasswordForEmail` leaves the
+code verifier in the requesting browser and sends Supabase only the challenge,
+so the `?code=` that comes back is worthless to a link-scanner that merely
+fetched the URL — a scanner cannot obtain a session. Price of the same property:
+the link works only in the browser that asked for it. Said out loud in the "this
+link no longer works" branch, which also covers expired and already-spent links
+(the latter being what a scanner leaves behind).
+
+**Enumeration line unchanged.** Supabase answers `/recover` with a success for
+an address it has never seen, so we neither learn nor leak whether an account
+exists, and the confirmation text stays conditional. An error there is therefore
+a real fault (rate limit, malformed address, network), never "no such user", so
+it is shown to the user.
+
+**Test on production or localhost, NOT on a Preview.** `NEXT_PUBLIC_APP_URL` is
+set for Production only (verified 2026-08-10 via the Vercel CLI), so on a Preview
+`clientConfig.appUrl` falls back to `https://shortlistbuddy.com`: the mail link
+points at production while the PKCE verifier sits in the preview origin's cookie
+jar → guaranteed failure. The preview wildcards in the Redirect-URL allow-list do
+not help, because the code never targets them. Same root cause as the PKCE gotcha
+bullet above.
+
+**Supabase side.** Redirect URLs already carried `https://shortlistbuddy.com/**`,
+so the new paths needed no change (confirmed 2026-08-10). The **Reset Password**
+email template is separate from Confirm-signup and was filled with a bilingual
+DE/EN version — one template serves both locales and cannot switch on language.
+`{{ .Data.locale }}` (from the signUp metadata) would allow a conditional and is
+deliberately unused: users without that metadata can break the Go template at
+render time, and you would only notice by the mail never arriving.
+
+**Operational consequence of the neutral wording.** If a reset mail fails to
+send, the user cannot tell — the page says "if there is an account, a link is on
+its way" either way, which is exactly what we want against enumeration. So a mail
+outage on this path is silent, and the reset is how paying customers get back
+into their account. Keep an eye on the sending quota for that reason — it is no
+longer the constraint it was in the first beta weeks, but it stays the thing that
+fails invisibly.
 
 ---
 
