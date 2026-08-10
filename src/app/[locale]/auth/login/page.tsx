@@ -16,14 +16,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmMsg, setConfirmMsg] = useState<'ok' | 'error' | null>(null);
+  const [confirmMsg, setConfirmMsg] = useState<'ok' | 'error' | 'reset' | null>(null);
 
-  // Read the flag set by the /auth/callback redirect. We use window.location
-  // instead of useSearchParams so the page doesn't require a Suspense boundary
-  // (keeps it statically renderable).
+  // Read the flag set by the /auth/callback redirect, or by /auth/reset-password
+  // once a new password has been saved. We use window.location instead of
+  // useSearchParams so the page doesn't require a Suspense boundary (keeps it
+  // statically renderable).
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
     if (sp.get('confirmed')) setConfirmMsg('ok');
+    else if (sp.get('password_reset')) setConfirmMsg('reset');
     else if (sp.get('confirm_error')) setConfirmMsg('error');
   }, []);
 
@@ -59,6 +61,11 @@ export default function LoginPage() {
         {confirmMsg === 'ok' && (
           <div className="mb-4 p-3 rounded-lg bg-green-50 text-green-700 text-sm dark:bg-green-900/20 dark:text-green-400">
             {t('confirmedBanner')}
+          </div>
+        )}
+        {confirmMsg === 'reset' && (
+          <div className="mb-4 p-3 rounded-lg bg-green-50 text-green-700 text-sm dark:bg-green-900/20 dark:text-green-400">
+            {t('passwordResetBanner')}
           </div>
         )}
         {confirmMsg === 'error' && (
@@ -113,6 +120,15 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-6 text-center text-sm text-zinc-500">
+          <Link
+            href={`/${locale}/auth/forgot-password`}
+            className="text-indigo-600 hover:text-indigo-700 font-medium"
+          >
+            {t('forgotLink')}
+          </Link>
+        </p>
+
+        <p className="mt-3 text-center text-sm text-zinc-500">
           {t('noAccount')}{' '}
           <Link href={`/${locale}/auth/register`} className="text-indigo-600 hover:text-indigo-700 font-medium">
             {t('registerCta')}

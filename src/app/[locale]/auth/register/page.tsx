@@ -85,6 +85,17 @@ export default function RegisterPage() {
               {t('loginCta')}
             </Link>
           </p>
+          {/* The text above sends anyone who already has an account to the
+              login. Without this link, that is a dead end for exactly the
+              people who cannot remember their password. */}
+          <p className="mt-3 text-sm text-zinc-500">
+            <Link
+              href={`/${locale}/auth/forgot-password`}
+              className="text-indigo-600 hover:text-indigo-700 font-medium"
+            >
+              {t('forgotLink')}
+            </Link>
+          </p>
         </div>
       </div>
     );
@@ -136,7 +147,7 @@ export default function RegisterPage() {
               required
               minLength={8}
               className="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 px-3 py-2 text-sm bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-              placeholder="Min. 8 characters"
+              placeholder={t('passwordMinHint')}
             />
           </div>
 
