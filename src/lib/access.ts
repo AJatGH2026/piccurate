@@ -22,7 +22,13 @@ export function betaOpenAccess(): boolean {
 // Beta cost/abuse caps. Defined here rather than in the analysis route so the
 // job endpoint can refuse a run *before* it starts, using the same numbers.
 export const BETA_MAX_PHOTOS_PER_REQUEST = Number(process.env.BETA_MAX_PHOTOS_PER_REQUEST ?? '250');
-export const BETA_DAILY_PHOTO_CAP = Number(process.env.BETA_DAILY_PHOTO_CAP ?? '20000');
+// Raised from 20,000 on 2026-08-10 because of the beta grant: at 5,000 free
+// photos per tester, four testers in one day exhausted the old cap — and the
+// fifth was refused on the very day the ads were running. Sized against the
+// measured per-photo cost (kept out of this public repo; see the local
+// pipeline doc) so the ceiling stays a small fraction of the monthly budget.
+// The hard backstop remains the Gemini billing spend limit at Google, not this.
+export const BETA_DAILY_PHOTO_CAP = Number(process.env.BETA_DAILY_PHOTO_CAP ?? '50000');
 export const BETA_IP_DAILY_PHOTO_CAP = Number(process.env.BETA_IP_DAILY_PHOTO_CAP ?? '750');
 
 /**

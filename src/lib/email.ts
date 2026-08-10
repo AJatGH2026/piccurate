@@ -207,6 +207,110 @@ export async function sendWithdrawalReceipt(d: WithdrawalDeclaration): Promise<b
   });
 }
 
+export interface OrderConfirmation {
+  to: string;
+  tierLabel: string;
+  photoLimit: number;
+  amountGrossCents: number;
+  currency: string;
+  orderRef: string;
+  placedAt: Date;
+  locale: string;
+}
+
+/**
+ * § 312f BGB: confirmation of the contract on a durable medium, within a
+ * reasonable time and before performance begins.
+ *
+ * This is not a nicety. § 356 Abs. 5 BGB only lets the withdrawal right expire
+ * early if, on top of the customer's two declarations, we *provided this
+ * confirmation*. Without it the right does not expire — the customer can run
+ * the analysis and still withdraw, and we owe the money back. So a failure to
+ * send it is worth surfacing, not swallowing.
+ *
+ * Deliberately not an invoice. A VAT invoice needs the tax rate, and that
+ * follows from the Stripe Tax / OSS setup, which is not decided yet. Stripe
+ * Invoicing should issue those once it is; hand-rolling one here would mean
+ * guessing a rate.
+ */
+export async function sendOrderConfirmation(o: OrderConfirmation): Promise<boolean> {
+  const de = o.locale === 'de';
+  const amount = new Intl.NumberFormat(de ? 'de-DE' : 'en-IE', {
+    style: 'currency',
+    currency: o.currency.toUpperCase(),
+  }).format(o.amountGrossCents / 100);
+  const when = o.placedAt.toLocaleString(de ? 'de-DE' : 'en-GB', {
+    timeZone: 'Europe/Berlin',
+    dateStyle: 'long',
+    timeStyle: 'short',
+  });
+  const site = process.env.NEXT_PUBLIC_APP_URL || 'https://shortlistbuddy.com';
+
+  const body = de
+    ? [
+        'Vielen Dank für deine Bestellung. Hiermit bestätigen wir den Vertrag.',
+        '',
+        `Leistung:      Fotoauswahl, Tarif ${o.tierLabel}`,
+        `Umfang:        bis zu ${o.photoLimit.toLocaleString('de-DE')} Fotos, einmaliger Vorgang`,
+        `Preis:         ${amount} inkl. gesetzlicher Umsatzsteuer`,
+        `Bestellnummer: ${o.orderRef}`,
+        `Bestellt am:   ${when} (Zeitzone Europe/Berlin)`,
+        '',
+        'Widerrufsrecht',
+        'Du hast das Recht, binnen vierzehn Tagen ohne Angabe von Gründen zu',
+        'widerrufen. Die vollständige Widerrufsbelehrung und das',
+        'Muster-Widerrufsformular findest du in den Nutzungsbedingungen:',
+        `${site}/de/terms`,
+        '',
+        'Widerrufen kannst du auch direkt online:',
+        `${site}/de/withdrawal`,
+        '',
+        'Hinweis zum vorzeitigen Erlöschen: Du hast beim Kauf ausdrücklich',
+        'zugestimmt, dass wir vor Ablauf der Widerrufsfrist mit der Ausführung',
+        'beginnen, und bestätigt, dass du dadurch dein Widerrufsrecht verlierst.',
+        'Mit dem Beginn der Analyse erlischt es daher.',
+        '',
+        '—',
+        'AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Deutschland',
+        'Amtsgericht Wiesbaden HRB 33249 · USt-IdNr. DE433664608',
+      ]
+    : [
+        'Thank you for your order. We hereby confirm the contract.',
+        '',
+        `Service:    Photo selection, ${o.tierLabel} plan`,
+        `Scope:      up to ${o.photoLimit.toLocaleString('en-GB')} photos, one-off job`,
+        `Price:      ${amount} including statutory VAT`,
+        `Order ref:  ${o.orderRef}`,
+        `Placed:     ${when} (time zone Europe/Berlin)`,
+        '',
+        'Right of withdrawal',
+        'You have the right to withdraw within fourteen days without giving any',
+        'reason. The full withdrawal notice and the model withdrawal form are in',
+        'the Terms of Service:',
+        `${site}/en/terms`,
+        '',
+        'You can also withdraw online:',
+        `${site}/en/withdrawal`,
+        '',
+        'Note on early expiry: at checkout you expressly consented to us',
+        'beginning performance before the withdrawal period expires and confirmed',
+        'that you thereby lose your right of withdrawal. It therefore expires when',
+        'the analysis begins.',
+        '',
+        '—',
+        'AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Germany',
+        'Amtsgericht Wiesbaden HRB 33249 · VAT ID DE433664608',
+      ];
+
+  return sendMail({
+    to: o.to,
+    replyTo: feedbackAddress(o.locale),
+    subject: de ? `Bestellbestätigung ${o.orderRef}` : `Order confirmation ${o.orderRef}`,
+    text: body.join('\n'),
+    locale: o.locale,
+  });
+}
+
 /** Copy to our own inbox — the operator side of the same record. */
 export async function sendWithdrawalNotice(d: WithdrawalDeclaration): Promise<boolean> {
   const inbox = feedbackAddress(d.locale);

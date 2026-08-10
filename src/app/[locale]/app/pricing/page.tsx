@@ -2,7 +2,9 @@
 
 import { useTranslations, useLocale } from 'next-intl';
 import { brandName } from '@/lib/brand';
-import { PRICING_PLANS } from '@/types/pricing';
+import { PRICING_PLANS, formatPrice } from '@/types/pricing';
+import { usePhotoStore } from '@/hooks/usePhotoStore';
+import { BetaOfferDialog } from '@/components/checkout/BetaOfferDialog';
 import type { Tier } from '@/types/job';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -16,7 +18,12 @@ export default function PricingPage() {
   const locale = useLocale();
   const router = useRouter();
   const [chosen, setChosen] = useState<Tier | null>(null);
+  const [offer, setOffer] = useState<'small' | 'medium' | 'large' | null>(null);
   const [busy, setBusy] = useState(false);
+  // Photos the visitor already loaded, if any. Measurement only: it is what
+  // makes the tier click readable — the allowance follows the tier, so the
+  // click alone always points at "large".
+  const photoCount = usePhotoStore((s) => s.photos.length);
 
   /**
    * Turn a chosen tier into a Stripe Checkout session.
@@ -104,13 +111,22 @@ export default function PricingPage() {
                 {plan.tier === 'free' ? t('free') : plan.tier === 'small' ? t('small') : plan.tier === 'medium' ? t('medium') : t('large')}
               </h3>
               <div className="mt-3">
-                <span className="text-3xl font-bold">{plan.priceDisplay}</span>
+                <span className="text-3xl font-bold">
+                  {plan.tier === 'free' ? t('free') : formatPrice(plan.priceEurCents, locale)}
+                </span>
                 {plan.tier !== 'free' && (
                   <span className={`ml-1 text-sm ${plan.highlight ? 'text-indigo-200' : 'text-zinc-500'}`}>
                     {t('perUse')}
                   </span>
                 )}
               </div>
+              {/* PAngV: the VAT statement belongs on the price itself, not only
+                  in the order dialogue further down the funnel. */}
+              {plan.tier !== 'free' && (
+                <p className={`text-xs ${plan.highlight ? 'text-indigo-200' : 'text-zinc-500'}`}>
+                  {t('inclVat')}
+                </p>
+              )}
               <p className={`mt-1 text-sm ${plan.highlight ? 'text-indigo-200' : 'text-zinc-500'}`}>
                 {t('photosUpTo', { count: plan.photoLimit.toLocaleString() })}
               </p>
@@ -151,15 +167,30 @@ export default function PricingPage() {
                   {t('cta')}
                 </button>
               ) : (
-                // No Stripe price configured for this tier — say so instead of
-                // offering a button that would fail on click.
-                <p
-                  className={`mt-6 w-full text-center rounded-full py-2.5 text-sm ${
-                    plan.highlight ? 'bg-indigo-500/40 text-indigo-100' : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-300'
-                  }`}
-                >
-                  {tc('notYetAvailable')}
-                </p>
+                // No Stripe price for this tier means selling is still off. The
+                // click is not wasted on a dead label: it opens the beta offer,
+                // which trades the tier's allowance for a look at which tier
+                // people reach for. Flips to real checkout by itself the moment
+                // the price ids are configured.
+                <>
+                  <button
+                    onClick={() => setOffer(plan.tier as 'small' | 'medium' | 'large')}
+                    className={`mt-6 w-full text-center rounded-full py-2.5 text-sm font-semibold transition-colors ${
+                      plan.highlight
+                        ? 'bg-white text-indigo-600 hover:bg-indigo-50'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    }`}
+                  >
+                    {t('betaCta')}
+                  </button>
+                  <p
+                    className={`mt-2 text-center text-xs ${
+                      plan.highlight ? 'text-indigo-200' : 'text-zinc-500'
+                    }`}
+                  >
+                    {t('plannedPrice')}
+                  </p>
+                </>
               )}
             </div>
           ))}
@@ -170,11 +201,25 @@ export default function PricingPage() {
             tierLabel={
               chosen === 'small' ? t('small') : chosen === 'medium' ? t('medium') : t('large')
             }
-            priceDisplay={PRICING_PLANS.find((p) => p.tier === chosen)!.priceDisplay}
+            priceDisplay={formatPrice(
+              PRICING_PLANS.find((p) => p.tier === chosen)!.priceEurCents,
+              locale
+            )}
             locale={locale}
             busy={busy}
             onConfirm={() => startCheckout(chosen)}
             onCancel={() => setChosen(null)}
+          />
+        )}
+
+        {offer && (
+          <BetaOfferDialog
+            tier={offer}
+            tierLabel={offer === 'small' ? t('small') : offer === 'medium' ? t('medium') : t('large')}
+            photoLimit={PRICING_PLANS.find((p) => p.tier === offer)!.photoLimit}
+            locale={locale}
+            photoCount={photoCount}
+            onClose={() => setOffer(null)}
           />
         )}
       </main>

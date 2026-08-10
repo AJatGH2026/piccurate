@@ -60,7 +60,10 @@
       "customCriteria": "Your own criteria (up to 7)"
     },
     "cta": "Get started",
-    "oneTimeUse": "One-time use"
+    "oneTimeUse": "One-time use",
+    "inclVat": "incl. VAT",
+    "betaCta": "Try it free in the beta",
+    "plannedPrice": "Planned price — not bookable yet"
   },
   "upload": {
     "title": "Upload your travel photos",
@@ -344,5 +347,20 @@
     "cancel": "Cancel",
     "failed": "Could not start checkout: {error}",
     "notYetAvailable": "Purchase not enabled yet"
+  },
+  "betaOffer": {
+    "title": "Thanks for your interest",
+    "body": "Payment is not active yet. During the beta we are happy to unlock {photos} photos for you free of charge instead — exactly the allowance of the {tier} plan. Once per account.",
+    "feedbackLabel": "What were you hoping for here?",
+    "feedbackPlaceholder": "How has it felt so far? What is missing? What would you pay?",
+    "feedbackOptional": "Optional — you get the photos either way.",
+    "cta": "Unlock for free",
+    "sending": "Unlocking…",
+    "cancel": "Cancel",
+    "doneTitle": "Unlocked",
+    "doneBody": "You can now analyse {photos} photos in one run. Thanks for taking part in the beta.",
+    "doneCta": "Get started",
+    "errorRateLimited": "Too many attempts. Please try again later.",
+    "errorGeneric": "That did not work. Please try again."
   }
 }

@@ -17,13 +17,15 @@ import { LegalModal } from '@/components/legal/LegalModal';
  * Bundling them into one box would make both hard to evidence and is exactly
  * what we untangled on the configure page.
  *
- * ⚠️ BLOCKER before enabling Stripe: **there is no Widerrufsbelehrung yet.**
- * `/[locale]/terms` covers a free beta ("AuswahlBuddy wird derzeit als
- * kostenlose Beta bereitgestellt", §2) and has no withdrawal section and no
- * Muster-Widerrufsformular. Collecting the consent below without providing the
- * policy it refers to does not satisfy Art. 246a EGBGB — the withdrawal period
- * does not start, and it can run for up to a year. The link therefore points at
- * the terms and is labelled as such until that section exists.
+ * The Widerrufsbelehrung that consent refers to now exists — terms §4, with the
+ * Muster-Widerrufsformular and the online withdrawal function (§ 356a BGB).
+ *
+ * ⚠️ Still open before enabling Stripe: the confirmation of the contract in
+ * text form. § 356 Abs. 5 BGB lets the withdrawal right expire early only if,
+ * on top of the two declarations below, that confirmation was provided. It is
+ * sent from the Stripe webhook (`sendOrderConfirmation`) — so if that mail is
+ * ever disabled or silently fails, this dialogue is collecting a consent that
+ * no longer achieves anything.
  */
 export function CheckoutConfirm({
   tierLabel,

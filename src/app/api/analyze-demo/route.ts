@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
 
     const { data: job } = await supabase
       .from('jobs')
-      .select('id, user_id, tier, photo_count, photo_limit, payment_status, expires_at')
+      .select('id, user_id, tier, photo_count, photo_limit, payment_status, expires_at, beta_grant')
       .eq('id', jobId)
       .single();
 
@@ -127,7 +127,16 @@ export async function POST(request: NextRequest) {
     if (job.expires_at && new Date(job.expires_at) < new Date()) {
       return NextResponse.json({ error: ACCESS_ERRORS.jobRequired }, { status: 410 });
     }
-    if (job.tier !== 'free' && job.payment_status !== 'paid' && !betaOpenAccess()) {
+    // A beta grant settles a paid tier without a payment — it is the offer the
+    // tester accepted instead of buying. It has to survive BETA_OPEN_ACCESS=0,
+    // otherwise switching the beta off at sales launch would silently revoke
+    // allowances we already handed out.
+    if (
+      job.tier !== 'free' &&
+      job.payment_status !== 'paid' &&
+      !job.beta_grant &&
+      !betaOpenAccess()
+    ) {
       return NextResponse.json({ error: ACCESS_ERRORS.paymentRequired }, { status: 402 });
     }
     // The tier's photo limit, enforced across the whole job rather than per
@@ -167,9 +176,19 @@ export async function POST(request: NextRequest) {
     // Per-IP daily photo cap — stops a single client draining the budget.
     // reserve-then-check: we allow the request that crosses the line, block the
     // next (best-effort; exact fairness isn't worth a lock here).
-    if (BETA_IP_DAILY_PHOTO_CAP > 0) {
+    //
+    // A granted job raises its own ceiling to the allowance it was promised.
+    // The default cap is 750/day and the smallest grant is 1,000, so leaving it
+    // alone would refuse the offer we just made — the tester would be stopped
+    // three quarters of the way through the run they were invited to make.
+    // The grant is one per account and an account needs a confirmed address, so
+    // the ceiling cannot simply be reached again tomorrow by the same person.
+    const ipCap = job.beta_grant
+      ? Math.max(BETA_IP_DAILY_PHOTO_CAP, job.photo_limit)
+      : BETA_IP_DAILY_PHOTO_CAP;
+    if (ipCap > 0) {
       const ipTotal = await reserveIpDailyPhotos(ip, files.length);
-      if (ipTotal != null && ipTotal - files.length >= BETA_IP_DAILY_PHOTO_CAP) {
+      if (ipTotal != null && ipTotal - files.length >= ipCap) {
         return NextResponse.json(
           { error: 'Daily limit reached for this connection. Please try again tomorrow.' },
           { status: 429, headers: { 'Retry-After': '3600' } }

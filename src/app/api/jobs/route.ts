@@ -45,8 +45,22 @@ export async function POST(request: NextRequest) {
     // a single token is spent. `photoCount` is advisory (the client's plan for
     // this run); the per-request and per-IP caps in the analysis route remain
     // the hard guards.
+    //
+    // Skipped for a tier the user unlocked as a beta grant: the allowance is
+    // larger than the per-IP daily cap by design, so pre-flighting it against
+    // that cap would refuse the very run we invited them to make. The analysis
+    // route raises the same ceiling for granted jobs.
     const photoCount = Number((body as { photoCount?: number }).photoCount ?? 0);
-    if (photoCount > 0) {
+    let granted = false;
+    if (body.tier !== 'free') {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('beta_grant_tier')
+        .eq('id', user.id)
+        .maybeSingle();
+      granted = profile?.beta_grant_tier === body.tier;
+    }
+    if (photoCount > 0 && !granted) {
       const remaining = await remainingPhotoBudget(clientIp(request));
       if (remaining != null && photoCount > remaining) {
         return NextResponse.json(

@@ -60,7 +60,10 @@
       "customCriteria": "Eigene Kriterien (bis zu 7)"
     },
     "cta": "Jetzt starten",
-    "oneTimeUse": "Einmalige Nutzung"
+    "oneTimeUse": "Einmalige Nutzung",
+    "inclVat": "inkl. MwSt.",
+    "betaCta": "In der Beta kostenlos testen",
+    "plannedPrice": "Geplanter Preis — noch nicht buchbar"
   },
   "upload": {
     "title": "Lade deine Reisefotos hoch",
@@ -344,5 +347,20 @@
     "cancel": "Abbrechen",
     "failed": "Bezahlvorgang konnte nicht gestartet werden: {error}",
     "notYetAvailable": "Kauf noch nicht freigeschaltet"
+  },
+  "betaOffer": {
+    "title": "Danke für dein Interesse",
+    "body": "Die Bezahlfunktion ist noch nicht aktiv. Während der Beta-Testphase schalten wir dir stattdessen gerne {photos} Fotos kostenlos frei — genau die Menge aus dem Tarif {tier}. Einmalig je Konto.",
+    "feedbackLabel": "Was hättest du dir hier erhofft?",
+    "feedbackPlaceholder": "Wie war dein Eindruck bisher? Was fehlt dir? Was würdest du zahlen?",
+    "feedbackOptional": "Freiwillig — du bekommst die Fotos auch ohne Antwort.",
+    "cta": "Kostenlos freischalten",
+    "sending": "Wird freigeschaltet…",
+    "cancel": "Abbrechen",
+    "doneTitle": "Freigeschaltet",
+    "doneBody": "Du kannst jetzt {photos} Fotos in einem Durchgang analysieren. Danke, dass du die Beta mitmachst.",
+    "doneCta": "Los geht’s",
+    "errorRateLimited": "Zu viele Versuche. Bitte versuch es später noch einmal.",
+    "errorGeneric": "Das hat leider nicht geklappt. Bitte versuch es erneut."
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe/client';
 import { createAdminClient } from '@/lib/supabase/server';
 import { JobManager } from '@/services/job-manager';
+import { emailConfigured, sendOrderConfirmation } from '@/lib/email';
 import type Stripe from 'stripe';
 
 /**
@@ -33,13 +34,30 @@ export async function POST(request: NextRequest) {
 
   try {
     switch (event.type) {
-      case 'checkout.session.completed': {
+      // `completed` fires as soon as checkout finishes. For card payments that
+      // means the money is there; for delayed methods (SEPA direct debit, some
+      // bank redirects) it does not, and the confirmation arrives later as
+      // `async_payment_succeeded`. Handling only the first would leave a paying
+      // customer with an unpaid job; handling only the second would break
+      // cards. Both, and the write is idempotent, so a redelivery is harmless.
+      case 'checkout.session.completed':
+      case 'checkout.session.async_payment_succeeded': {
         const session = event.data.object as Stripe.Checkout.Session;
         const jobId = session.metadata?.jobId;
         const userId = session.metadata?.userId;
 
         if (!jobId || !userId) {
           console.error('Webhook: Missing jobId or userId in metadata');
+          break;
+        }
+
+        // A delayed method that has not cleared yet: acknowledge the event so
+        // Stripe stops retrying, but do not unlock the job.
+        if (
+          event.type === 'checkout.session.completed' &&
+          session.payment_status === 'unpaid'
+        ) {
+          console.log(`[Webhook] Job ${jobId}: payment pending, waiting for async confirmation`);
           break;
         }
 
@@ -50,6 +68,51 @@ export async function POST(request: NextRequest) {
         await jobManager.updatePaymentStatus(jobId, 'paid', session.id);
 
         console.log(`[Webhook] Job ${jobId} marked as paid`);
+
+        // § 312f BGB confirmation. It is also the third condition for the
+        // withdrawal right to expire early under § 356 Abs. 5 — without it the
+        // customer keeps the right after the analysis has run. Failing to send
+        // it must therefore be loud, not a silent warning in a log nobody
+        // reads. The payment itself stays valid either way; we do not fail the
+        // webhook, because Stripe would retry and we would re-confirm a job
+        // that is already unlocked.
+        try {
+          const { data: job } = await db
+            .from('jobs')
+            .select('tier, photo_limit')
+            .eq('id', jobId)
+            .maybeSingle();
+          const { data: profile } = await db
+            .from('profiles')
+            .select('email, locale')
+            .eq('id', userId)
+            .maybeSingle();
+
+          const to = session.customer_details?.email || profile?.email || '';
+          const locale = profile?.locale === 'de' ? 'de' : 'en';
+
+          if (!to) {
+            console.error(`[Webhook] Job ${jobId}: no address for the order confirmation`);
+          } else if (!emailConfigured()) {
+            console.error(`[Webhook] Job ${jobId}: RESEND_API_KEY unset, confirmation NOT sent`);
+          } else {
+            const ok = await sendOrderConfirmation({
+              to,
+              tierLabel: String(job?.tier ?? session.metadata?.tier ?? ''),
+              photoLimit: Number(job?.photo_limit ?? 0),
+              amountGrossCents: session.amount_total ?? 0,
+              currency: session.currency ?? 'eur',
+              orderRef: session.id,
+              placedAt: new Date(),
+              locale,
+            });
+            if (!ok) {
+              console.error(`[Webhook] Job ${jobId}: order confirmation FAILED to send to ${to}`);
+            }
+          }
+        } catch (mailErr) {
+          console.error(`[Webhook] Job ${jobId}: order confirmation error:`, mailErr);
+        }
         break;
       }
 

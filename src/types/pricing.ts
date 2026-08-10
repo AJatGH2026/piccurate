@@ -1,5 +1,20 @@
 import type { Tier } from './job';
 
+/**
+ * Price as a consumer must see it: gross, in the locale's own notation.
+ *
+ * `priceDisplay` below is a fixed "€4.99" string, which is wrong for a German
+ * buyer — the PAngV wants the final price, and German writes "4,99 €". Use this
+ * wherever a price is shown to a user; keep `priceDisplay` only for places that
+ * are not customer-facing.
+ */
+export function formatPrice(cents: number, locale: string): string {
+  return new Intl.NumberFormat(locale === 'de' ? 'de-DE' : 'en-IE', {
+    style: 'currency',
+    currency: 'EUR',
+  }).format(cents / 100);
+}
+
 export interface PricingPlan {
   tier: Tier;
   photoLimit: number;
