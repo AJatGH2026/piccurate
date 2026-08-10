@@ -31,6 +31,17 @@ export default function RegisterPage() {
     const supabase = createClient();
     const appUrl = clientConfig.appUrl;
 
+    // Note on the success screen below: signUp does NOT report an error when
+    // the address already has a confirmed account. Supabase suppresses it on
+    // purpose, so that nobody can test an address list against us to learn who
+    // has an account here. (The tell is `data.user.identities === []`, which we
+    // deliberately do not act on.)
+    //
+    // The consequence is that we cannot know whether a mail went out, so the
+    // confirmation text must not claim one did — it says "if there is no
+    // account yet, a mail is on its way, otherwise just log in". Please keep it
+    // conditional: the previous wording promised a mail unconditionally and
+    // left people waiting for one that was never sent.
     const { error: authError } = await supabase.auth.signUp({
       email,
       password,

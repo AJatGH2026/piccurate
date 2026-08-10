@@ -232,8 +232,8 @@
     "gdprConsent": "Ich stimme den {terms} und der {privacy} zu. Meine Fotos werden von KI für die Kuration verarbeitet. Ich kann meine Daten jederzeit löschen.",
     "termsLink": "Nutzungsbedingungen",
     "privacyLink": "Datenschutzerklärung",
-    "checkEmailTitle": "Prüf deine E-Mails",
-    "checkEmailDesc": "Wir haben einen Bestätigungslink an {email} gesendet. Bitte prüf dein Postfach und klick auf den Link, um dein Konto zu aktivieren.",
+    "checkEmailTitle": "Fast geschafft",
+    "checkEmailDesc": "Falls es für {email} noch kein Konto gibt, ist jetzt eine Bestätigungsmail unterwegs — klick den Link darin, um dein Konto zu aktivieren. Besteht zu dieser Adresse bereits ein Konto, senden wir keine Mail: melde dich dann einfach an.",
     "confirmedBanner": "Deine E-Mail ist bestätigt — bitte melde dich an.",
     "confirmErrorBanner": "Dieser Bestätigungslink ist ungültig oder abgelaufen. Bitte melde dich an oder registriere dich erneut."
   },
