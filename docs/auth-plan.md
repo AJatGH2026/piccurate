@@ -79,9 +79,11 @@ the two flows differ on purpose.
 ## Password reset — added 2026-08-10
 
 Shipped *"feat(auth): add the password reset that the neutral signup text now
-points at"*. Verified on shortlistbuddy.com: link clicked, password changed. The
-counter-cases (link reused, link opened in a different browser, address with no
-account) were checked locally only.
+points at"*. Fully verified on shortlistbuddy.com: link clicked and password
+changed, **and** the three counter-cases — link reused, link opened in a
+different browser, request for an address with no account. All three refuse
+correctly. The rejection path is therefore proven in production, not inferred;
+treat it as load-bearing before loosening the browser binding.
 
 Why it became urgent: the register confirmation text was made
 enumeration-neutral earlier the same day (*"fix(auth): stop promising a
