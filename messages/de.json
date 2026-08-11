@@ -44,7 +44,7 @@
   },
   "pricing": {
     "title": "Einfache Preise",
-    "subtitle": "In der Beta kostenlos. Die geplanten Preise siehst du unten — buchbar sind sie noch nicht.",
+    "subtitle": "Die geplanten Preise. Buchbar sind sie noch nicht — die Bezahlfunktion kommt nach der Beta.",
     "free": "Kostenlos",
     "freeBadge": "Testen",
     "small": "Klein",
@@ -57,14 +57,15 @@
       "allCriteria": "Alle KI-Kriterien",
       "reviewAdjust": "Prüfen & Anpassen",
       "downloadZip": "ZIP herunterladen",
-      "customCriteria": "Eigene Kriterien (bis zu 7)",
-      "personSearch": "Personensuche (bis zu 4 Personen)"
+      "customCriteria": "Eigene Auswahlkriterien",
+      "personSearch": "Referenz-Personensuche"
     },
     "cta": "Jetzt starten",
     "oneTimeUse": "Einmalige Nutzung",
     "inclVat": "inkl. MwSt.",
-    "betaCta": "In der Beta kostenlos testen",
-    "plannedPrice": "Geplanter Preis — noch nicht buchbar"
+    "plannedPrice": "Geplanter Preis — noch nicht buchbar",
+    "priceNote": "inkl. MwSt. pro Nutzung",
+    "choosePlan": "Tarif wählen"
   },
   "upload": {
     "title": "Lade deine Reisefotos hoch",
@@ -351,7 +352,7 @@
   },
   "betaOffer": {
     "title": "Danke für dein Interesse",
-    "body": "Die Bezahlfunktion ist noch nicht aktiv. Während der Beta-Testphase schalten wir dir stattdessen gerne {photos} Fotos kostenlos frei — genau die Menge aus dem Tarif {tier}. Einmalig je Konto.",
+    "body": "Die Bezahlfunktion ist während der Beta noch nicht aktiv. Als Dankeschön fürs Interesse schalten wir dir den Tarif {tier} mit {photos} Fotos einmalig kostenlos frei.",
     "feedbackLabel": "Was hättest du dir hier erhofft?",
     "feedbackPlaceholder": "Wie war dein Eindruck bisher? Was fehlt dir? Was würdest du zahlen?",
     "feedbackOptional": "Freiwillig — du bekommst die Fotos auch ohne Antwort.",
@@ -363,9 +364,14 @@
     "doneCta": "Los geht’s",
     "errorRateLimited": "Zu viele Versuche. Bitte versuch es später noch einmal.",
     "errorGeneric": "Das hat leider nicht geklappt. Bitte versuch es erneut.",
-    "accountTitle": "Dafür brauchst du ein Konto",
-    "accountBody": "Die {photos} Freibilder hängen an deinem Konto — sonst wären sie weg, sobald du den Browser schließt. Melde dich an oder registriere dich; danach kommst du hierher zurück und das Angebot steht wieder offen.",
+    "accountTitle": "Kostenlos testen statt bezahlen",
+    "accountBody": "Die Bezahlfunktion ist während der Beta noch nicht aktiv. Stattdessen schalten wir dir gern {photos} Fotos kostenlos frei — einmalig, und nur für einen Tarif. Dafür brauchst du ein Konto: Ohne wäre die Freischaltung weg, sobald du den Browser schließt. Danach kommst du hierher zurück.",
     "accountLogin": "Anmelden",
-    "accountRegister": "Neues Konto erstellen"
+    "accountRegister": "Neues Konto erstellen",
+    "checking": "Einen Moment…",
+    "onlyOne": "Du kannst genau einen Tarif freischalten — danach ist das Angebot verbraucht. Wähl also den, der zu deiner Fotomenge passt.",
+    "alreadyTitle": "Du hast schon freigeschaltet",
+    "alreadyBody": "Für dein Konto ist bereits der Tarif {tier} mit {photos} Fotos freigeschaltet. Das Angebot gilt einmal je Konto, ein zweiter Tarif ist nicht möglich.",
+    "alreadyCta": "Verstanden"
   }
 }

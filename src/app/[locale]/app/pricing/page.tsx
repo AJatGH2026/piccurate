@@ -82,6 +82,9 @@ export default function PricingPage() {
   // a paid-only feature per the pricing plan (see product-pipeline.md §9.3).
   // The technical enforcement is wired in at sales launch — until then the
   // feature is open for testers but the pricing copy already says paid-only.
+  const tierLabel = (tier: string) =>
+    tier === 'free' ? t('free') : tier === 'small' ? t('small') : tier === 'medium' ? t('medium') : t('large');
+
   const baseFeatures = [t('features.allCriteria'), t('features.reviewAdjust'), t('features.downloadZip')];
   const plans = PRICING_PLANS.map((plan) => ({
     ...plan,
@@ -117,21 +120,16 @@ export default function PricingPage() {
               <h3 className="text-lg font-semibold">
                 {plan.tier === 'free' ? t('free') : plan.tier === 'small' ? t('small') : plan.tier === 'medium' ? t('medium') : t('large')}
               </h3>
-              <div className="mt-3">
-                <span className="text-3xl font-bold">
-                  {plan.tier === 'free' ? t('free') : formatPrice(plan.priceEurCents, locale)}
-                </span>
-                {plan.tier !== 'free' && (
-                  <span className={`ml-1 text-sm ${plan.highlight ? 'text-indigo-200' : 'text-zinc-500'}`}>
-                    {t('perUse')}
-                  </span>
-                )}
+              {/* Amount on its own line, the qualifier underneath. PAngV wants
+                  the VAT statement on the price itself, not three steps further
+                  down the funnel — but crowding it onto the same line as the
+                  figure made the figure hard to read. */}
+              <div className="mt-3 text-3xl font-bold">
+                {plan.tier === 'free' ? t('free') : formatPrice(plan.priceEurCents, locale)}
               </div>
-              {/* PAngV: the VAT statement belongs on the price itself, not only
-                  in the order dialogue further down the funnel. */}
               {plan.tier !== 'free' && (
                 <p className={`text-xs ${plan.highlight ? 'text-indigo-200' : 'text-zinc-500'}`}>
-                  {t('inclVat')}
+                  {t('priceNote')}
                 </p>
               )}
               <p className={`mt-1 text-sm ${plan.highlight ? 'text-indigo-200' : 'text-zinc-500'}`}>
@@ -187,6 +185,12 @@ export default function PricingPage() {
                 // people reach for. Flips to real checkout by itself the moment
                 // the price ids are configured.
                 <>
+                  {/* Neutral label on purpose. Advertising "free in the beta"
+                      here would make the free plan pointless and push everyone
+                      at the largest box; the allowance is a reward for reaching
+                      for a paid tier, so it lives inside the dialogue. The note
+                      below still says plainly that the tier is not bookable, so
+                      the button promises nothing it cannot deliver. */}
                   <button
                     onClick={() => setOffer(plan.tier as 'small' | 'medium' | 'large')}
                     className={`mt-6 w-full text-center rounded-full py-2.5 text-sm font-semibold transition-colors ${
@@ -195,7 +199,7 @@ export default function PricingPage() {
                         : 'bg-indigo-600 text-white hover:bg-indigo-700'
                     }`}
                   >
-                    {t('betaCta')}
+                    {t('choosePlan')}
                   </button>
                   <p
                     className={`mt-2 text-center text-xs ${
@@ -227,12 +231,18 @@ export default function PricingPage() {
         )}
 
         {offer && (
+          // Keyed by tier: moving to another card must rebuild the dialogue.
+          // Without this it kept the previous tier's resolved state, so a second
+          // click showed "unlocked" with the first tier's photo count against
+          // the new tier's name.
           <BetaOfferDialog
+            key={offer}
             tier={offer}
-            tierLabel={offer === 'small' ? t('small') : offer === 'medium' ? t('medium') : t('large')}
+            tierLabel={tierLabel(offer)}
             photoLimit={PRICING_PLANS.find((p) => p.tier === offer)!.photoLimit}
             locale={locale}
             photoCount={photoCount}
+            labelFor={tierLabel}
             onClose={() => setOffer(null)}
           />
         )}

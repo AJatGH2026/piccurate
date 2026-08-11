@@ -332,7 +332,7 @@ function PricingSection({ locale }: { locale: string }) {
         p.tier === 'free'
           ? ['allCriteria', 'reviewAdjust', 'downloadZip']
           : ['allCriteria', 'reviewAdjust', 'downloadZip', 'customCriteria', 'personSearch'],
-      note: p.tier === 'free' ? t('oneTimeUse') : t('perUse'),
+      note: p.tier === 'free' ? t('oneTimeUse') : t('priceNote'),
     };
   });
 
@@ -365,21 +365,12 @@ function PricingSection({ locale }: { locale: string }) {
                   </span>
                 )}
               </div>
-              <div className="mt-4">
-                <span className="text-3xl font-bold">{plan.price}</span>
-                {plan.note && (
-                  <span
-                    className={`ml-1 text-sm ${
-                      plan.highlight ? 'text-indigo-200' : 'text-zinc-500'
-                    }`}
-                  >
-                    {plan.note}
-                  </span>
-                )}
-              </div>
-              {plan.tier !== 'free' && (
+              {/* Amount on its own line, the qualifier underneath — same shape
+                  as the in-app pricing page, so the two do not disagree. */}
+              <div className="mt-4 text-3xl font-bold">{plan.price}</div>
+              {plan.note && (
                 <p className={`text-xs ${plan.highlight ? 'text-indigo-200' : 'text-zinc-500'}`}>
-                  {t('inclVat')}
+                  {plan.note}
                 </p>
               )}
               <p
@@ -407,7 +398,7 @@ function PricingSection({ locale }: { locale: string }) {
                     : 'bg-indigo-600 text-white hover:bg-indigo-700'
                 }`}
               >
-                {plan.bookable ? t('cta') : t('betaCta')}
+                {plan.bookable ? t('cta') : t('choosePlan')}
               </Link>
               {!plan.bookable && (
                 <p

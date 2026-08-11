@@ -44,7 +44,7 @@
   },
   "pricing": {
     "title": "Simple pricing",
-    "subtitle": "Free during the beta. The planned prices are below — they are not bookable yet.",
+    "subtitle": "The planned prices. They are not bookable yet — payment arrives after the beta.",
     "free": "Free",
     "freeBadge": "Try it",
     "small": "Small",
@@ -57,14 +57,15 @@
       "allCriteria": "All AI criteria",
       "reviewAdjust": "Review & adjust",
       "downloadZip": "Download ZIP",
-      "customCriteria": "Your own criteria (up to 7)",
-      "personSearch": "Person search (up to 4 people)"
+      "customCriteria": "Your own selection criteria",
+      "personSearch": "Reference person search"
     },
     "cta": "Get started",
     "oneTimeUse": "One-time use",
     "inclVat": "incl. VAT",
-    "betaCta": "Try it free in the beta",
-    "plannedPrice": "Planned price — not bookable yet"
+    "plannedPrice": "Planned price — not bookable yet",
+    "priceNote": "incl. VAT per use",
+    "choosePlan": "Choose plan"
   },
   "upload": {
     "title": "Upload your travel photos",
@@ -351,7 +352,7 @@
   },
   "betaOffer": {
     "title": "Thanks for your interest",
-    "body": "Payment is not active yet. During the beta we are happy to unlock {photos} photos for you free of charge instead — exactly the allowance of the {tier} plan. Once per account.",
+    "body": "Payment is not active yet during the beta. As a thank-you for your interest we will unlock the {tier} plan with {photos} photos for you, once, free of charge.",
     "feedbackLabel": "What were you hoping for here?",
     "feedbackPlaceholder": "How has it felt so far? What is missing? What would you pay?",
     "feedbackOptional": "Optional — you get the photos either way.",
@@ -363,9 +364,14 @@
     "doneCta": "Get started",
     "errorRateLimited": "Too many attempts. Please try again later.",
     "errorGeneric": "That did not work. Please try again.",
-    "accountTitle": "This needs an account",
-    "accountBody": "The {photos} free photos are tied to your account — otherwise they would be gone the moment you close the browser. Log in or sign up; you will come back here and the offer will still be waiting.",
+    "accountTitle": "Test it free instead of paying",
+    "accountBody": "Payment is not active yet during the beta. Instead we are happy to unlock {photos} photos for you free of charge — once, and for one plan only. That needs an account: without one the unlock would be gone the moment you close the browser. You will come back here afterwards.",
     "accountLogin": "Log in",
-    "accountRegister": "Create an account"
+    "accountRegister": "Create an account",
+    "checking": "One moment…",
+    "onlyOne": "You can unlock exactly one plan — after that the offer is used up. So pick the one that matches how many photos you have.",
+    "alreadyTitle": "You have already unlocked a plan",
+    "alreadyBody": "Your account already has the {tier} plan with {photos} photos unlocked. The offer applies once per account; a second plan is not possible.",
+    "alreadyCta": "Got it"
   }
 }
