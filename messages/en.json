@@ -44,7 +44,7 @@
   },
   "pricing": {
     "title": "Simple pricing",
-    "subtitle": "The planned prices. They are not bookable yet — payment arrives after the beta.",
+    "subtitle": "The planned prices. Payment goes live after the beta phase.",
     "free": "Free",
     "freeBadge": "Try it",
     "small": "Small",
@@ -65,7 +65,8 @@
     "inclVat": "incl. VAT",
     "plannedPrice": "Planned price — not bookable yet",
     "priceNote": "incl. VAT per use",
-    "choosePlan": "Choose plan"
+    "choosePlan": "Choose plan",
+    "freeTitle": "Free plan"
   },
   "upload": {
     "title": "Upload your travel photos",
@@ -91,7 +92,8 @@
     "dbxDeselectAll": "Deselect all",
     "dbxShiftHint": "Shift-click selects a range",
     "dbxAllFailed": "Couldn't download from Dropbox ({reason}). Please retry.",
-    "dbxSomeFailed": "{count} of {total} downloads failed — importing the rest."
+    "dbxSomeFailed": "{count} of {total} downloads failed — importing the rest.",
+    "allowance": "Your allowance: {photos} photos"
   },
   "criteria": {
     "title": "Configure selection criteria",
@@ -360,8 +362,8 @@
     "sending": "Unlocking…",
     "cancel": "Cancel",
     "doneTitle": "Unlocked",
-    "doneBody": "You can now analyse {photos} photos in one run. Thanks for taking part in the beta.",
-    "doneCta": "Get started",
+    "doneBody": "You can now analyse {photos} photos in one run. We will take you to the upload next.",
+    "doneCta": "Continue to upload",
     "errorRateLimited": "Too many attempts. Please try again later.",
     "errorGeneric": "That did not work. Please try again.",
     "accountTitle": "Test it free instead of paying",
@@ -370,8 +372,9 @@
     "accountRegister": "Create an account",
     "checking": "One moment…",
     "onlyOne": "You can unlock exactly one plan — after that the offer is used up. So pick the one that matches how many photos you have.",
-    "alreadyTitle": "You have already unlocked a plan",
+    "alreadyTitle": "You already have a free allowance",
     "alreadyBody": "Your account already has the {tier} plan with {photos} photos unlocked. The offer applies once per account; a second plan is not possible.",
-    "alreadyCta": "Got it"
+    "alreadyCta": "Got it",
+    "home": "Back to home"
   }
 }

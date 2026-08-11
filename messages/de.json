@@ -44,7 +44,7 @@
   },
   "pricing": {
     "title": "Einfache Preise",
-    "subtitle": "Die geplanten Preise. Buchbar sind sie noch nicht — die Bezahlfunktion kommt nach der Beta.",
+    "subtitle": "Die geplanten Preise. Start der Bezahlfunktion nach der Beta-Phase.",
     "free": "Kostenlos",
     "freeBadge": "Testen",
     "small": "Klein",
@@ -65,7 +65,8 @@
     "inclVat": "inkl. MwSt.",
     "plannedPrice": "Geplanter Preis — noch nicht buchbar",
     "priceNote": "inkl. MwSt. pro Nutzung",
-    "choosePlan": "Tarif wählen"
+    "choosePlan": "Tarif wählen",
+    "freeTitle": "Gratis"
   },
   "upload": {
     "title": "Lade deine Reisefotos hoch",
@@ -91,7 +92,8 @@
     "dbxDeselectAll": "Auswahl aufheben",
     "dbxShiftHint": "Shift-Klick wählt einen Bereich",
     "dbxAllFailed": "Download von Dropbox fehlgeschlagen ({reason}). Bitte erneut versuchen.",
-    "dbxSomeFailed": "{count} von {total} Downloads fehlgeschlagen — die übrigen werden importiert."
+    "dbxSomeFailed": "{count} von {total} Downloads fehlgeschlagen — die übrigen werden importiert.",
+    "allowance": "Dein Kontingent: {photos} Fotos"
   },
   "criteria": {
     "title": "Auswahlkriterien konfigurieren",
@@ -360,8 +362,8 @@
     "sending": "Wird freigeschaltet…",
     "cancel": "Abbrechen",
     "doneTitle": "Freigeschaltet",
-    "doneBody": "Du kannst jetzt {photos} Fotos in einem Durchgang analysieren. Danke, dass du die Beta mitmachst.",
-    "doneCta": "Los geht’s",
+    "doneBody": "Du kannst jetzt {photos} Fotos in einem Durchgang analysieren. Wir bringen dich gleich zum Hochladen.",
+    "doneCta": "Weiter zum Hochladen",
     "errorRateLimited": "Zu viele Versuche. Bitte versuch es später noch einmal.",
     "errorGeneric": "Das hat leider nicht geklappt. Bitte versuch es erneut.",
     "accountTitle": "Kostenlos testen statt bezahlen",
@@ -370,8 +372,9 @@
     "accountRegister": "Neues Konto erstellen",
     "checking": "Einen Moment…",
     "onlyOne": "Du kannst genau einen Tarif freischalten — danach ist das Angebot verbraucht. Wähl also den, der zu deiner Fotomenge passt.",
-    "alreadyTitle": "Du hast schon freigeschaltet",
+    "alreadyTitle": "Dir wurde schon ein Freikontingent freigeschaltet",
     "alreadyBody": "Für dein Konto ist bereits der Tarif {tier} mit {photos} Fotos freigeschaltet. Das Angebot gilt einmal je Konto, ein zweiter Tarif ist nicht möglich.",
-    "alreadyCta": "Verstanden"
+    "alreadyCta": "Verstanden",
+    "home": "Zur Startseite"
   }
 }

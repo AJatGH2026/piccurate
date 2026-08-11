@@ -117,8 +117,10 @@ export default function PricingPage() {
                   : 'bg-white dark:bg-zinc-800 ring-1 ring-zinc-200 dark:ring-zinc-700'
               }`}
             >
+              {/* "Gratis" up top, "Kostenlos" as the price — the card used to
+                  say the same word twice and read like a stutter. */}
               <h3 className="text-lg font-semibold">
-                {plan.tier === 'free' ? t('free') : plan.tier === 'small' ? t('small') : plan.tier === 'medium' ? t('medium') : t('large')}
+                {plan.tier === 'free' ? t('freeTitle') : tierLabel(plan.tier)}
               </h3>
               {/* Amount on its own line, the qualifier underneath. PAngV wants
                   the VAT statement on the price itself, not three steps further
@@ -132,14 +134,18 @@ export default function PricingPage() {
                   {t('priceNote')}
                 </p>
               )}
-              <p className={`mt-1 text-sm ${plan.highlight ? 'text-indigo-200' : 'text-zinc-500'}`}>
-                {/* The locale is not optional here. Without it toLocaleString
-                    uses the *runtime* locale — en-US on the server, de in a
-                    German browser — so the server sent "1,000" and the client
-                    rendered "1.000". React treats that as a hydration mismatch
-                    (#418), bails out, and every click handler on this page is
-                    never attached: the tier buttons and the offer dialogue
-                    silently did nothing. */}
+              {/* After the price, the photo count is what people actually
+                  compare tiers on, so it carries the same weight as the tier
+                  name instead of hiding in grey small print.
+
+                  The locale is not optional here. Without it toLocaleString
+                  uses the *runtime* locale — en-US on the server, de in a
+                  German browser — so the server sent "1,000" and the client
+                  rendered "1.000". React treats that as a hydration mismatch
+                  (#418), bails out, and every click handler on this page is
+                  never attached: the tier buttons and the offer dialogue
+                  silently did nothing. */}
+              <p className={`mt-3 text-lg font-semibold ${plan.highlight ? 'text-white' : 'text-zinc-900 dark:text-zinc-100'}`}>
                 {t('photosUpTo', { count: plan.photoLimit.toLocaleString(locale) })}
               </p>
               {plan.tier === 'free' && (
@@ -201,13 +207,12 @@ export default function PricingPage() {
                   >
                     {t('choosePlan')}
                   </button>
-                  <p
-                    className={`mt-2 text-center text-xs ${
-                      plan.highlight ? 'text-indigo-200' : 'text-zinc-500'
-                    }`}
-                  >
-                    {t('plannedPrice')}
-                  </p>
+                  {/* The "not bookable yet" disclosure lives in the section
+                      subtitle above, once, rather than four times under four
+                      buttons where it read as a warning not to click. It stays
+                      on the first level — § 5a UWG is about withholding a
+                      material fact, not about repeating it — and the dialogue
+                      says it again before anything can happen. */}
                 </>
               )}
             </div>

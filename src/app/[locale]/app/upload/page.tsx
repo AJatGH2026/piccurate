@@ -10,10 +10,11 @@ import { DropboxImport } from '@/components/upload/DropboxImport';
 import { dropboxConfigured } from '@/lib/cloud/dropbox';
 import { useEffect, useState } from 'react';
 import type { Tier } from '@/types/job';
-import { PRICING_PLANS, formatPrice } from '@/types/pricing';
+import { PRICING_PLANS } from '@/types/pricing';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { usePhotoStore } from '@/hooks/usePhotoStore';
+import { createClient } from '@/lib/supabase/client';
 import { logBeta } from '@/lib/beta-client';
 
 const DEFAULT_TIER: Tier = 'free';
@@ -26,7 +27,37 @@ export default function UploadPage() {
   const router = useRouter();
   const locale = params.locale as string;
   useEffect(() => { logBeta('upload'); }, []);
-  const [currentTier] = useState<Tier>(DEFAULT_TIER);
+  // The tier decides how many photos may be uploaded, so it cannot stay pinned
+  // to "free": a tester who unlocked 1,000 was still told 250 and stopped
+  // there. Read from the account's beta grant; falls back to free while the
+  // lookup is in flight or when there is none.
+  const [currentTier, setCurrentTier] = useState<Tier>(DEFAULT_TIER);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user || user.is_anonymous) return;
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('beta_grant_tier')
+          .eq('id', user.id)
+          .maybeSingle();
+        const granted = profile?.beta_grant_tier as Tier | null | undefined;
+        if (!cancelled && granted && PRICING_PLANS.some((p) => p.tier === granted)) {
+          setCurrentTier(granted);
+        }
+      } catch {
+        /* keep the free default — the server enforces the real limit anyway */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [showDropbox, setShowDropbox] = useState(false);
   const setPhotosFromUpload = usePhotoStore((s) => s.setPhotosFromUpload);
 
@@ -81,8 +112,17 @@ export default function UploadPage() {
               en-US and the browser in the user's own locale, which is a
               hydration mismatch and costs this page every click handler.
               See the note in app/pricing. */}
-          {plan.tier === 'free' ? tp('free') : formatPrice(plan.priceEurCents, locale)} &middot;{' '}
-          {t('supported', { limit: maxPhotos.toLocaleString(locale) })}
+          {/* The tier name, not its price: a granted tier was not paid for, and
+              putting "7,99 €" above someone's free allowance invites the
+              question of when they will be charged. */}
+          {plan.tier === 'free'
+            ? tp('freeTitle')
+            : plan.tier === 'small'
+              ? tp('small')
+              : plan.tier === 'medium'
+                ? tp('medium')
+                : tp('large')}{' '}
+          &middot; {t('allowance', { photos: maxPhotos.toLocaleString(locale) })}
         </div>
 
         {/* Drop zone */}

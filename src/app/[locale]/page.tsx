@@ -308,7 +308,7 @@ function PricingSection({ locale }: { locale: string }) {
   //     is off, and a card that says "Jetzt starten" over a price nobody can pay
   //     is the easiest misleading-advertising screenshot on the site.
   const label = (tier: string) =>
-    tier === 'free' ? t('free') : tier === 'small' ? t('small') : tier === 'medium' ? t('medium') : t('large');
+    tier === 'free' ? t('freeTitle') : tier === 'small' ? t('small') : tier === 'medium' ? t('medium') : t('large');
 
   const plans = PRICING_PLANS.map((p) => {
     const bookable = p.tier === 'free' || Boolean(p.stripePriceId);
@@ -373,9 +373,11 @@ function PricingSection({ locale }: { locale: string }) {
                   {plan.note}
                 </p>
               )}
+              {/* Same weight as the tier name: after the price, the photo count
+                  is what tiers are actually compared on. */}
               <p
-                className={`mt-1 text-sm ${
-                  plan.highlight ? 'text-indigo-200' : 'text-zinc-500'
+                className={`mt-3 text-lg font-semibold ${
+                  plan.highlight ? 'text-white' : 'text-zinc-900 dark:text-zinc-100'
                 }`}
               >
                 {t('photosUpTo', { count: plan.photos.toLocaleString(locale) })}
@@ -400,15 +402,9 @@ function PricingSection({ locale }: { locale: string }) {
               >
                 {plan.bookable ? t('cta') : t('choosePlan')}
               </Link>
-              {!plan.bookable && (
-                <p
-                  className={`mt-2 text-center text-xs ${
-                    plan.highlight ? 'text-indigo-200' : 'text-zinc-500'
-                  }`}
-                >
-                  {t('plannedPrice')}
-                </p>
-              )}
+              {/* "Not bookable yet" is disclosed once in the section subtitle
+                  rather than under every button, where four repetitions read as
+                  a warning not to click. Still first-level information. */}
             </div>
           ))}
         </div>

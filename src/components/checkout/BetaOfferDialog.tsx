@@ -4,6 +4,22 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { PRICING_PLANS } from '@/types/pricing';
+
+/**
+ * How many photos a grant is worth.
+ *
+ * The stored number wins when it is there — what a tester was promised on the
+ * day they unlocked must not change because a tier was repriced later. But a
+ * row written before that column was populated reports null, and "your Large
+ * plan with 0 photos" is worse than a slightly stale figure. The tier is the
+ * authority the job creation already uses, so fall back to it.
+ */
+function allowanceOf(tier: string, stored: unknown): number {
+  const n = Number(stored);
+  if (Number.isFinite(n) && n > 0) return n;
+  return PRICING_PLANS.find((p) => p.tier === tier)?.photoLimit ?? 0;
+}
 
 /**
  * What a click on a paid tier does during the beta: no checkout, an offer.
@@ -79,7 +95,7 @@ export function BetaOfferDialog({
         if (profile?.beta_grant_tier) {
           setGranted({
             tier: profile.beta_grant_tier as string,
-            photos: Number(profile.beta_grant_photos ?? 0),
+            photos: allowanceOf(profile.beta_grant_tier as string, profile.beta_grant_photos),
           });
           setState('alreadyGranted');
           return;
@@ -111,7 +127,8 @@ export function BetaOfferDialog({
         return;
       }
       if (res.status === 409) {
-        setGranted({ tier: String(data.tier ?? ''), photos: Number(data.photos ?? 0) });
+        const t = String(data.tier ?? '');
+        setGranted({ tier: t, photos: allowanceOf(t, data.photos) });
         setState('alreadyGranted');
         return;
       }
@@ -186,12 +203,29 @@ export function BetaOfferDialog({
             photos: (granted?.photos ?? 0).toLocaleString(locale),
           })}
         </p>
-        <button
-          onClick={onClose}
-          className="mt-6 w-full rounded-full bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
-        >
-          {t('alreadyCta')}
-        </button>
+        {/* Both ways out matter. Closing drops you back on a pricing page whose
+            every button now leads here, which is a loop; "upload" is the thing
+            the allowance is actually for. */}
+        <div className="mt-6 flex flex-col gap-3">
+          <button
+            onClick={() => router.push(`/${locale}/app/upload`)}
+            className="w-full rounded-full bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
+          >
+            {t('doneCta')}
+          </button>
+          <button
+            onClick={() => router.push(`/${locale}`)}
+            className="w-full rounded-full border border-zinc-300 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            {t('home')}
+          </button>
+          <button
+            onClick={onClose}
+            className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+          >
+            {t('alreadyCta')}
+          </button>
+        </div>
       </>
     );
   }
@@ -204,11 +238,20 @@ export function BetaOfferDialog({
         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
           {t('doneBody', { photos: (granted?.photos ?? photoLimit).toLocaleString(locale) })}
         </p>
+        {/* Straight on to the upload — the allowance exists to be spent, and
+            leaving someone on the pricing page after granting it is a dead end
+            they have to find their own way out of. */}
         <button
-          onClick={onClose}
+          onClick={() => router.push(`/${locale}/app/upload`)}
           className="mt-6 w-full rounded-full bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
         >
           {t('doneCta')}
+        </button>
+        <button
+          onClick={() => router.push(`/${locale}`)}
+          className="mt-3 w-full text-center text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+        >
+          {t('home')}
         </button>
       </>
     );
