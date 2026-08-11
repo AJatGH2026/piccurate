@@ -22,7 +22,7 @@
   "hero": {
     "title": "1,000 travel photos.",
     "titleHighlight": "50 perfect memories.",
-    "subtitle": "AI analyses your vacation photos and picks the best ones. You review, adjust, and download — or send them straight to a photobook.",
+    "subtitle": "AI analyses your vacation photos and picks the best ones. You review, adjust, and download — and can then use your selection for a photo book.",
     "cta": "Try free with 250 photos",
     "ctaSecondary": "See pricing",
     "demoNote": "Demo mode — no account needed, runs on your device"
@@ -199,8 +199,7 @@
     "download": "Download ZIP",
     "downloading": "Preparing download...",
     "photobook": "Create a photobook",
-    "photobookDesc": "Send your curated photos to CEWE and turn them into a beautiful photobook.",
-    "photobookCta": "Open CEWE Photobook",
+    "photobookDesc": "Download your selection as a ZIP — you can use it to create a book at any photobook service. We do not transfer your photos to third parties.",
     "newJob": "Curate more photos",
     "tripOverview": "Trip overview",
     "undatedLabel": "Undated",

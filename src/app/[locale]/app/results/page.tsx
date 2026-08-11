@@ -320,8 +320,6 @@ export default function ResultsPage() {
     }
   };
 
-  const ceweUrl = `https://www.cewe.de/?utm_source=auswahlbuddy&utm_medium=affiliate&utm_campaign=photobook&utm_content=results`;
-
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
@@ -530,7 +528,15 @@ export default function ResultsPage() {
           </div>
         )}
 
-        {/* Photobook CTA */}
+        {/* Photobook hint — deliberately without a provider link.
+            This used to be a CTA to cewe.de carrying utm_medium=affiliate. No
+            commission agreement exists (confirmed 2026-08-11), so the tag
+            described a relationship we do not have; and a link that looks like
+            a partner link without being labelled as advertising is a needless
+            § 5a UWG target. Naming no provider keeps the useful part — you can
+            take the ZIP to a photobook service — without either problem.
+            Bring the link back only together with a real contract and a
+            "Partnerlink" label. */}
         <div className="mt-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6">
           <div className="flex items-start gap-4">
             <div className="text-3xl">📖</div>
@@ -541,23 +547,6 @@ export default function ResultsPage() {
               <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                 {t('photobookDesc')}
               </p>
-              {/* Counted through the beta funnel (aggregate counter in Upstash),
-                  so it works without GA4 and without a consent banner. Until a
-                  real partner link with a tracking id exists, this click is the
-                  only signal we have for the affiliate revenue stream. */}
-              <a
-                href={ceweUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => {
-                  logBeta('photobook_click');
-                  trackEvent('photobook_click');
-                }}
-                className="mt-3 inline-flex items-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-600 px-5 py-2.5 text-sm font-semibold text-zinc-800 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-              >
-                {t('photobookCta')}
-                <span className="text-xs">↗</span>
-              </a>
             </div>
           </div>
         </div>

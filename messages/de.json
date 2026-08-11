@@ -22,7 +22,7 @@
   "hero": {
     "title": "1.000 Reisefotos.",
     "titleHighlight": "50 perfekte Erinnerungen.",
-    "subtitle": "KI analysiert deine Urlaubsfotos und wählt die besten aus.\nDu prüfst, passt an und lädst herunter — oder schickst sie direkt an einen Fotobuch-Anbieter.",
+    "subtitle": "KI analysiert deine Urlaubsfotos und wählt die besten aus.\nDu prüfst, passt an und lädst herunter — und kannst deine Auswahl anschließend für ein Fotobuch verwenden.",
     "cta": "Kostenlos testen mit 250 Fotos",
     "ctaSecondary": "Preise ansehen",
     "demoNote": "Demo-Modus — kein Konto nötig, läuft auf deinem Gerät"
@@ -199,8 +199,7 @@
     "download": "ZIP herunterladen",
     "downloading": "Download wird vorbereitet...",
     "photobook": "Fotobuch erstellen",
-    "photobookDesc": "Sende deine kuratierten Fotos an CEWE und erstelle ein schönes Fotobuch.",
-    "photobookCta": "CEWE Fotobuch öffnen",
+    "photobookDesc": "Lade deine Auswahl als ZIP herunter — damit kannst du bei jedem Fotobuch-Anbieter ein Buch gestalten. Wir übertragen deine Fotos nicht an Dritte.",
     "newJob": "Weitere Fotos kuratieren",
     "tripOverview": "Reise-Überblick",
     "undatedLabel": "Ohne Datum",
