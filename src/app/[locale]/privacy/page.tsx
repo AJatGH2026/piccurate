@@ -36,7 +36,11 @@ function GermanBody() {
       <p>Reguläre Speicherdauer der von uns zugänglichen Hosting-/Sicherheitsprotokolle: 30 Tage. Bei Sicherheitsvorfällen können relevante Daten bis zur Aufklärung und Durchsetzung oder Abwehr von Ansprüchen länger gespeichert werden.</p>
       <h2>4. KI-gestützte Fotoauswahl</h2>
       <h3>4.1 Verarbeitete Daten und Ablauf</h3>
-      <p>Wenn du eine Fotoauswahl startest, wählst du Fotos auf deinem Endgerät aus. AuswahlBuddy erzeugt im Browser verkleinerte JPEG-Vorschaubilder mit maximal 512 × 512 Pixeln. Hochauflösende Originaldateien werden nicht an unseren KI-Anbieter übertragen und verbleiben auf deinem Endgerät. Die spätere Download-/ZIP-Datei wird lokal in deinem Browser erzeugt.</p>
+      {/* "verbleiben auf deinem Endgerät" was not true for every route: photos
+          imported from Dropbox live in the cloud, and the policy says so
+          elsewhere. The guarantee that matters is who does *not* get the
+          originals — say that, and describe the storage location accurately. */}
+      <p>Wenn du eine Fotoauswahl startest, wählst du Fotos auf deinem Endgerät oder in deiner verbundenen Cloud aus. AuswahlBuddy erzeugt im Browser verkleinerte JPEG-Vorschaubilder mit maximal 512 × 512 Pixeln. Hochauflösende Originaldateien werden weder an die AJ GmbH noch an unseren KI-Anbieter übertragen; sie verbleiben an dem von dir gewählten Speicherort — etwa lokal auf deinem Endgerät oder in deiner Dropbox. Die spätere Download-/ZIP-Datei wird lokal in deinem Browser erzeugt.</p>
       <p>Für die Analyse verarbeiten wir die Vorschaubilder, eine technische Vorgangskennung und – soweit für die Sortierung erforderlich – ausgewählte Metadaten wie Aufnahmedatum und Kameramodell. Wenn die optionale Personenfunktion verwendet wird, verarbeiten wir zusätzlich je gesuchter Person ein Referenzfoto und eine neutrale, möglichst nicht namensbezogene Kennzeichnung wie „Person A“. Klarnamen werden nicht an Google übermittelt. Enthält ein Foto GPS-Koordinaten, übermitteln wir diese in <strong>gerundeter Form</strong> mit, damit die KI daraus einen Ortsnamen ableiten kann; Einzelheiten und der Grund für die Rundung stehen in Abschnitt 6.</p>
       <p>Die Vorschaubilder werden über unsere technische Infrastruktur an die bezahlte Gemini Developer API von Google übermittelt. Die KI bewertet Bilder anhand der vom Nutzer gewählten Kriterien und erstellt einen unverbindlichen Auswahlvorschlag. Der Nutzer kann das Ergebnis prüfen, ändern oder verwerfen.</p>
       <h3>4.2 Rollenverteilung, Zwecke und rechtlicher Rahmen</h3>
@@ -97,13 +101,18 @@ function GermanBody() {
       <p>Wenn du in deinem Nutzerkonto angemeldet bist, ordnen wir diese Ereignisse zusätzlich einer aus deiner Konto-Kennung abgeleiteten Pseudonymkennung zu. Nur dadurch können wir erkennen, ob der Dienst ein zweites Mal genutzt wird. Diese Zuordnung erfolgt nicht, solange du nicht angemeldet bist.</p>
       <p>Rechtsgrundlage ist Art. 6 Abs. 1 Buchst. f DSGVO. Unser berechtigtes Interesse besteht darin, Verständlichkeit, technische Qualität und Wirtschaftlichkeit des Dienstes in datensparsamer Form beurteilen zu können, ohne dafür Tracking-Dienste Dritter einzusetzen. Du kannst dieser Verarbeitung nach Art. 21 DSGVO widersprechen; wende dich dazu an unseren Datenschutzkontakt. Zu den Speicherfristen siehe Abschnitt 11.</p>
       <h3>9.2 Reichweitenmessung durch Vercel</h3>
-      <p>Für eine aggregierte Reichweitenmessung kann Vercel Web Analytics in einer cookielosen Konfiguration eingesetzt werden. Nach unserer Konfiguration werden keine geräteübergreifenden oder websiteübergreifenden Nutzerprofile erstellt. Die uns bereitgestellten Auswertungen sind aggregiert. Rechtsgrundlage ist Art. 6 Abs. 1 Buchst. f DSGVO; unser berechtigtes Interesse besteht darin, Nutzung und technische Qualität des Dienstes in datensparsamer Form zu verstehen.</p>
+      {/* Binary, not "may be used". Verified against the live site on
+          2026-08-11: the /_vercel/insights script is not served, so the
+          dashboard toggle is off and no data is collected. A policy covering
+          both states at once tells the reader nothing. Flip this sentence in
+          the same commit that enables it. */}
+      <p><strong>Vercel Web Analytics ist derzeit nicht aktiviert; eine Reichweitenmessung über Vercel findet nicht statt.</strong> Sollten wir sie aktivieren, geschieht dies in einer cookielosen Konfiguration ohne geräte- oder websiteübergreifende Nutzerprofile, die uns bereitgestellten Auswertungen wären aggregiert, und wir würden diese Datenschutzerklärung vorher entsprechend ändern. Rechtsgrundlage wäre dann Art. 6 Abs. 1 Buchst. f DSGVO; unser berechtigtes Interesse besteht darin, Nutzung und technische Qualität des Dienstes in datensparsamer Form zu verstehen.</p>
       <h3>9.3 Keine Statistik- und Marketingdienste Dritter</h3>
       <p>Google Analytics, Google Ads, Meta-Pixel und andere nicht erforderliche Statistik- oder Marketingdienste sind nicht aktiv. Wir haben uns bewusst dagegen entschieden, sie für die Auswertung unserer Anzeigenkampagnen einzusetzen, und werten diese stattdessen über die in Abschnitt 9.1 beschriebene eigene Messung aus. Sollten wir solche Dienste später einsetzen, werden sie erst nach deiner freiwilligen Einwilligung aktiviert und diese Datenschutzerklärung wird vorab aktualisiert.</p>
       <h2>10. Empfänger und Auftragsverarbeiter</h2>
       <p>Je nach Nutzung können insbesondere folgende Empfänger Daten verarbeiten:</p>
       <p>Google Cloud EMEA Limited und Google-Unterauftragsverarbeiter – KI-Analyse über die bezahlte Gemini Developer API;</p>
-      <p>Vercel Inc. und Unterauftragsverarbeiter – Hosting, Auslieferung, Sicherheitsprotokolle und gegebenenfalls cookielose Reichweitenmessung;</p>
+      <p>Vercel Inc. und Unterauftragsverarbeiter – Hosting, Auslieferung und Sicherheitsprotokolle;</p>
       <p>Upstash, Inc. und Unterauftragsverarbeiter – Feedback, Update-Anmeldungen, Missbrauchszähler und die Ereignisse der eigenen Nutzungsmessung nach Abschnitt 9.1, in der EU-Region;</p>
       <p>Supabase, Inc. und Unterauftragsverarbeiter – Konten, Authentifizierung und Vorgangsdaten (siehe Abschnitt 15);</p>
       <p>Resend, Inc. und Amazon Web Services – Versand von Konto- und Feedback-E-Mails;</p>
@@ -136,7 +145,13 @@ function GermanBody() {
       <h2>14. Widerspruch gegen Verarbeitungen nach Art. 6 Abs. 1 Buchst. f DSGVO</h2>
       <p>Du kannst aus Gründen, die sich aus deiner besonderen Situation ergeben, jederzeit gegen Verarbeitungen Widerspruch einlegen, die wir auf Art. 6 Abs. 1 Buchst. f DSGVO stützen. Wir verarbeiten die betreffenden Daten dann nicht mehr, es sei denn, wir können zwingende schutzwürdige Gründe nachweisen, die deine Interessen, Rechte und Freiheiten überwiegen, oder die Verarbeitung dient der Geltendmachung, Ausübung oder Verteidigung von Rechtsansprüchen.</p>
       <h2>15. Konto und Nutzerregistrierung</h2>
-      <p>Wenn du ein Nutzerkonto erstellst, verarbeiten wir deine E-Mail-Adresse, dein verschlüsseltes Passwort, die gewählte Sprache (Spracheinstellung) sowie Zeitpunkt und Nachweis der erteilten Einwilligung in Datenschutzerklärung und Nutzungsbedingungen. Rechtsgrundlage ist Art. 6 Abs. 1 Buchst. b DSGVO (Vertragserfüllung).</p>
+      {/* Not "Einwilligung in die Datenschutzerklärung": nobody consents to a
+          privacy policy — it informs under Art. 13. Terms are accepted, not
+          consented to in the data-protection sense, and mixing the two blurs
+          the one thing a real Art. 6(1)(a) consent must stay: separate,
+          specific and revocable. What we actually record is an acceptance and
+          an acknowledgement. */}
+      <p>Wenn du ein Nutzerkonto erstellst, verarbeiten wir deine E-Mail-Adresse, dein verschlüsseltes Passwort, die gewählte Sprache (Spracheinstellung) sowie Zeitpunkt und Nachweis der Annahme der Nutzungsbedingungen und der Kenntnisnahme dieser Datenschutzhinweise. Rechtsgrundlage ist Art. 6 Abs. 1 Buchst. b DSGVO (Vertragserfüllung).</p>
       <h3>15.1 Anonymes Konto beim Start einer Analyse</h3>
       <p>Jede Analyse läuft technisch gegen einen benannten Vorgang, damit Fotomengen, Kontingente und Ergebnisse eindeutig zugeordnet werden können. Wenn du eine Analyse startest, ohne angemeldet zu sein, legen wir dafür automatisch ein <strong>anonymes Konto</strong> an. Dabei werden keine Kontaktdaten erhoben: gespeichert werden lediglich eine zufällige Kennung, der Zeitpunkt, die Kennzeichnung als anonym sowie die zum Vorgang gehörenden technischen Daten.</p>
       <p>Rechtsgrundlage ist Art. 6 Abs. 1 Buchst. b DSGVO; ohne diese Zuordnung lässt sich der von dir angestoßene Vorgang nicht durchführen. Ein anonymes Konto erlaubt keine Anmeldung von einem anderen Gerät und geht verloren, wenn du die Browser-Sitzung beendest. Anonyme Konten und die zugehörigen Vorgangsdaten löschen wir turnusmäßig, spätestens 90 Tage nach dem letzten Vorgang. Wenn du dich später registrierst, kannst du deinen Vorgang mit dem neuen Konto fortführen.</p>
@@ -174,7 +189,7 @@ function EnglishBody() {
       <p>Regular retention period for hosting/security logs accessible to us: 30 days. Relevant data may be retained for longer where necessary to investigate security incidents or establish, exercise or defend legal claims.</p>
       <h2>4. AI-assisted photo selection</h2>
       <h3>4.1 Data processed and workflow</h3>
-      <p>When you start a photo-selection job, you select photos on your device. ShortlistBuddy creates reduced JPEG previews in your browser with a maximum size of 512 × 512 pixels. High-resolution originals are not sent to our AI provider and remain on your device. The later download/ZIP file is created locally in your browser.</p>
+      <p>When you start a photo-selection job, you select photos on your device or in your connected cloud. ShortlistBuddy creates reduced JPEG previews in your browser with a maximum size of 512 × 512 pixels. High-resolution originals are transferred neither to AJ GmbH nor to our AI provider; they stay wherever you keep them — locally on your device or in your Dropbox, for example. The later download/ZIP file is created locally in your browser.</p>
       <p>For the analysis, we process the previews, a technical job identifier and, where required for sorting, selected metadata such as capture date and camera model. If the optional Persons feature is used, we additionally process one reference photo for each person sought and a neutral label such as “Person A”, preferably without a real name. Real names are not sent to Google. Where a photo contains GPS coordinates, we send them along in <strong>rounded form</strong> so the AI can derive a place name from them; details and the reason for the rounding are in section 6.</p>
       <p>The previews are transmitted through our technical infrastructure to Google’s paid Gemini Developer API. The AI evaluates the images against criteria selected by the user and creates a non-binding proposed selection. The user can review, modify or reject the result.</p>
       <h3>4.2 Roles, purposes and legal framework</h3>
@@ -235,13 +250,13 @@ function EnglishBody() {
       <p>If you are signed in to your user account, we additionally associate these events with a pseudonymous identifier derived from your account identifier. This is the only way for us to see whether the service is used a second time. No such association is made while you are not signed in.</p>
       <p>The legal basis is Article 6(1)(f) GDPR. Our legitimate interest is being able to assess the intelligibility, technical quality and economics of the service in a data-minimising way without using third-party tracking services. You may object to this processing under Article 21 GDPR; please contact our privacy contact. For retention periods see section 11.</p>
       <h3>9.2 Audience measurement by Vercel</h3>
-      <p>Vercel Web Analytics may be used for aggregated audience measurement in a cookieless configuration. Under our configuration, it does not create cross-device or cross-site user profiles. Reports made available to us are aggregated. The legal basis is Article 6(1)(f) GDPR; our legitimate interest is understanding usage and technical quality in a data-minimising way.</p>
+      <p><strong>Vercel Web Analytics is currently not enabled; no audience measurement via Vercel takes place.</strong> Should we enable it, it would run in a cookieless configuration without cross-device or cross-site user profiles, the reports made available to us would be aggregated, and we would amend this Privacy Policy beforehand. The legal basis would then be Article 6(1)(f) GDPR; our legitimate interest is understanding usage and technical quality in a data-minimising way.</p>
       <h3>9.3 No third-party analytics or marketing services</h3>
       <p>Google Analytics, Google Ads, the Meta pixel and other non-essential analytics or marketing services are not active. We have deliberately decided against using them to evaluate our advertising campaigns and instead evaluate those through our own measurement described in section 9.1. If such services are introduced later, they will be activated only after voluntary consent and this Privacy Policy will be updated in advance.</p>
       <h2>10. Recipients and processors</h2>
       <p>Depending on the functions used, the following recipients may process data:</p>
       <p>Google Cloud EMEA Limited and Google subprocessors – AI analysis through the paid Gemini Developer API;</p>
-      <p>Vercel Inc. and subprocessors – hosting, delivery, security logs and, where applicable, cookieless audience measurement;</p>
+      <p>Vercel Inc. and subprocessors – hosting, delivery and security logs;</p>
       <p>Upstash, Inc. and subprocessors – feedback, update subscriptions, abuse-prevention counters and the events of our own usage measurement under section 9.1, in the EU region;</p>
       <p>Supabase, Inc. and subprocessors – accounts, authentication and job data (see section 15);</p>
       <p>Resend, Inc. and Amazon Web Services – delivery of account and feedback emails;</p>
@@ -274,7 +289,7 @@ function EnglishBody() {
       <h2>14. Objection to processing under Article 6(1)(f) GDPR</h2>
       <p>You may object at any time, on grounds relating to your particular situation, to processing based on Article 6(1)(f) GDPR. We will then cease processing unless we demonstrate compelling legitimate grounds that override your interests, rights and freedoms or the processing is required to establish, exercise or defend legal claims.</p>
       <h2>15. User Account and Registration</h2>
-      <p>When you create a user account, we process your email address, your encrypted password, the selected language (locale setting), and the timestamp and record of consent given to this Privacy Policy and the Terms of Use. The legal basis is Article 6(1)(b) GDPR (performance of contract).</p>
+      <p>When you create a user account, we process your email address, your encrypted password, the selected language (locale setting), and the timestamp and record of your acceptance of the Terms of Use and your acknowledgement of this Privacy Policy. The legal basis is Article 6(1)(b) GDPR (performance of contract).</p>
       <h3>15.1 Anonymous account when starting an analysis</h3>
       <p>Every analysis technically runs against a named job so that photo volumes, allowances and results can be assigned unambiguously. If you start an analysis without being signed in, we automatically create an <strong>anonymous account</strong> for this. No contact details are collected: we store only a random identifier, the time, the marker indicating anonymity and the technical data belonging to the job.</p>
       <p>The legal basis is Article 6(1)(b) GDPR; without this assignment the job you initiated cannot be carried out. An anonymous account does not allow sign-in from another device and is lost when you end the browser session. We delete anonymous accounts and the associated job data on a routine basis, at the latest 90 days after the last job. If you register later, you can continue your job with the new account.</p>
