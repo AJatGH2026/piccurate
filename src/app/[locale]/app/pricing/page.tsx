@@ -86,7 +86,7 @@ export default function PricingPage() {
   const plans = PRICING_PLANS.map((plan) => ({
     ...plan,
     highlight: plan.tier === 'medium',
-    features: plan.tier === 'free' ? baseFeatures : [...baseFeatures, t('features.customCriteria')],
+    features: plan.tier === 'free' ? baseFeatures : [...baseFeatures, t('features.customCriteria'), t('features.personSearch')],
   }));
 
   return (
@@ -135,7 +135,14 @@ export default function PricingPage() {
                 </p>
               )}
               <p className={`mt-1 text-sm ${plan.highlight ? 'text-indigo-200' : 'text-zinc-500'}`}>
-                {t('photosUpTo', { count: plan.photoLimit.toLocaleString() })}
+                {/* The locale is not optional here. Without it toLocaleString
+                    uses the *runtime* locale — en-US on the server, de in a
+                    German browser — so the server sent "1,000" and the client
+                    rendered "1.000". React treats that as a hydration mismatch
+                    (#418), bails out, and every click handler on this page is
+                    never attached: the tier buttons and the offer dialogue
+                    silently did nothing. */}
+                {t('photosUpTo', { count: plan.photoLimit.toLocaleString(locale) })}
               </p>
               {plan.tier === 'free' && (
                 <p className={`text-xs ${plan.highlight ? 'text-indigo-200' : 'text-amber-600'}`}>

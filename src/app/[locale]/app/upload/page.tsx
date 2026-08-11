@@ -10,7 +10,7 @@ import { DropboxImport } from '@/components/upload/DropboxImport';
 import { dropboxConfigured } from '@/lib/cloud/dropbox';
 import { useEffect, useState } from 'react';
 import type { Tier } from '@/types/job';
-import { PRICING_PLANS } from '@/types/pricing';
+import { PRICING_PLANS, formatPrice } from '@/types/pricing';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { usePhotoStore } from '@/hooks/usePhotoStore';
@@ -20,6 +20,7 @@ const DEFAULT_TIER: Tier = 'free';
 
 export default function UploadPage() {
   const t = useTranslations('upload');
+  const tp = useTranslations('pricing');
   const tNav = useTranslations('nav');
   const params = useParams();
   const router = useRouter();
@@ -76,7 +77,12 @@ export default function UploadPage() {
 
         {/* Tier indicator */}
         <div className="mt-2 text-sm text-zinc-500">
-          {plan.priceDisplay} &middot; {t('supported', { limit: maxPhotos.toLocaleString() })}
+          {/* Both need the locale explicitly: without it the server formats in
+              en-US and the browser in the user's own locale, which is a
+              hydration mismatch and costs this page every click handler.
+              See the note in app/pricing. */}
+          {plan.tier === 'free' ? tp('free') : formatPrice(plan.priceEurCents, locale)} &middot;{' '}
+          {t('supported', { limit: maxPhotos.toLocaleString(locale) })}
         </div>
 
         {/* Drop zone */}

@@ -57,7 +57,8 @@
       "allCriteria": "All AI criteria",
       "reviewAdjust": "Review & adjust",
       "downloadZip": "Download ZIP",
-      "customCriteria": "Your own criteria (up to 7)"
+      "customCriteria": "Your own criteria (up to 7)",
+      "personSearch": "Person search (up to 4 people)"
     },
     "cta": "Get started",
     "oneTimeUse": "One-time use",

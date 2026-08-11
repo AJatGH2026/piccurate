@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 
 interface DropZoneProps {
   onFiles: (files: FileList | File[]) => void;
@@ -10,6 +10,7 @@ interface DropZoneProps {
 }
 
 export function DropZone({ onFiles, maxPhotos, disabled = false }: DropZoneProps) {
+  const locale = useLocale();
   const t = useTranslations('upload');
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -85,7 +86,10 @@ export function DropZone({ onFiles, maxPhotos, disabled = false }: DropZoneProps
         {isDragging ? t('dropzoneActive') : t('dropzone')}
       </p>
       <p className="mt-2 text-sm text-zinc-500">
-        {t('supported', { limit: maxPhotos.toLocaleString() })}
+        {/* Locale passed explicitly — see the note in app/pricing: a bare
+            toLocaleString formats differently on server and client and breaks
+            hydration for the whole page. */}
+        {t('supported', { limit: maxPhotos.toLocaleString(locale) })}
       </p>
     </div>
   );

@@ -331,7 +331,7 @@ function PricingSection({ locale }: { locale: string }) {
       features:
         p.tier === 'free'
           ? ['allCriteria', 'reviewAdjust', 'downloadZip']
-          : ['allCriteria', 'reviewAdjust', 'downloadZip', 'customCriteria'],
+          : ['allCriteria', 'reviewAdjust', 'downloadZip', 'customCriteria', 'personSearch'],
       note: p.tier === 'free' ? t('oneTimeUse') : t('perUse'),
     };
   });
