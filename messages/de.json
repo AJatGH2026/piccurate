@@ -235,7 +235,7 @@
     "registerCta": "Konto erstellen",
     "noAccount": "Noch kein Konto?",
     "hasAccount": "Bereits ein Konto?",
-    "gdprConsent": "Ich stimme den {terms} und der {privacy} zu. Meine Fotos werden von KI für die Kuration verarbeitet. Ich kann meine Daten jederzeit löschen.",
+    "gdprConsent": "Ich akzeptiere die <terms>Nutzungsbedingungen</terms> und habe die <privacy>Datenschutzhinweise</privacy> zur Kenntnis genommen. Mir ist bekannt, dass meine Fotos zur Auswahl mit künstlicher Intelligenz verarbeitet werden.",
     "termsLink": "Nutzungsbedingungen",
     "privacyLink": "Datenschutzerklärung",
     "checkEmailTitle": "Fast geschafft",

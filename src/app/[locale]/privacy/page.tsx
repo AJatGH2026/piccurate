@@ -101,18 +101,24 @@ function GermanBody() {
       <p>Wenn du in deinem Nutzerkonto angemeldet bist, ordnen wir diese Ereignisse zusätzlich einer aus deiner Konto-Kennung abgeleiteten Pseudonymkennung zu. Nur dadurch können wir erkennen, ob der Dienst ein zweites Mal genutzt wird. Diese Zuordnung erfolgt nicht, solange du nicht angemeldet bist.</p>
       <p>Rechtsgrundlage ist Art. 6 Abs. 1 Buchst. f DSGVO. Unser berechtigtes Interesse besteht darin, Verständlichkeit, technische Qualität und Wirtschaftlichkeit des Dienstes in datensparsamer Form beurteilen zu können, ohne dafür Tracking-Dienste Dritter einzusetzen. Du kannst dieser Verarbeitung nach Art. 21 DSGVO widersprechen; wende dich dazu an unseren Datenschutzkontakt. Zu den Speicherfristen siehe Abschnitt 11.</p>
       <h3>9.2 Reichweitenmessung durch Vercel</h3>
-      {/* Binary, not "may be used". Verified against the live site on
-          2026-08-11: the /_vercel/insights script is not served, so the
-          dashboard toggle is off and no data is collected. A policy covering
-          both states at once tells the reader nothing. Flip this sentence in
-          the same commit that enables it. */}
-      <p><strong>Vercel Web Analytics ist derzeit nicht aktiviert; eine Reichweitenmessung über Vercel findet nicht statt.</strong> Sollten wir sie aktivieren, geschieht dies in einer cookielosen Konfiguration ohne geräte- oder websiteübergreifende Nutzerprofile, die uns bereitgestellten Auswertungen wären aggregiert, und wir würden diese Datenschutzerklärung vorher entsprechend ändern. Rechtsgrundlage wäre dann Art. 6 Abs. 1 Buchst. f DSGVO; unser berechtigtes Interesse besteht darin, Nutzung und technische Qualität des Dienstes in datensparsamer Form zu verstehen.</p>
+      {/* Written for the state after activation, deliberately: the reporting is
+          planned and the description should not need rewriting when the switch
+          is flipped. Data points taken from Vercel's own "Data point
+          information" table (docs/analytics/privacy-policy), not from memory —
+          note that geolocation goes down to city level, which is more than the
+          earlier "aggregiert" claimed. The query string never reaches Vercel;
+          see components/analytics/VercelAnalytics.tsx for why that matters. */}
+      <p>Zusätzlich zur eigenen Messung nach Abschnitt 9.1 setzen wir Vercel Web Analytics ein, um Reichweite und technische Qualität der Website zu beurteilen. Der Dienst arbeitet <strong>ohne Cookies und ohne sonstigen Zugriff auf dein Endgerät</strong>; es werden keine geräte- oder websiteübergreifenden Nutzerprofile gebildet.</p>
+      <p>Erhoben werden dabei nach Angaben des Anbieters: Zeitpunkt des Aufrufs, aufgerufene Adresse und Seitenmuster, die verweisende Seite, Kampagnenparameter, eine aus der Anfrage abgeleitete ungefähre Ortsangabe (Land, Region, Ort), Betriebssystem, Browser und Gerätetyp jeweils mit Version sowie die Version des Messskripts.</p>
+      <p>Zur Unterscheidung von Aufrufen bildet Vercel eine Prüfsumme aus der eingehenden Anfrage — also kein auf deinem Gerät gespeicherter Wiedererkennungswert. Diese Prüfsumme wird nach Angaben des Anbieters spätestens nach 24 Stunden verworfen; danach verbleiben nur aggregierte Auswertungen.</p>
+      <p><strong>Adresszusätze übermitteln wir nicht.</strong> Vor dem Versand entfernen wir sämtliche Abfrageparameter mit Ausnahme der Kampagnenkennungen (utm_*), und Aufrufe unseres Verwaltungsbereichs werden gar nicht gemeldet. Damit erreichen weder Zahlungs- oder Auftragskennungen noch Zugangsschlüssel den Dienst.</p>
+      <p>Rechtsgrundlage ist Art. 6 Abs. 1 Buchst. f DSGVO. Unser berechtigtes Interesse besteht darin, Nutzung und technische Qualität des Dienstes in datensparsamer Form zu verstehen. Da kein Zugriff auf dein Endgerät stattfindet, ist eine Einwilligung nach § 25 TDDDG nicht erforderlich. Empfänger ist Vercel Inc.; zur Drittlandübermittlung siehe Abschnitt 10. Du kannst dieser Verarbeitung nach Art. 21 DSGVO widersprechen.</p>
       <h3>9.3 Keine Statistik- und Marketingdienste Dritter</h3>
       <p>Google Analytics, Google Ads, Meta-Pixel und andere nicht erforderliche Statistik- oder Marketingdienste sind nicht aktiv. Wir haben uns bewusst dagegen entschieden, sie für die Auswertung unserer Anzeigenkampagnen einzusetzen, und werten diese stattdessen über die in Abschnitt 9.1 beschriebene eigene Messung aus. Sollten wir solche Dienste später einsetzen, werden sie erst nach deiner freiwilligen Einwilligung aktiviert und diese Datenschutzerklärung wird vorab aktualisiert.</p>
       <h2>10. Empfänger und Auftragsverarbeiter</h2>
       <p>Je nach Nutzung können insbesondere folgende Empfänger Daten verarbeiten:</p>
       <p>Google Cloud EMEA Limited und Google-Unterauftragsverarbeiter – KI-Analyse über die bezahlte Gemini Developer API;</p>
-      <p>Vercel Inc. und Unterauftragsverarbeiter – Hosting, Auslieferung und Sicherheitsprotokolle;</p>
+      <p>Vercel Inc. und Unterauftragsverarbeiter – Hosting, Auslieferung, Sicherheitsprotokolle und cookielose Reichweitenmessung (Abschnitt 9.2);</p>
       <p>Upstash, Inc. und Unterauftragsverarbeiter – Feedback, Update-Anmeldungen, Missbrauchszähler und die Ereignisse der eigenen Nutzungsmessung nach Abschnitt 9.1, in der EU-Region;</p>
       <p>Supabase, Inc. und Unterauftragsverarbeiter – Konten, Authentifizierung und Vorgangsdaten (siehe Abschnitt 15);</p>
       <p>Resend, Inc. und Amazon Web Services – Versand von Konto- und Feedback-E-Mails;</p>
@@ -250,13 +256,17 @@ function EnglishBody() {
       <p>If you are signed in to your user account, we additionally associate these events with a pseudonymous identifier derived from your account identifier. This is the only way for us to see whether the service is used a second time. No such association is made while you are not signed in.</p>
       <p>The legal basis is Article 6(1)(f) GDPR. Our legitimate interest is being able to assess the intelligibility, technical quality and economics of the service in a data-minimising way without using third-party tracking services. You may object to this processing under Article 21 GDPR; please contact our privacy contact. For retention periods see section 11.</p>
       <h3>9.2 Audience measurement by Vercel</h3>
-      <p><strong>Vercel Web Analytics is currently not enabled; no audience measurement via Vercel takes place.</strong> Should we enable it, it would run in a cookieless configuration without cross-device or cross-site user profiles, the reports made available to us would be aggregated, and we would amend this Privacy Policy beforehand. The legal basis would then be Article 6(1)(f) GDPR; our legitimate interest is understanding usage and technical quality in a data-minimising way.</p>
+      <p>In addition to our own measurement under section 9.1, we use Vercel Web Analytics to assess reach and the technical quality of the website. The service works <strong>without cookies and without any other access to your device</strong>; no cross-device or cross-site user profiles are created.</p>
+      <p>According to the provider, the following is collected: time of the request, the address and page pattern requested, the referring page, campaign parameters, an approximate location derived from the request (country, region, city), operating system, browser and device type each with version, and the version of the measurement script.</p>
+      <p>To distinguish requests, Vercel derives a hash from the incoming request — not a recognition value stored on your device. According to the provider that hash is discarded after 24 hours at the latest; only aggregated reports remain afterwards.</p>
+      <p><strong>We do not transmit query strings.</strong> Before sending, we remove all query parameters except the campaign identifiers (utm_*), and requests to our administrative area are not reported at all. Neither payment or job identifiers nor access keys therefore reach the service.</p>
+      <p>The legal basis is Article 6(1)(f) GDPR. Our legitimate interest is understanding usage and technical quality in a data-minimising way. As no access to your device takes place, consent under section 25 TDDDG is not required. The recipient is Vercel Inc.; on transfers to third countries see section 10. You may object to this processing under Article 21 GDPR.</p>
       <h3>9.3 No third-party analytics or marketing services</h3>
       <p>Google Analytics, Google Ads, the Meta pixel and other non-essential analytics or marketing services are not active. We have deliberately decided against using them to evaluate our advertising campaigns and instead evaluate those through our own measurement described in section 9.1. If such services are introduced later, they will be activated only after voluntary consent and this Privacy Policy will be updated in advance.</p>
       <h2>10. Recipients and processors</h2>
       <p>Depending on the functions used, the following recipients may process data:</p>
       <p>Google Cloud EMEA Limited and Google subprocessors – AI analysis through the paid Gemini Developer API;</p>
-      <p>Vercel Inc. and subprocessors – hosting, delivery and security logs;</p>
+      <p>Vercel Inc. and subprocessors – hosting, delivery, security logs and cookieless audience measurement (section 9.2);</p>
       <p>Upstash, Inc. and subprocessors – feedback, update subscriptions, abuse-prevention counters and the events of our own usage measurement under section 9.1, in the EU region;</p>
       <p>Supabase, Inc. and subprocessors – accounts, authentication and job data (see section 15);</p>
       <p>Resend, Inc. and Amazon Web Services – delivery of account and feedback emails;</p>

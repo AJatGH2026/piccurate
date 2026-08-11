@@ -3,7 +3,7 @@ import { brandName } from '@/lib/brand';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { Analytics } from '@vercel/analytics/next';
+import { VercelAnalytics } from '@/components/analytics/VercelAnalytics';
 import { GoogleTag } from '@/components/analytics/GoogleTag';
 import { ConsentBanner } from '@/components/analytics/ConsentBanner';
 import { FeedbackWidget } from '@/components/beta/FeedbackWidget';
@@ -87,10 +87,13 @@ export default async function LocaleLayout({ children, params }: Props) {
           <ConsentBanner />
           <FeedbackWidget />
         </NextIntlClientProvider>
-        {/* Vercel Web Analytics — cookieless page-view + funnel data.
-            Only fires on production builds under a Vercel deployment;
-            a no-op locally. Enable in the Vercel dashboard (Analytics tab). */}
-        <Analytics />
+        {/* Vercel Web Analytics — cookieless page-view + funnel data. Only
+            fires on production builds under a Vercel deployment; a no-op
+            locally. Enable in the Vercel dashboard (Analytics tab).
+            Wrapped, not bare: the wrapper strips the query string, which
+            otherwise carries the Stripe session id, job ids and the admin
+            token straight to Vercel. */}
+        <VercelAnalytics />
         {/* Google tag (GA4 + Ads) with Consent Mode v2 — dormant until
             NEXT_PUBLIC_GA4_ID / NEXT_PUBLIC_GOOGLE_ADS_ID are set. No i18n. */}
         <GoogleTag />

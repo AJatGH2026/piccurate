@@ -174,16 +174,25 @@ export default function RegisterPage() {
               onChange={(e) => setGdprConsent(e.target.checked)}
               className="mt-1 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
             />
+            {/* Was hardcoded English, so a German visitor was asked to agree to
+                a sentence in another language — and the sentence said "I agree
+                to the Privacy Policy", which is the confusion privacy § 15 was
+                just corrected for: a policy informs under Art. 13, it is not
+                consented to. What is recorded is acceptance of the terms and
+                acknowledgement of the notice, so that is what it now says. */}
             <label htmlFor="gdpr" className="text-xs text-zinc-500 leading-relaxed">
-              I agree to the{' '}
-              <Link href={`/${locale}/terms`} className="text-indigo-600 underline" target="_blank">
-                Terms of Service
-              </Link>{' '}
-              and{' '}
-              <Link href={`/${locale}/privacy`} className="text-indigo-600 underline" target="_blank">
-                Privacy Policy
-              </Link>
-              . My photos will be processed by AI for curation purposes. I can delete my data at any time.
+              {t.rich('gdprConsent', {
+                terms: (chunks) => (
+                  <Link href={`/${locale}/terms`} className="text-indigo-600 underline" target="_blank">
+                    {chunks}
+                  </Link>
+                ),
+                privacy: (chunks) => (
+                  <Link href={`/${locale}/privacy`} className="text-indigo-600 underline" target="_blank">
+                    {chunks}
+                  </Link>
+                ),
+              })}
             </label>
           </div>
 

@@ -235,7 +235,7 @@
     "registerCta": "Create account",
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
-    "gdprConsent": "I agree to the {terms} and {privacy}. My photos will be processed by AI for curation purposes. I can delete my data at any time.",
+    "gdprConsent": "I accept the <terms>Terms of Use</terms> and have read the <privacy>Privacy Policy</privacy>. I understand that my photos are processed using artificial intelligence to produce a selection.",
     "termsLink": "Terms of Service",
     "privacyLink": "Privacy Policy",
     "checkEmailTitle": "Almost there",
