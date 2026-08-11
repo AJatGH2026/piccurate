@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, clientIp } from '@/lib/rate-limit';
+import { detectBot } from '@/lib/bot-filter';
 import { saveWithdrawal, saveRejectedWithdrawal } from '@/lib/beta';
 import { emailConfigured, sendWithdrawalReceipt, sendWithdrawalNotice } from '@/lib/email';
 
@@ -37,10 +38,6 @@ import { emailConfigured, sendWithdrawalReceipt, sendWithdrawalNotice } from '@/
 
 const MAX = { name: 200, contractRef: 200, email: 200, note: 2000 } as const;
 
-// A human needs longer than this to read four labels and fill three of them,
-// even pasting from a confirmation mail. Bots post within milliseconds.
-const MIN_DWELL_MS = 2500;
-
 function clean(v: unknown, max: number): string {
   return String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
 }
@@ -72,14 +69,8 @@ export async function POST(request: NextRequest) {
   const note = clean(body.note, MAX.note);
   const locale = body.locale === 'de' ? 'de' : 'en';
 
-  // Two signals a human cannot produce and a bot cannot see. Both are checked
-  // only when present: a tab opened before this deployment posts neither, and
-  // an absent field must never count as evidence against the sender.
-  const honeypot = String(body.website ?? '').trim();
-  const dwellMs = Number(body.elapsedMs);
-  const tooFast = Number.isFinite(dwellMs) && dwellMs >= 0 && dwellMs < MIN_DWELL_MS;
-
-  if (honeypot || tooFast) {
+  const verdict = detectBot(body);
+  if (verdict) {
     // Kept, not discarded. If this ever catches a real person, their
     // declaration and its arrival time are still on record and can be honoured
     // with the original timestamp.
@@ -90,7 +81,7 @@ export async function POST(request: NextRequest) {
       note: note || undefined,
       receivedAt: new Date().toISOString(),
       locale,
-      reason: honeypot ? 'honeypot' : 'too_fast',
+      reason: verdict,
       ip,
     });
     return NextResponse.json({ error: 'rejected' }, { status: 400 });

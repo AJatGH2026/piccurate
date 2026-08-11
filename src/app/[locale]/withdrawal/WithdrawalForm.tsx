@@ -1,7 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { Honeypot, useBotSignals } from '@/components/forms/Honeypot';
 
 /**
  * The confirmation stage of the § 356a BGB withdrawal function.
@@ -25,8 +26,7 @@ export function WithdrawalForm({ locale }: { locale: string }) {
   const [contractRef, setContractRef] = useState('');
   const [email, setEmail] = useState('');
   const [note, setNote] = useState('');
-  const [website, setWebsite] = useState(''); // honeypot — see the hidden field below
-  const mountedAt = useRef(Date.now());
+  const { website, setWebsite, signals } = useBotSignals();
   const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [receivedAt, setReceivedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,15 +39,7 @@ export function WithdrawalForm({ locale }: { locale: string }) {
       const res = await fetch('/api/withdrawal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          contractRef,
-          email,
-          note,
-          locale,
-          website,
-          elapsedMs: Date.now() - mountedAt.current,
-        }),
+        body: JSON.stringify({ name, contractRef, email, note, locale, ...signals() }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -93,25 +85,7 @@ export function WithdrawalForm({ locale }: { locale: string }) {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      {/*
-        Honeypot. Off-screen rather than `display:none`, because some bots skip
-        undisplayed inputs; `aria-hidden` plus `tabIndex={-1}` keeps it out of
-        the reach of a screen reader and of the tab order, and `autoComplete="off"`
-        keeps a password manager from filling it on a human's behalf. Nobody
-        using the form can reach it, so anything in it came from a script.
-      */}
-      <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
-        <label htmlFor="w-website">Website</label>
-        <input
-          id="w-website"
-          name="website"
-          type="text"
-          tabIndex={-1}
-          autoComplete="off"
-          value={website}
-          onChange={(e) => setWebsite(e.target.value)}
-        />
-      </div>
+      <Honeypot id="w-website" value={website} onChange={setWebsite} />
       <div>
         <label className={label} htmlFor="w-name">
           {t('fieldName')}

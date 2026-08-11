@@ -144,6 +144,35 @@ export async function saveRejectedWithdrawal(entry: {
   }
 }
 
+/**
+ * Store a beta submission (feedback or email capture) the bot filters turned
+ * away — capped list of the last 200, plus a counter so a flood is visible
+ * even after the list has rotated. The withdrawal equivalent is separate and
+ * kept longer, because that one may have to be honoured after the fact.
+ */
+export async function saveRejectedSubmission(entry: {
+  kind: string;
+  text: string;
+  locale: string;
+  receivedAt: string;
+  reason: 'honeypot' | 'too_fast';
+  ip: string;
+}): Promise<boolean> {
+  const r = getClient();
+  if (!r) return false;
+  try {
+    const p = r.pipeline();
+    p.lpush('beta:rejected', JSON.stringify(entry));
+    p.ltrim('beta:rejected', 0, 199);
+    p.incr('beta:rejected:count');
+    await p.exec();
+    return true;
+  } catch (err) {
+    console.warn('[beta] saveRejectedSubmission failed:', err instanceof Error ? err.message : err);
+    return false;
+  }
+}
+
 /** Store a captured email (capped list of the last 1000). Returns success. */
 export async function saveEmail(email: string, meta: { locale?: string }): Promise<boolean> {
   const r = getClient();

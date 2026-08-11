@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useParams, usePathname } from 'next/navigation';
 import { submitFeedback } from '@/lib/beta-client';
+import { Honeypot, useBotSignals } from '@/components/forms/Honeypot';
 
 /**
  * Small floating feedback button (bottom-left). Opens a panel with a textarea.
@@ -21,6 +22,7 @@ export function FeedbackWidget() {
   const [done, setDone] = useState(false);
   const [failed, setFailed] = useState(false);
   const [embedded, setEmbedded] = useState(false);
+  const { website, setWebsite, signals } = useBotSignals();
   useEffect(() => {
     // Hide inside the legal modal iframe (configure page) — it would overlap the
     // modal and doesn't belong on the AGB view.
@@ -34,7 +36,7 @@ export function FeedbackWidget() {
     // Report the actual result. Thanking the user unconditionally hid a broken
     // backend for weeks — and it also throws away text the user cannot recover,
     // so on failure the message stays in the box for a retry.
-    const ok = await submitFeedback(msg, locale, pathname || '');
+    const ok = await submitFeedback(msg, locale, pathname || '', signals());
     setSending(false);
     if (!ok) {
       setFailed(true);
@@ -68,6 +70,7 @@ export function FeedbackWidget() {
             <p className="mt-3 text-sm text-emerald-600 dark:text-emerald-400">{t('thanks')}</p>
           ) : (
             <>
+              <Honeypot id="fw-website" value={website} onChange={setWebsite} />
               <textarea
                 value={msg}
                 onChange={(e) => setMsg(e.target.value)}

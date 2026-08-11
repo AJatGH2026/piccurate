@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { submitEmail } from '@/lib/beta-client';
+import { Honeypot, useBotSignals } from '@/components/forms/Honeypot';
 
 /**
  * Optional "notify me about updates" email capture. Shown on the results page
@@ -16,13 +17,14 @@ export function EmailCapture() {
   const [email, setEmail] = useState('');
   const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [dismissed, setDismissed] = useState(false);
+  const { website, setWebsite, signals } = useBotSignals();
 
   if (dismissed) return null;
 
   const send = async () => {
     if (!email.trim()) return;
     setState('sending');
-    const ok = await submitEmail(email, locale);
+    const ok = await submitEmail(email, locale, signals());
     setState(ok ? 'done' : 'error');
   };
 
@@ -43,6 +45,7 @@ export function EmailCapture() {
       ) : (
         <>
           <p className="mt-0.5 text-xs text-zinc-500">{t('note')}</p>
+          <Honeypot id="ec-website" value={website} onChange={setWebsite} />
           <div className="mt-2 flex gap-2">
             <input
               type="email"

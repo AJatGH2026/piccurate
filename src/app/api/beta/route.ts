@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { rateLimit, clientIp } from '@/lib/rate-limit';
-import { logFunnel, saveFeedback, saveEmail } from '@/lib/beta';
+import { checkRateLimit, clientIp } from '@/lib/rate-limit';
+import { detectBot } from '@/lib/bot-filter';
+import { logFunnel, saveFeedback, saveEmail, saveRejectedSubmission } from '@/lib/beta';
 import { emailConfigured, sendFeedbackEmail } from '@/lib/email';
 import { saveFeedbackToDb, markFeedbackEmailed } from '@/lib/feedback';
 
@@ -31,14 +32,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // User-submitted content → rate-limit per IP.
+  // User-submitted content → rate-limit per IP. Upstash-backed, because the
+  // in-memory limiter this used to call counts per warm Lambda instance and a
+  // bot spread across instances never reached it. Five per ten minutes covers
+  // someone leaving feedback and then their email address; it does not cover a
+  // crawler, and the capture list holds only the last 1000 addresses, so an
+  // unthrottled flood would push real signups out of it.
   const ip = clientIp(request);
-  const rl = rateLimit(`beta:${ip}`, 20, 60_000);
+  const rl = await checkRateLimit(`beta:${ip}`, 5, 10 * 60_000);
   if (!rl.ok) {
     return NextResponse.json(
       { error: 'Too many requests.' },
       { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } }
     );
+  }
+
+  // Same two signals as the withdrawal function, same handling: recorded, not
+  // discarded, and reported honestly. `ok: false` leaves the user's text in the
+  // box for a retry — and a retry raises the dwell time, so the one false
+  // positive that is even possible here clears itself.
+  const verdict = detectBot(body);
+  if (verdict) {
+    await saveRejectedSubmission({
+      kind: type,
+      text: String(body.message ?? body.email ?? '').slice(0, 500),
+      locale: String(body.locale || ''),
+      receivedAt: new Date().toISOString(),
+      reason: verdict,
+      ip,
+    });
+    return NextResponse.json({ ok: false, error: 'rejected' }, { status: 400 });
   }
 
   if (type === 'feedback') {

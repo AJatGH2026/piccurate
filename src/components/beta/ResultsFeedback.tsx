@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useParams, usePathname } from 'next/navigation';
 import { submitFeedback } from '@/lib/beta-client';
+import { Honeypot, useBotSignals } from '@/components/forms/Honeypot';
 
 const FEEDBACK_EMAIL: Record<string, string> = {
   de: 'feedback@auswahlbuddy.de',
@@ -24,11 +25,12 @@ export function ResultsFeedback() {
   const email = FEEDBACK_EMAIL[locale] ?? FEEDBACK_EMAIL.en;
   const [msg, setMsg] = useState('');
   const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
+  const { website, setWebsite, signals } = useBotSignals();
 
   const send = async () => {
     if (!msg.trim()) return;
     setState('sending');
-    const ok = await submitFeedback(msg, locale, pathname || '');
+    const ok = await submitFeedback(msg, locale, pathname || '', signals());
     setState(ok ? 'done' : 'error');
     if (ok) setMsg('');
   };
@@ -49,6 +51,7 @@ export function ResultsFeedback() {
         <p className="mt-3 text-sm text-emerald-700 dark:text-emerald-400">{t('thanks')}</p>
       ) : (
         <>
+          <Honeypot id="rf-website" value={website} onChange={setWebsite} />
           <textarea
             value={msg}
             onChange={(e) => setMsg(e.target.value)}

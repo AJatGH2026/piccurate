@@ -19,12 +19,24 @@ export function logBeta(step: string, extra?: Record<string, unknown>): void {
   }
 }
 
-export async function submitFeedback(message: string, locale: string, path: string): Promise<boolean> {
+/**
+ * The bot signals from `useBotSignals()`, passed straight through to the API.
+ * Optional so a caller without a form (there is none today) still compiles —
+ * the server treats absent signals as neutral either way.
+ */
+export type BotSignals = { website: string; elapsedMs: number };
+
+export async function submitFeedback(
+  message: string,
+  locale: string,
+  path: string,
+  bot?: BotSignals
+): Promise<boolean> {
   try {
     const r = await fetch('/api/beta', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'feedback', message, locale, path }),
+      body: JSON.stringify({ type: 'feedback', message, locale, path, ...bot }),
     });
     const j = (await r.json()) as { ok?: boolean };
     return !!j.ok;
@@ -33,12 +45,12 @@ export async function submitFeedback(message: string, locale: string, path: stri
   }
 }
 
-export async function submitEmail(email: string, locale: string): Promise<boolean> {
+export async function submitEmail(email: string, locale: string, bot?: BotSignals): Promise<boolean> {
   try {
     const r = await fetch('/api/beta', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'email', email, locale }),
+      body: JSON.stringify({ type: 'email', email, locale, ...bot }),
     });
     const j = (await r.json()) as { ok?: boolean };
     return !!j.ok;
