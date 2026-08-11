@@ -222,11 +222,17 @@ export interface OrderConfirmation {
  * § 312f BGB: confirmation of the contract on a durable medium, within a
  * reasonable time and before performance begins.
  *
- * This is not a nicety. § 356 Abs. 5 BGB only lets the withdrawal right expire
- * early if, on top of the customer's two declarations, we *provided this
- * confirmation*. Without it the right does not expire — the customer can run
- * the analysis and still withdraw, and we owe the money back. So a failure to
- * send it is worth surfacing, not swallowing.
+ * Owed in its own right, and a failure to send it is worth surfacing rather
+ * than swallowing.
+ *
+ * On the withdrawal wording below: this is a digital *service* (§ 327 Abs. 2
+ * BGB), so § 356 Abs. 5 BGB applies and the right expires on **complete**
+ * performance — never at its start, which is § 356 Abs. 6 and covers digital
+ * content instead. The June 2026 renumbering moved services from Abs. 4 to
+ * Abs. 5 and digital content from Abs. 5 to Abs. 6; an earlier draft here took
+ * the new number with the old meaning and told customers the right lapsed the
+ * moment analysis began. It does not, and a mid-run withdrawal stays effective
+ * against pro-rata Wertersatz.
  *
  * Deliberately not an invoice. A VAT invoice needs the tax rate, and that
  * follows from the Stripe Tax / OSS setup, which is not decided yet. Stripe
@@ -267,8 +273,11 @@ export async function sendOrderConfirmation(o: OrderConfirmation): Promise<boole
         '',
         'Hinweis zum vorzeitigen Erlöschen: Du hast beim Kauf ausdrücklich',
         'zugestimmt, dass wir vor Ablauf der Widerrufsfrist mit der Ausführung',
-        'beginnen, und bestätigt, dass du dadurch dein Widerrufsrecht verlierst.',
-        'Mit dem Beginn der Analyse erlischt es daher.',
+        'beginnen, und bestätigt, dass du dein Widerrufsrecht mit der',
+        'vollständigen Erbringung der Leistung verlierst. Es erlischt daher,',
+        'sobald der Analysevorgang vollständig durchgeführt ist — nicht schon',
+        'mit seinem Beginn. Widerrufst du vorher, ist der Widerruf wirksam; für',
+        'den bereits erbrachten Teil schuldest du dann anteiligen Wertersatz.',
         '',
         '—',
         'AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Deutschland',
@@ -294,8 +303,11 @@ export async function sendOrderConfirmation(o: OrderConfirmation): Promise<boole
         '',
         'Note on early expiry: at checkout you expressly consented to us',
         'beginning performance before the withdrawal period expires and confirmed',
-        'that you thereby lose your right of withdrawal. It therefore expires when',
-        'the analysis begins.',
+        'that you lose your right of withdrawal upon complete performance. It',
+        'therefore expires once the analysis job has been carried out in full —',
+        'not when it begins. If you withdraw before that, the withdrawal is',
+        'effective; you then owe proportionate compensation for the part already',
+        'performed.',
         '',
         '—',
         'AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Germany',

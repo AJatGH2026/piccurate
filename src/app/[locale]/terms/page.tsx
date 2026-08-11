@@ -26,6 +26,23 @@ function Statutory({ children }: { children: React.ReactNode }) {
 // current free-only state and the later paid launch, so no further amendment
 // (and no renewed consent) is needed to switch selling on. German is the
 // authoritative version; English is provided for information.
+//
+// Corrected after the 2026-08-10 Abmahn-Test, which produced two findings that
+// went to the construction rather than to the wording:
+//
+//   § 4.2 — the service is a digital *service* (§ 327 Abs. 2 BGB), so the
+//   withdrawal right expires on **complete** performance (§ 356 Abs. 5 BGB),
+//   never at its start. The old text asserted the opposite, which is the one
+//   error that would have survived into a paid launch. The pro-rata Wertersatz
+//   passage of Anlage 1 (§ 357a Abs. 2 BGB) belongs in the notice and is now
+//   there.
+//
+//   § 4 / § 11 — the free plan is no longer carved out of §§ 327 ff. A contract
+//   without payment is still a consumer digital contract where the consumer
+//   provides personal data that is not used solely to deliver the service
+//   (§ 312 Abs. 1a BGB), and our own measurement (privacy § 9.1, Art. 6 Abs. 1
+//   lit. f) is exactly such a use. Rather than defend the boundary, the terms
+//   now apply the same regime to both — the boundary stops mattering.
 /**
  * Where the electronic withdrawal function lives, as shown inside the statutory
  * notice. Derived from the canonical base URL rather than hardcoded: the notice
@@ -43,11 +60,11 @@ function GermanBody({ withdrawalUrl }: { withdrawalUrl: string }) {
   return (
     <>
       <h1>Nutzungsbedingungen</h1>
-      <p>Stand: 10. August 2026</p>
+      <p>Stand: 11. August 2026</p>
       <h2>1. Anbieter und Geltungsbereich</h2>
       <p>Diese Nutzungsbedingungen gelten für die Nutzung des Fotoauswahldienstes AuswahlBuddy der AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Deutschland („AJ GmbH“, „wir“).</p>
       <p>AuswahlBuddy ist ausschließlich für persönliche, private oder familiäre Zwecke bestimmt. Eine berufliche, gewerbliche oder institutionelle Nutzung ist nicht gestattet.</p>
-      <p>Die Nutzung setzt ein Mindestalter von 16 Jahren voraus. Einen kostenpflichtigen Vertrag können nur Personen ab 18 Jahren schließen oder Personen, denen ihr gesetzlicher Vertreter zugestimmt hat. Beide Angaben bestätigst du vor dem jeweiligen Schritt selbst. Fotos dürfen Minderjährige abbilden, wenn du zu deren Verarbeitung berechtigt bist.</p>
+      <p>Die Nutzung setzt ein Mindestalter von 18 Jahren voraus. AuswahlBuddy richtet sich ausschließlich an volljährige Nutzer. Das gilt unabhängig davon, ob der kostenlose oder ein kostenpflichtiger Tarif genutzt wird, und auch dann, wenn ein gesetzlicher Vertreter zustimmen würde: Die Bedingungen des von uns eingesetzten KI-Anbieters untersagen Anwendungen, die sich an Minderjährige richten oder voraussichtlich von ihnen genutzt werden. Dein Alter bestätigst du vor der Analyse selbst; weitere Daten erheben wir dafür nicht. Fotos dürfen Minderjährige abbilden, wenn du zu deren Verarbeitung berechtigt bist.</p>
       <p>Der Dienst wird laufend weiterentwickelt. Einzelne Funktionen können hinzukommen, sich ändern oder entfallen; Abschnitt 10 regelt, in welchem Rahmen das zulässig ist.</p>
       <p>Abweichende Bedingungen des Nutzers gelten nur, wenn wir ihnen ausdrücklich in Textform zustimmen.</p>
       <h2>2. Tarife und Leistungsumfang</h2>
@@ -63,7 +80,7 @@ function GermanBody({ withdrawalUrl }: { withdrawalUrl: string }) {
       <p>Die Zahlung wickeln wir über Stripe Payments Europe, Ltd. ab. Die Zahlungsdaten gibst du direkt bei Stripe ein; vollständige Karten- oder Kontodaten erreichen uns nicht. Der Betrag ist mit Vertragsschluss sofort fällig.</p>
       <p>Die Bestellbestätigung und die Rechnung senden wir dir in Textform an die im Konto hinterlegte E-Mail-Adresse. Ein kostenpflichtiger Vertrag setzt daher ein Konto mit bestätigter E-Mail-Adresse voraus.</p>
       <h2>4. Widerrufsrecht für Verbraucher</h2>
-      <p>Verbrauchern steht bei kostenpflichtigen Verträgen das folgende gesetzliche Widerrufsrecht zu. Für den kostenlosen Tarif fällt kein Entgelt an; ein Widerruf hätte dort keine Zahlungsfolgen. Du kannst die Nutzung jederzeit beenden und dein Konto löschen.</p>
+      <p>Verbrauchern steht das folgende gesetzliche Widerrufsrecht zu. Es gilt für kostenpflichtige Verträge und ebenso für den kostenlosen Tarif: Auch ein Vertrag ohne Geldzahlung ist ein Verbrauchervertrag über digitale Produkte, wenn du dafür personenbezogene Daten bereitstellst (§ 312 Abs. 1a BGB). Im kostenlosen Tarif fällt kein Entgelt an; ein Widerruf hat dort deshalb keine Zahlungsfolgen, und Wertersatz schuldest du ebenfalls nicht. Unabhängig vom Widerruf kannst du die Nutzung jederzeit beenden und dein Konto löschen.</p>
       <h3>4.1 Widerrufsbelehrung</h3>
       <p>Der folgende Text gibt das amtliche Muster der Anlage 1 zu Artikel 246a § 1 Absatz 2 Satz 2 EGBGB wieder. Er ist deshalb — abweichend vom übrigen Text dieser Seite — in der Sie-Form gehalten.</p>
       <Statutory>
@@ -76,11 +93,13 @@ function GermanBody({ withdrawalUrl }: { withdrawalUrl: string }) {
         <p>Zur Wahrung der Widerrufsfrist reicht es aus, dass Sie die Mitteilung über die Ausübung des Widerrufsrechts vor Ablauf der Widerrufsfrist absenden.</p>
         <p><strong>Folgen des Widerrufs</strong></p>
         <p>Wenn Sie diesen Vertrag widerrufen, haben wir Ihnen alle Zahlungen, die wir von Ihnen erhalten haben, unverzüglich und spätestens binnen vierzehn Tagen ab dem Tag zurückzuzahlen, an dem die Mitteilung über Ihren Widerruf dieses Vertrags bei uns eingegangen ist. Für diese Rückzahlung verwenden wir dasselbe Zahlungsmittel, das Sie bei der ursprünglichen Transaktion eingesetzt haben, es sei denn, mit Ihnen wurde ausdrücklich etwas anderes vereinbart; in keinem Fall werden Ihnen wegen dieser Rückzahlung Entgelte berechnet.</p>
+        <p>Haben Sie verlangt, dass die Dienstleistungen während der Widerrufsfrist beginnen sollen, so haben Sie uns einen angemessenen Betrag zu zahlen, der dem Anteil der bis zu dem Zeitpunkt, zu dem Sie uns von der Ausübung des Widerrufsrechts hinsichtlich dieses Vertrags unterrichten, bereits erbrachten Dienstleistungen im Vergleich zum Gesamtumfang der im Vertrag vorgesehenen Dienstleistungen entspricht.</p>
       </Statutory>
       <h3>4.2 Vorzeitiges Erlöschen des Widerrufsrechts</h3>
-      <p>Dein Widerrufsrecht erlischt vorzeitig, wenn wir mit der Ausführung des Vertrags begonnen haben, nachdem du ausdrücklich zugestimmt hast, dass wir vor Ablauf der Widerrufsfrist mit der Ausführung beginnen, du deine Kenntnis davon bestätigt hast, dass du durch diese Zustimmung dein Widerrufsrecht verlierst, und wir dir eine Bestätigung des Vertrags in Textform zur Verfügung gestellt haben.</p>
-      <p>Praktisch heißt das: Die Analyse soll in aller Regel sofort starten. Deshalb bitten wir dich im Bestelldialog um die beiden genannten Erklärungen. Gibst du sie ab und beginnen wir daraufhin mit der Ausführung, erlischt dein Widerrufsrecht in dem Moment, in dem wir beginnen — nicht erst mit Abschluss der Analyse. Die Vertragsbestätigung in Textform senden wir dir zusammen mit der Bestellbestätigung nach Abschnitt 3.</p>
-      <p>Wertersatz schuldest du in diesem Fall nicht. Möchtest du das nicht, kannst du die Erklärungen weglassen. Wir beginnen die Analyse dann erst nach Ablauf der Widerrufsfrist.</p>
+      <p>AuswahlBuddy ist eine digitale Dienstleistung: Du stellst Fotos bereit, und wir verarbeiten diese Daten und liefern dir einen Auswahlvorschlag. Für Dienstleistungen erlischt das Widerrufsrecht nicht schon mit dem Beginn der Ausführung, sondern erst dann, wenn wir die Leistung <strong>vollständig erbracht</strong> haben und wir mit der Ausführung erst begonnen haben, nachdem du ausdrücklich zugestimmt hast, dass wir vor Ablauf der Widerrufsfrist beginnen, und du deine Kenntnis davon bestätigt hast, dass du dein Widerrufsrecht mit der vollständigen Vertragserfüllung verlierst (§ 356 Abs. 5 BGB). Zusätzlich stellen wir dir eine Bestätigung des Vertrags in Textform zur Verfügung; sie geht dir zusammen mit der Bestellbestätigung nach Abschnitt 3 zu.</p>
+      <p>Praktisch heißt das: Die Analyse soll in aller Regel sofort starten. Deshalb bitten wir dich im Bestelldialog um die beiden genannten Erklärungen. Dein Widerrufsrecht erlischt dann in dem Moment, in dem der beauftragte Analysevorgang vollständig durchgeführt ist — nicht schon, wenn wir mit ihm beginnen.</p>
+      <p>Widerrufst du, während die Analyse noch läuft, ist der Widerruf wirksam. Für den bis zum Zugang deines Widerrufs bereits erbrachten Teil der Leistung schuldest du dann anteiligen Wertersatz (§ 357a Abs. 2 BGB); den übrigen Betrag erstatten wir dir. Möchtest du auch das vermeiden, kannst du die Erklärungen weglassen. Wir beginnen die Analyse dann erst nach Ablauf der Widerrufsfrist.</p>
+      <p>Im kostenlosen Tarif gibt es kein Entgelt. Dort führt ein Widerruf deshalb weder zu einer Erstattung noch zu Wertersatz, gleichgültig, wann er erklärt wird.</p>
       <h3>4.3 Muster-Widerrufsformular</h3>
       <Statutory>
         <p>(Wenn Sie den Vertrag widerrufen wollen, dann füllen Sie bitte dieses Formular aus und senden Sie es zurück.)</p>
@@ -117,7 +136,8 @@ function GermanBody({ withdrawalUrl }: { withdrawalUrl: string }) {
       <p>Wir dürfen einen Vorgang abbrechen, Datenübertragungen blockieren oder den Zugang beschränken, wenn konkrete Anhaltspunkte für Missbrauch, Sicherheitsrisiken oder Rechtsverstöße bestehen. Soweit möglich, berücksichtigen wir dabei deine Interessen und informieren über den Grund. Brechen wir einen bereits bezahlten Vorgang ohne einen von dir zu vertretenden Grund ab, erstatten wir den gezahlten Betrag.</p>
       <h2>9. Datenschutz</h2>
       <p>Informationen zur Verarbeitung personenbezogener Daten, zu Referenzfotos, Google und der möglichen Google-Aufbewahrung bis zu 55 Tagen enthält die Datenschutzerklärung. Für die ausgewählten Foto- und Referenzinhalte verarbeitet AJ GmbH ausschließlich auf deine Weisung; für eigene Website-, Sicherheits-, Support- und Vertragsdaten ist AJ GmbH Verantwortlicher.</p>
-      <p>Die nachstehenden Auftragsverarbeitungsbedingungen gelten, soweit AJ GmbH Foto- und Referenzinhalte in deinem Auftrag verarbeitet. Optionale Einwilligungen, etwa für Geokodierung, bleiben hiervon getrennt und können verweigert oder widerrufen werden.</p>
+      <p>Die nachstehenden Auftragsverarbeitungsbedingungen gelten, soweit AJ GmbH Foto- und Referenzinhalte in deinem Auftrag verarbeitet.</p>
+      <p>Die Ableitung eines Ortsnamens aus GPS-Daten ist Teil des von dir beauftragten Analysevorgangs und beruht nicht auf einer gesonderten Einwilligung. Möchtest du sie nicht, entferne die GPS-Daten vor dem Hochladen aus deinen Fotos oder schalte die Standortspeicherung in deiner Kamera-App ab; Einzelheiten stehen in Abschnitt 6 der Datenschutzerklärung. Wo wir dich an anderer Stelle um eine echte Einwilligung bitten — etwa für Produkt-Updates per E-Mail —, kannst du sie verweigern und jederzeit mit Wirkung für die Zukunft widerrufen.</p>
       <p>9.1 Ergänzende Bedingungen zur Verarbeitung von Foto- und Referenzinhalten</p>
       <p>Gegenstand und Dauer: Verarbeitet werden die von dir für einen konkreten Vorgang ausgewählten Vorschaubilder, Referenzfotos, erforderlichen Metadaten und Analyseergebnisse. Die Verarbeitung beginnt mit dem Start des Vorgangs und endet nach Abschluss der Analyse und der technisch unvermeidbaren Kurzzeitspeicherung; abweichende Google-Aufbewahrungen sind in der Datenschutzerklärung beschrieben.</p>
       <p>Art und Zweck: Verkleinerung, Übermittlung, automatisierte Qualitäts- und Motivanalyse sowie – bei Nutzung der Personenfunktion – vorübergehender Gesichtsabgleich zur Wiedererkennung einer von dir bestimmten Person in den ausgewählten privaten Fotos.</p>
@@ -132,7 +152,7 @@ function GermanBody({ withdrawalUrl }: { withdrawalUrl: string }) {
       <p>Wir dürfen Funktionen ändern, wenn hierfür ein sachlicher Grund besteht, insbesondere Sicherheit, Rechtsänderungen, technische Weiterentwicklung, Anbieterwechsel oder Vermeidung von Missbrauch. Änderungen dürfen dich nicht unangemessen benachteiligen und lassen bereits bezahlte, noch nicht durchgeführte Vorgänge unberührt.</p>
       <p>Wir dürfen den Dienst oder einzelne Tarife jederzeit mit Wirkung für die Zukunft einstellen. Bereits bezahlte, noch nicht durchgeführte Vorgänge erstatten wir in diesem Fall. Bereits abgeschlossene lokale Downloads bleiben unberührt. Da kein dauerhaftes Fotoarchiv geschuldet ist, besteht kein Anspruch auf Datenmigration.</p>
       <h2>11. Vertragsmäßigkeit und Mängelrechte</h2>
-      <p>Für kostenpflichtige Verträge gelten die gesetzlichen Vorschriften über Verträge mit Verbrauchern über digitale Produkte (§§ 327 ff. BGB).</p>
+      <p>Für Verträge über AuswahlBuddy gelten die gesetzlichen Vorschriften über Verträge mit Verbrauchern über digitale Produkte (§§ 327 ff. BGB). Wir wenden sie auf kostenpflichtige Verträge und auf den kostenlosen Tarif gleichermaßen an. Ob sie für den kostenlosen Tarif kraft Gesetzes gelten, hängt davon ab, wie die von dir bereitgestellten personenbezogenen Daten verwendet werden; auf diese Abgrenzung kommt es hier deshalb nicht an. Im kostenlosen Tarif richten sich deine Rechte naturgemäß auf die erneute Durchführung, nicht auf eine Erstattung.</p>
       <p>Geschuldet ist die technisch einwandfreie Durchführung des beauftragten Analysevorgangs bis zu der für den Tarif angegebenen Fotomenge und die Bereitstellung des Ergebnisses zum Herunterladen. Ein bestimmtes Auswahlergebnis, eine bestimmte Trefferquote oder die Übereinstimmung des Vorschlags mit deinem persönlichen Geschmack ist naturgemäß nicht geschuldet und stellt keine Beschaffenheitsvereinbarung dar; darauf weist Abschnitt 5 hin.</p>
       <p>Ist die Leistung mangelhaft, kannst du Nacherfüllung verlangen. Diese erfolgt in der Regel dadurch, dass wir den Analysevorgang ohne zusätzliche Kosten erneut durchführen. Schlägt die Nacherfüllung fehl, ist sie unmöglich oder verweigern wir sie, stehen dir die gesetzlichen Rechte auf Preisminderung oder Vertragsbeendigung zu.</p>
       <p>Da die Leistung in einem einmaligen Vorgang besteht und nicht dauerhaft bereitgestellt wird, besteht keine Pflicht zur dauerhaften Aktualisierung. Maßgeblich ist die Vertragsmäßigkeit im Zeitpunkt der Bereitstellung. Die gesetzlichen Verjährungsfristen bleiben unberührt.</p>
@@ -163,11 +183,11 @@ function EnglishBody({ withdrawalUrl }: { withdrawalUrl: string }) {
     <>
       <h1>Terms of Service</h1>
       <EnglishNotice contractual />
-      <p>Last updated: 10 August 2026</p>
+      <p>Last updated: 11 August 2026</p>
       <h2>1. Provider and scope</h2>
       <p>These Terms govern use of the ShortlistBuddy photo-selection service provided by AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Germany (“AJ GmbH”, “we”).</p>
       <p>ShortlistBuddy is intended exclusively for personal, private or family purposes. Professional, commercial or institutional use is not permitted.</p>
-      <p>Use requires a minimum age of 16. Only persons aged 18 or over, or persons whose legal guardian has consented, may enter into a paid contract. You confirm both yourself before the relevant step. Photos may depict minors where you are authorised to have them processed.</p>
+      <p>Use requires a minimum age of 18. ShortlistBuddy is offered to adult users only. This applies to the free plan and to paid plans alike, and also where a legal guardian would consent: the terms of the AI provider we use prohibit applications directed at minors or likely to be used by them. You confirm your age yourself before the analysis; we collect no further data for this. Photos may depict minors where you are authorised to have them processed.</p>
       <p>The service is under continuous development. Individual functions may be added, changed or removed; section 10 governs the limits of this.</p>
       <p>Any terms of the user apply only if we expressly agree to them in text form.</p>
       <h2>2. Plans and scope of service</h2>
@@ -183,7 +203,7 @@ function EnglishBody({ withdrawalUrl }: { withdrawalUrl: string }) {
       <p>Payment is processed by Stripe Payments Europe, Ltd. You enter your payment details directly with Stripe; complete card or account details do not reach us. The amount is due immediately upon formation of the contract.</p>
       <p>We send the order confirmation and the invoice in text form to the email address held in your account. A paid contract therefore requires an account with a confirmed email address.</p>
       <h2>4. Right of withdrawal for consumers</h2>
-      <p>Consumers have the following statutory right of withdrawal for paid contracts. No fee is charged in the free plan, so a withdrawal there would have no payment consequences. You can stop using the service and delete your account at any time.</p>
+      <p>Consumers have the following statutory right of withdrawal. It applies to paid contracts and equally to the free plan: a contract without payment of money is also a consumer contract for digital products where you provide personal data in return (section 312(1a) of the German Civil Code). No fee is charged in the free plan, so a withdrawal there has no payment consequences and you owe no compensation for value either. Independently of withdrawal, you can stop using the service and delete your account at any time.</p>
       <h3>4.1 Withdrawal notice</h3>
       <p>The following reproduces the official model notice in Annex 1 to Article 246a § 1(2) sentence 2 of the Introductory Act to the German Civil Code (EGBGB). Only the German wording is legally operative.</p>
       <Statutory>
@@ -194,11 +214,13 @@ function EnglishBody({ withdrawalUrl }: { withdrawalUrl: string }) {
         <p>To meet the withdrawal deadline, it is sufficient for you to send your communication concerning the exercise of the right of withdrawal before the withdrawal period has expired.</p>
         <p><strong>Effects of withdrawal</strong></p>
         <p>If you withdraw from this contract, we shall reimburse to you all payments received from you without undue delay and in any event not later than fourteen days from the day on which we are informed about your decision to withdraw from this contract. We will carry out such reimbursement using the same means of payment as you used for the initial transaction, unless you have expressly agreed otherwise; in any event, you will not incur any fees as a result of such reimbursement.</p>
+        <p>If you requested that the services begin during the withdrawal period, you shall pay us an amount which is in proportion to what has been provided until you have communicated to us your withdrawal from this contract, in comparison with the full coverage of the contract.</p>
       </Statutory>
       <h3>4.2 Early expiry of the right of withdrawal</h3>
-      <p>Your right of withdrawal expires early if we have begun performance of the contract after you expressly consented to us beginning performance before the withdrawal period expires, you confirmed your knowledge that you thereby lose your right of withdrawal, and we provided you with a confirmation of the contract in text form.</p>
-      <p>In practice: analysis is normally meant to start immediately, so we ask you for both of those declarations in the order dialogue. If you give them and we then begin performance, your right of withdrawal expires at the moment we begin — not only when the analysis is finished. We send the contract confirmation in text form together with the order confirmation under section 3.</p>
-      <p>You owe no compensation for value in this case. If you prefer not to, you can omit the declarations. We will then start the analysis only after the withdrawal period has expired.</p>
+      <p>ShortlistBuddy is a digital service: you provide photos, and we process that data and deliver a proposed selection. For services, the right of withdrawal does not expire when performance begins, but only once we have <strong>fully performed</strong> the service, provided we began performance only after you expressly consented to us beginning before the withdrawal period expires and confirmed your knowledge that you lose your right of withdrawal upon full performance of the contract (section 356(5) of the German Civil Code). We additionally provide you with a confirmation of the contract in text form, sent together with the order confirmation under section 3.</p>
+      <p>In practice: analysis is normally meant to start immediately, so we ask you for both of those declarations in the order dialogue. Your right of withdrawal then expires at the moment the commissioned analysis job has been carried out in full — not when we begin it.</p>
+      <p>If you withdraw while the analysis is still running, the withdrawal is effective. For the part of the service already performed when your withdrawal reaches us, you owe proportionate compensation for value (section 357a(2) of the German Civil Code); we refund the remainder. If you prefer to avoid that too, you can omit the declarations. We will then start the analysis only after the withdrawal period has expired.</p>
+      <p>No fee is charged in the free plan. A withdrawal there therefore leads neither to a refund nor to compensation for value, whenever it is declared.</p>
       <h3>4.3 Model withdrawal form</h3>
       <Statutory>
         <p>(Complete and return this form only if you wish to withdraw from the contract.)</p>
@@ -235,7 +257,8 @@ function EnglishBody({ withdrawalUrl }: { withdrawalUrl: string }) {
       <p>We may stop a job, block a transfer or restrict access where there are concrete indications of misuse, security risks or legal violations. Where possible, we will take your interests into account and explain the reason. If we stop a job you have already paid for without a reason attributable to you, we will refund the amount paid.</p>
       <h2>9. Data protection</h2>
       <p>The Privacy Policy explains processing of personal data, reference photos, Google and possible Google retention for up to 55 days. AJ GmbH processes selected photo and reference content solely on your instructions; AJ GmbH is the controller for its own website, security, support and contractual data.</p>
-      <p>The following data-processing terms apply to the extent that AJ GmbH processes photo and reference content on your behalf. Optional consent, for example for geocoding, remains separate and may be refused or withdrawn.</p>
+      <p>The following data-processing terms apply to the extent that AJ GmbH processes photo and reference content on your behalf.</p>
+      <p>Deriving a place name from GPS data is part of the analysis job you commission and does not rest on separate consent. If you do not want it, remove the GPS data from your photos before uploading or switch off location recording in your camera app; details are in section 6 of the Privacy Policy. Where we do ask you for genuine consent — for product update emails, for example — you may refuse it and withdraw it at any time with future effect.</p>
       <p>9.1 Supplementary terms for processing photo and reference content</p>
       <p>Subject matter and duration: The selected previews, reference photos, required metadata and analysis results are processed for a specific job. Processing begins when the job starts and ends after analysis and technically unavoidable short-term retention; any different Google retention is described in the Privacy Policy.</p>
       <p>Nature and purpose: Reduction, transmission, automated quality and subject analysis and, where the Persons feature is used, temporary facial matching to recognise a person specified by you in the selected private photos.</p>
@@ -250,7 +273,7 @@ function EnglishBody({ withdrawalUrl }: { withdrawalUrl: string }) {
       <p>We may modify functions for an objective reason, including security, legal changes, technical development, provider changes or prevention of misuse. Changes must not unreasonably disadvantage you and do not affect jobs already paid for but not yet performed.</p>
       <p>We may discontinue the service or individual plans at any time for the future. In that case we refund jobs already paid for but not yet performed. Completed local downloads remain unaffected. As no permanent photo archive is owed, there is no right to data migration.</p>
       <h2>11. Conformity and remedies for defects</h2>
-      <p>The statutory provisions on consumer contracts for digital products (sections 327 et seq. of the German Civil Code) apply to paid contracts.</p>
+      <p>The statutory provisions on consumer contracts for digital products (sections 327 et seq. of the German Civil Code) apply to contracts for ShortlistBuddy. We apply them to paid contracts and to the free plan alike. Whether they apply to the free plan by operation of law depends on how the personal data you provide is used; that distinction therefore does not matter here. In the free plan your rights are naturally directed at re-running the job rather than at a refund.</p>
       <p>What we owe is the technically correct performance of the commissioned analysis job up to the photo limit stated for the plan, and provision of the result for download. A particular selection result, a particular hit rate, or agreement of the proposal with your personal taste is inherently not owed and does not constitute an agreement on quality; section 5 points this out.</p>
       <p>If the service is defective, you may demand subsequent performance. This will normally consist of us running the analysis job again at no additional cost. If subsequent performance fails, is impossible or is refused by us, you have the statutory rights to a price reduction or to terminate the contract.</p>
       <p>As the service consists of a one-off job and is not supplied on a continuous basis, there is no obligation to provide ongoing updates. Conformity at the time of supply is decisive. Statutory limitation periods remain unaffected.</p>

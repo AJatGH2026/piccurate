@@ -7,12 +7,20 @@ import { LegalModal } from '@/components/legal/LegalModal';
 /**
  * The two declarations a purchase needs, kept apart on purpose.
  *
- * - **18 or with a guardian's consent.** This is where a contract is formed, so
- *   limited contractual capacity applies (§§ 104 ff. BGB). The 16 confirmed
- *   before the analysis covers GDPR consent only and is not enough here.
- * - **Immediate performance, withdrawal right lapses** (§ 356 Abs. 5 BGB).
- *   Without this consent a digital service may not be delivered before the
- *   14-day withdrawal period ends — and the whole product is instant delivery.
+ * - **18.** This is where a contract is formed, so limited contractual capacity
+ *   applies (§§ 104 ff. BGB). It used to read "18 or with a guardian's consent",
+ *   which no longer holds: the Gemini API terms forbid clients aimed at or
+ *   likely used by under-18s, and a guardian cannot consent that away. The
+ *   confirmation before the analysis now asks for 18 as well, so this box
+ *   restates the same threshold at the point a contract attaches to it.
+ * - **Immediate performance, withdrawal right lapses on full performance**
+ *   (§ 356 Abs. 5 BGB). Without this consent a digital service may not be
+ *   delivered before the 14-day withdrawal period ends — and the whole product
+ *   is instant delivery. Note what the consent does *not* do: for a service the
+ *   right lapses only once the job has run to completion, never at its start.
+ *   Withdrawing mid-run stays effective and costs pro-rata Wertersatz
+ *   (§ 357a Abs. 2 BGB). The 2026-08-10 texts claimed expiry at the start; the
+ *   Abmahn-Test made that its most serious finding.
  *
  * Bundling them into one box would make both hard to evidence and is exactly
  * what we untangled on the configure page.
@@ -20,12 +28,14 @@ import { LegalModal } from '@/components/legal/LegalModal';
  * The Widerrufsbelehrung that consent refers to now exists — terms §4, with the
  * Muster-Widerrufsformular and the online withdrawal function (§ 356a BGB).
  *
- * ⚠️ Still open before enabling Stripe: the confirmation of the contract in
- * text form. § 356 Abs. 5 BGB lets the withdrawal right expire early only if,
- * on top of the two declarations below, that confirmation was provided. It is
- * sent from the Stripe webhook (`sendOrderConfirmation`) — so if that mail is
- * ever disabled or silently fails, this dialogue is collecting a consent that
- * no longer achieves anything.
+ * ⚠️ The confirmation of the contract in text form is the third condition of
+ * § 356 Abs. 5 BGB, on top of the two declarations below. It is sent from the
+ * Stripe webhook (`sendOrderConfirmation`) — so if that mail is ever disabled or
+ * silently fails, this dialogue is collecting a consent that achieves nothing.
+ *
+ * The confirm button carries the § 312j Abs. 3 BGB wording, because terms § 3
+ * says the binding offer is made here. Stripe's own button then only takes the
+ * payment; its label is not ours to set.
  */
 export function CheckoutConfirm({
   tierLabel,

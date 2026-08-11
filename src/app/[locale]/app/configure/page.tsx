@@ -669,7 +669,7 @@ export default function ConfigurePage() {
             }}
             className="mt-0.5 accent-indigo-600"
           />
-          <span>{t('ageConfirm16')}</span>
+          <span>{t('ageConfirm18')}</span>
         </label>
         <label className="mt-2 flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300">
           <input

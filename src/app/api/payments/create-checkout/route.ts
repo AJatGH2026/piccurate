@@ -58,6 +58,11 @@ export async function POST(request: NextRequest) {
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
+      // The binding offer is made in our own dialogue, on the button carrying the
+      // § 312j Abs. 3 BGB wording. Stripe's page only collects the payment, so
+      // 'pay' is the honest submit type — 'book' or 'donate' would describe a
+      // transaction that is not happening.
+      submit_type: 'pay',
       payment_method_types: ['card'],
       line_items: [
         {

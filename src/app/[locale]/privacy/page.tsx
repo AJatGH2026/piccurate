@@ -17,7 +17,7 @@ function GermanBody() {
   return (
     <>
       <h1>Datenschutzerklärung</h1>
-      <p>Stand: 10. August 2026</p>
+      <p>Stand: 11. August 2026</p>
       <h2>1. Verantwortlicher</h2>
       <p>Verantwortlicher im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:</p>
       <p>AJ GmbH</p>
@@ -28,7 +28,7 @@ function GermanBody() {
       <p>Datenschutzkontakt: privacy@auswahlbuddy.de</p>
       <h2>2. Geltungsbereich und Mindestalter</h2>
       <p>Diese Datenschutzerklärung gilt für die Website und den Fotoauswahldienst AuswahlBuddy. Der Dienst ist für die persönliche, private oder familiäre Fotoverwaltung bestimmt.</p>
-      <p>Die Nutzung setzt ein Mindestalter von 16 Jahren voraus; das entspricht der Altersgrenze für die eigene Einwilligung nach Art. 8 DSGVO in Deutschland. Ein kostenpflichtiger Vertrag kann nur von Personen ab 18 Jahren oder mit Zustimmung eines gesetzlichen Vertreters geschlossen werden. Beide Angaben bestätigst du selbst; wir erheben zur Altersprüfung keine weiteren Daten. Personen unterhalb der jeweiligen Grenze dürfen auf privaten Fotos und Referenzfotos abgebildet sein.</p>
+      <p>Die Nutzung setzt ein Mindestalter von 18 Jahren voraus. Der Dienst wird ausschließlich volljährigen Nutzern angeboten — auch dort, wo Art. 8 DSGVO eine eigene Einwilligung schon ab 16 Jahren zuließe: Die Bedingungen des von uns eingesetzten KI-Anbieters untersagen Anwendungen, die sich an Minderjährige richten oder voraussichtlich von ihnen genutzt werden. Dein Alter bestätigst du selbst; wir erheben zur Altersprüfung keine weiteren Daten. Minderjährige dürfen auf privaten Fotos und Referenzfotos abgebildet sein.</p>
       <p>Der Nutzer entscheidet selbst, welche privaten Fotos und welche ihm bekannten Personen analysiert werden. AuswahlBuddy darf nicht für berufliche oder gewerbliche Zwecke, zur öffentlichen Personensuche, zur Überwachung oder zur Identifizierung unbekannter Personen verwendet werden. Für Referenzfotos bestätigt der Nutzer einmal je Analysevorgang, dass die jeweils abgebildete Person oder – soweit erforderlich – eine hierzu berechtigte Person der beschriebenen Verwendung zugestimmt hat.</p>
       <h2>3. Aufruf der Website und technische Protokolldaten</h2>
       <p>Beim Aufruf der Website werden technisch erforderliche Daten verarbeitet, insbesondere IP-Adresse, Zeitpunkt, aufgerufene Adresse, HTTP-Status, übertragene Datenmenge, Referrer-Informationen, Browser-/Geräteinformationen und technische Fehlerdaten. Die Verarbeitung ist erforderlich, um die Website auszuliefern, Angriffe und Missbrauch abzuwehren und die Stabilität zu gewährleisten.</p>
@@ -64,7 +64,7 @@ function GermanBody() {
       <h2>6. Ortsnamen aus GPS-Daten</h2>
       <p>Viele Kameras und Smartphones schreiben den Aufnahmeort als GPS-Koordinaten in die Bilddatei. Damit du deine Auswahl nach Orten sortieren kannst, leitet die KI aus diesen Koordinaten einen Ortsnamen ab („Lissabon, Portugal“). Der Ortsname wird in der Ergebnisübersicht angezeigt und kann als Ordnerstruktur in die Download-Datei übernommen werden.</p>
       <p>Die Ableitung erfolgt bei demselben KI-Anbieter, der ohnehin die Bildanalyse durchführt (Abschnitt 5). Wir setzen dafür <strong>keinen zusätzlichen Geokodierungsdienst</strong> und keinen weiteren Empfänger ein.</p>
-      <p><strong>Die Koordinaten werden vor der Übermittlung gerundet.</strong> Wir übermitteln sie auf zwei Nachkommastellen gekürzt; das entspricht einem Raster von rund einem Kilometer. Das genügt, um einen Ort oder eine Region zu benennen, reicht aber nicht aus, um eine Wohnung, ein Hotelzimmer oder eine Schule zu bestimmen. Die vollständigen Koordinaten verlassen dein Endgerät nicht — sie stehen nur in der lokal erzeugten Download-Datei, die ebenfalls auf deinem Gerät bleibt.</p>
+      <p><strong>Die Koordinaten werden vor der Übermittlung gerundet.</strong> Wir übermitteln sie auf zwei Nachkommastellen gekürzt; das entspricht einem Raster von rund einem Kilometer. Das genügt, um einen Ort oder eine Region zu benennen, und erschwert es erheblich, daraus eine einzelne Adresse abzuleiten. Ausschließen können wir das nicht: In dünn besiedelten Gebieten oder zusammen mit dem Bildinhalt kann auch ein solches Raster auf ein bestimmtes Gebäude hindeuten. Die vollständigen Koordinaten verlassen dein Endgerät nicht — sie stehen nur in der lokal erzeugten Download-Datei, die ebenfalls auf deinem Gerät bleibt.</p>
       <p>Rechtsgrundlage ist Art. 6 Abs. 1 Buchst. b DSGVO: die Ortszuordnung ist Teil der von dir beauftragten Auswahlleistung. Enthält ein Foto keine GPS-Daten, wird für dieses Foto nichts übermittelt und kein Ortsname gebildet. Möchtest du generell keine Ortsdaten übermitteln, entferne die GPS-Daten vor dem Hochladen aus deinen Fotos oder schalte die Standortspeicherung in deiner Kamera-App ab.</p>
       <p>Die Koordinaten werden von AJ GmbH nicht dauerhaft gespeichert. Für die Aufbewahrung beim KI-Anbieter gilt Abschnitt 5.</p>
       <h2>7. Optionaler Cloud-Import und -Export</h2>
@@ -108,13 +108,15 @@ function GermanBody() {
       <h2>11. Speicherdauer</h2>
       <p>Hochauflösende Originalfotos: keine Übermittlung an Google und keine Speicherung durch AJ GmbH;</p>
       <p>Vorschaubilder bei AJ GmbH: keine dauerhafte Speicherung in einer Anwendungsdatenbank; Verarbeitung nur für die Dauer des Vorgangs und technisch unvermeidbare Kurzzeitspeicherung;</p>
+      <p>Referenzfotos, vorübergehende biometrische Merkmalsdarstellungen und Zuordnungsergebnisse bei AJ GmbH: nur für den laufenden Analysevorgang, danach Löschung aus der Anwendungsumgebung;</p>
       <p>Vorschaubilder und Antworten bei Google: nach aktueller Dokumentation für Sicherheits-/Missbrauchszwecke bis zu 55 Tage, sofern keine kürzere Zero-Data-Retention-Konfiguration verbindlich greift;</p>
       <p>Hosting-/Sicherheitslogs: 30 Tage, siehe Abschnitt 3;</p>
       <p>Feedback/Support und Update-Anmeldungen: gemäß Abschnitt 8;</p>
       <p>Gerundete GPS-Koordinaten zur Ortsbestimmung: keine Speicherung bei AJ GmbH; beim KI-Anbieter gelten dieselben Fristen wie für die Vorschaubilder;</p>
       <p>Ereignisse der eigenen Nutzungsmessung nach Abschnitt 9.1: 90 Tage in der Einzelform, danach ausschließlich in aggregierter Form ohne Sitzungs- oder Kontobezug;</p>
       <p>Zahlungs- und Rechnungsdaten nach Abschnitt 8a: für die Dauer der handels- und steuerrechtlichen Aufbewahrungsfristen, in der Regel bis zu zehn Jahre;</p>
-      <p>Technische Bestätigung der Referenzfoto-Berechtigung: ohne Referenzfoto, Namen oder Kontaktdaten für 30 Tage; längere Speicherung nur bei einem konkreten Sicherheits-, Missbrauchs- oder Rechtsfall.</p>
+      <p>Technische Bestätigung der Referenzfoto-Berechtigung: ohne Referenzfoto, Namen oder Kontaktdaten für 30 Tage; längere Speicherung nur bei einem konkreten Sicherheits-, Missbrauchs- oder Rechtsfall;</p>
+      <p>Einwilligungsnachweis für Produkt-Updates und sonstige rechtlich erhebliche Nachweise: für die Dauer der einschlägigen gesetzlichen Nachweis- und Verjährungsfristen.</p>
       <h2>12. Datensicherheit</h2>
       <p>Wir treffen technische und organisatorische Maßnahmen, die dem Risiko der Verarbeitung angemessen sind. Dazu gehören insbesondere verschlüsselte Übertragung, Zugriffsbeschränkungen, getrennte Schlüssel- und Rechteverwaltung, Datenminimierung, Missbrauchsbegrenzung, Protokollierung sicherheitsrelevanter Ereignisse und regelmäßige Überprüfung der eingesetzten Dienstleister. Ein absoluter Schutz bei der Datenübertragung oder Speicherung kann jedoch nicht garantiert werden.</p>
       <h2>13. Deine Rechte</h2>
@@ -147,7 +149,7 @@ function EnglishBody() {
     <>
       <h1>Privacy Policy</h1>
       <EnglishNotice />
-      <p>Last updated: 10 August 2026</p>
+      <p>Last updated: 11 August 2026</p>
       <h2>1. Controller</h2>
       <p>The controller within the meaning of the General Data Protection Regulation (GDPR) is:</p>
       <p>AJ GmbH</p>
@@ -158,7 +160,7 @@ function EnglishBody() {
       <p>Privacy contact: privacy@shortlistbuddy.com</p>
       <h2>2. Scope and minimum age</h2>
       <p>This Privacy Policy applies to the website and the ShortlistBuddy photo-selection service. The service is intended for personal, private or family photo management.</p>
-      <p>Use requires a minimum age of 16, which corresponds to the age limit for a person’s own consent under Article 8 GDPR in Germany. A paid contract can only be concluded by persons aged 18 or over, or with the consent of a legal guardian. You confirm both yourself; we collect no further data for age verification. Persons below the relevant threshold may appear in private photos and reference photos.</p>
+      <p>Use requires a minimum age of 18. The service is offered to adult users only — including where Article 8 GDPR would already allow a person to consent for themselves from the age of 16: the terms of the AI provider we use prohibit applications directed at minors or likely to be used by them. You confirm your age yourself; we collect no further data for age verification. Minors may appear in private photos and reference photos.</p>
       <p>The user decides which private photos and which known persons are analysed. ShortlistBuddy must not be used for professional or commercial purposes, public person searches, surveillance or identification of unknown persons. For reference photos, the user gives one confirmation per analysis job that each person shown—or, where necessary, a person authorised to act for them—has agreed to the described use.</p>
       <h2>3. Website access and technical log data</h2>
       <p>When the website is accessed, technically necessary data is processed, in particular the IP address, time, requested URL, HTTP status, data volume, referrer information, browser/device information and technical error data. This processing is necessary to deliver the website, prevent attacks and misuse, and maintain stability.</p>
@@ -194,7 +196,7 @@ function EnglishBody() {
       <h2>6. Place names from GPS data</h2>
       <p>Many cameras and smartphones write the location of capture into the image file as GPS coordinates. So that you can sort your selection by place, the AI derives a place name from those coordinates (“Lisbon, Portugal”). The place name is shown in the results overview and can be used as the folder structure in the download file.</p>
       <p>This is done by the same AI provider that performs the image analysis anyway (section 5). We use <strong>no additional geocoding service</strong> and no further recipient for it.</p>
-      <p><strong>Coordinates are rounded before transmission.</strong> We send them truncated to two decimal places, which corresponds to a grid of roughly one kilometre. That is enough to name a town or region but not enough to identify a home, a hotel room or a school. The full coordinates never leave your device — they appear only in the locally generated download file, which also stays on your device.</p>
+      <p><strong>Coordinates are rounded before transmission.</strong> We send them truncated to two decimal places, which corresponds to a grid of roughly one kilometre. That is enough to name a town or region, and it makes deriving a single address considerably harder. We cannot rule it out: in sparsely populated areas, or combined with the image content, even such a grid may point to a particular building. The full coordinates never leave your device — they appear only in the locally generated download file, which also stays on your device.</p>
       <p>The legal basis is Article 6(1)(b) GDPR: assigning places is part of the selection service you commissioned. If a photo contains no GPS data, nothing is transmitted for that photo and no place name is formed. If you would rather not transmit location data at all, remove the GPS data from your photos before uploading or switch off location recording in your camera app.</p>
       <p>AJ GmbH does not permanently store the coordinates. Retention at the AI provider is governed by section 5.</p>
       <h2>7. Optional cloud import and export</h2>

@@ -69,11 +69,10 @@ export async function POST(request: NextRequest) {
 
         console.log(`[Webhook] Job ${jobId} marked as paid`);
 
-        // § 312f BGB confirmation. It is also the third condition for the
-        // withdrawal right to expire early under § 356 Abs. 5 — without it the
-        // customer keeps the right after the analysis has run. Failing to send
-        // it must therefore be loud, not a silent warning in a log nobody
-        // reads. The payment itself stays valid either way; we do not fail the
+        // § 312f BGB confirmation of the contract in text form. Failing to send
+        // it must be loud, not a silent warning in a log nobody reads: it is
+        // the record the customer keeps, and it carries the withdrawal notice.
+        // The payment itself stays valid either way; we do not fail the
         // webhook, because Stripe would retry and we would re-confirm a job
         // that is already unlocked.
         try {

@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 import { clientConfig } from '@/lib/config';
-import { PRICING_PLANS } from '@/types/pricing';
+import { PRICING_PLANS, formatPrice } from '@/types/pricing';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { LogoutButton } from '@/components/auth/LogoutButton';
 
@@ -55,11 +55,18 @@ async function softwareJsonLd(locale: string) {
     operatingSystem: 'Web',
     url: `${clientConfig.appUrl}/${locale}`,
     description: t('description'),
+    // A paid tier without a Stripe price cannot be bought yet. Saying so in the
+    // structured data too, rather than only in the visible card: an Offer with a
+    // price and no availability reads as purchasable wherever it is re-rendered.
     offers: PRICING_PLANS.map((p) => ({
       '@type': 'Offer',
       name: p.tier,
       price: (p.priceEurCents / 100).toFixed(2),
       priceCurrency: 'EUR',
+      availability:
+        p.tier === 'free' || p.stripePriceId
+          ? 'https://schema.org/InStock'
+          : 'https://schema.org/PreOrder',
     })),
   };
 }
@@ -292,44 +299,42 @@ function ShowcaseSection() {
 function PricingSection({ locale }: { locale: string }) {
   const t = useTranslations('pricing');
 
-  const plans = [
-    {
-      name: t('free'),
-      price: t('free'),
-      badge: t('freeBadge'),
-      photos: 250,
-      highlight: false,
-      features: ['allCriteria', 'reviewAdjust', 'downloadZip'],
-      note: t('oneTimeUse'),
-    },
-    {
-      name: t('small'),
-      price: '€4.99',
-      badge: null,
-      photos: 1000,
-      highlight: false,
-      features: ['allCriteria', 'reviewAdjust', 'downloadZip', 'customCriteria'],
-      note: t('perUse'),
-    },
-    {
-      name: t('medium'),
-      price: '€7.99',
-      badge: null,
-      photos: 2500,
-      highlight: true,
-      features: ['allCriteria', 'reviewAdjust', 'downloadZip', 'customCriteria'],
-      note: t('perUse'),
-    },
-    {
-      name: t('large'),
-      price: '€10.99',
-      badge: null,
-      photos: 5000,
-      highlight: false,
-      features: ['allCriteria', 'reviewAdjust', 'downloadZip', 'customCriteria'],
-      note: t('perUse'),
-    },
-  ];
+  // Driven by PRICING_PLANS rather than by hardcoded strings, so the landing
+  // page cannot drift from the page that actually sells. Two things follow from
+  // the plan data and must not be restated by hand:
+  //   - the price in the locale's own notation, with the VAT statement on the
+  //     price itself (§ 6 PAngV wants it there, not three steps down the funnel);
+  //   - whether the tier can be booked at all. No Stripe price id means selling
+  //     is off, and a card that says "Jetzt starten" over a price nobody can pay
+  //     is the easiest misleading-advertising screenshot on the site.
+  const label = (tier: string) =>
+    tier === 'free' ? t('free') : tier === 'small' ? t('small') : tier === 'medium' ? t('medium') : t('large');
+
+  const plans = PRICING_PLANS.map((p) => {
+    const bookable = p.tier === 'free' || Boolean(p.stripePriceId);
+    return {
+      tier: p.tier,
+      name: label(p.tier),
+      price: p.tier === 'free' ? t('free') : formatPrice(p.priceEurCents, locale),
+      badge: p.tier === 'free' ? t('freeBadge') : null,
+      photos: p.photoLimit,
+      highlight: p.tier === 'medium',
+      bookable,
+      // A tier that cannot be booked leads to the beta offer, not to sign-up.
+      // The tier belongs in the link: which tier someone reaches for is the
+      // whole point of the offer, and `/app/pricing` reopens the dialogue from
+      // `?offer=` after the account detour it triggers itself. Sending them to
+      // the bare sign-up form instead would spend the click and keep nothing.
+      href: bookable
+        ? `/${locale}/auth/register`
+        : `/${locale}/app/pricing?offer=${p.tier}`,
+      features:
+        p.tier === 'free'
+          ? ['allCriteria', 'reviewAdjust', 'downloadZip']
+          : ['allCriteria', 'reviewAdjust', 'downloadZip', 'customCriteria'],
+      note: p.tier === 'free' ? t('oneTimeUse') : t('perUse'),
+    };
+  });
 
   return (
     <section id="pricing" className="py-20 bg-zinc-50 dark:bg-zinc-900">
@@ -345,7 +350,7 @@ function PricingSection({ locale }: { locale: string }) {
         <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {plans.map((plan) => (
             <div
-              key={plan.name}
+              key={plan.tier}
               className={`rounded-2xl p-6 flex flex-col ${
                 plan.highlight
                   ? 'bg-indigo-600 text-white ring-2 ring-indigo-600 shadow-xl'
@@ -372,6 +377,11 @@ function PricingSection({ locale }: { locale: string }) {
                   </span>
                 )}
               </div>
+              {plan.tier !== 'free' && (
+                <p className={`text-xs ${plan.highlight ? 'text-indigo-200' : 'text-zinc-500'}`}>
+                  {t('inclVat')}
+                </p>
+              )}
               <p
                 className={`mt-1 text-sm ${
                   plan.highlight ? 'text-indigo-200' : 'text-zinc-500'
@@ -390,15 +400,24 @@ function PricingSection({ locale }: { locale: string }) {
                 ))}
               </ul>
               <Link
-                href={`/${locale}/auth/register`}
+                href={plan.href}
                 className={`mt-6 block text-center rounded-full py-2.5 text-sm font-semibold transition-colors ${
                   plan.highlight
                     ? 'bg-white text-indigo-600 hover:bg-indigo-50'
                     : 'bg-indigo-600 text-white hover:bg-indigo-700'
                 }`}
               >
-                {t('cta')}
+                {plan.bookable ? t('cta') : t('betaCta')}
               </Link>
+              {!plan.bookable && (
+                <p
+                  className={`mt-2 text-center text-xs ${
+                    plan.highlight ? 'text-indigo-200' : 'text-zinc-500'
+                  }`}
+                >
+                  {t('plannedPrice')}
+                </p>
+              )}
             </div>
           ))}
         </div>

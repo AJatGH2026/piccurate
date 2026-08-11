@@ -245,6 +245,25 @@ export async function POST(request: NextRequest) {
     const nPersons = Math.min(personRefs.length, personNames.length, 4);
     const usePersons = nPersons > 0;
 
+    // Neutral labels for the prompt. The privacy policy says real names are not
+    // transmitted to Google ("eine neutrale, möglichst nicht namensbezogene
+    // Kennzeichnung wie 'Person A'"), and until the 2026-08-11 Art. 9 memo that
+    // was simply untrue: whatever the user typed in the "Name" field went into
+    // the prompt verbatim, next to a face. A real name beside a face is what
+    // turns a biometric comparison into an identification, so this is the one
+    // safeguard in that section worth having in code rather than in prose.
+    //
+    // The model never needs the name — it only needs a stable token to hand
+    // back. Names stay on this server for the length of the request and are
+    // reattached to the response below.
+    const personLabels = Array.from({ length: nPersons }, (_, i) =>
+      `Person ${String.fromCharCode(65 + i)}`
+    );
+    /** Lowercased label → real name, for mapping the model's answer back. */
+    const labelToName = new Map(
+      personLabels.map((label, i) => [label.toLowerCase(), personNames[i]])
+    );
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey === 'placeholder') {
       // Neutral log — no key length / environment details (data minimisation).
@@ -275,7 +294,7 @@ export async function POST(request: NextRequest) {
           `Return one JSON object per travel photo, in the order shown, wrapped in a JSON array.`,
       });
       for (let i = 0; i < nPersons; i++) {
-        parts.push({ text: `--- Reference ${i + 1}: ${personNames[i]} ---` });
+        parts.push({ text: `--- Reference ${i + 1}: ${personLabels[i]} ---` });
         const buffer = Buffer.from(await personRefs[i].arrayBuffer());
         parts.push({
           inlineData: { mimeType: 'image/jpeg', data: buffer.toString('base64') },
@@ -327,14 +346,14 @@ export async function POST(request: NextRequest) {
         `. Add a "custom" field to each object — an array of the matching terms (verbatim; empty array if none). Judge by what is visibly present, regardless of the term's language.`;
     }
     if (usePersons) {
-      const names = personNames.slice(0, nPersons);
+      const labels = personLabels;
       closing +=
-        `\n\nFACE MATCHING — for each travel photo, compare the visible faces (face structure, hair, apparent age, glasses, distinguishing features) against each reference photo. Add a "persons" field to every object — an array of names from the reference list (${names
+        `\n\nFACE MATCHING — for each travel photo, compare the visible faces (face structure, hair, apparent age, glasses, distinguishing features) against each reference photo. Add a "persons" field to every object — an array of labels from the reference list (${labels
           .map((n) => `"${n}"`)
           .join(', ')}) whose face clearly appears in that photo. ` +
-        `Use empty array [] when no reference person is recognisable. NEVER invent names outside the reference list. Be conservative but not timid: if two facial features clearly match (e.g. same face shape AND same glasses), include the name.` +
-        `\n\nExample output shape for a batch of 2 photos, references "${names[0]}"${names[1] ? ` and "${names[1]}"` : ''}: ` +
-        `[{...other fields..., "persons": ["${names[0]}"]}, {...other fields..., "persons": []}]`;
+        `Use empty array [] when no reference person is recognisable. NEVER invent labels outside the reference list. Be conservative but not timid: if two facial features clearly match (e.g. same face shape AND same glasses), include the label.` +
+        `\n\nExample output shape for a batch of 2 photos, references "${labels[0]}"${labels[1] ? ` and "${labels[1]}"` : ''}: ` +
+        `[{...other fields..., "persons": ["${labels[0]}"]}, {...other fields..., "persons": []}]`;
     }
     // Place names are shown to the user, so they follow the UI language.
     const placeLang = formData.get('locale') === 'de' ? 'German' : 'English';
@@ -392,10 +411,24 @@ export async function POST(request: NextRequest) {
 
     const results = parseAnalysisResponse(text, files.length);
 
+    // Put the real names back. The model answered in labels ("person a"), and
+    // the client matches photos by lowercased name (`matchesPerson`), so the
+    // mapping has to land before the response leaves this route. Anything the
+    // model invented outside the reference list is dropped rather than passed
+    // through — it cannot correspond to a person the user named.
+    if (usePersons) {
+      for (const r of results) {
+        if (!r.persons?.length) continue;
+        r.persons = r.persons
+          .map((label) => labelToName.get(label)?.toLowerCase().trim())
+          .filter((name): name is string => Boolean(name));
+      }
+    }
+
     // Diagnostic: if references were sent but no photo came back with a
     // "persons" hit, log a snippet of the raw response so we can inspect
-    // Gemini's actual reply and adjust the prompt if needed. (Names are only
-    // neutral labels "Person A/B…" here — real names never reach the server.)
+    // Gemini's actual reply and adjust the prompt if needed. (Counts only —
+    // the names themselves are never logged.)
     if (usePersons) {
       const totalHits = results.reduce((n, r) => n + (r.persons?.length || 0), 0);
       if (totalHits === 0) {
