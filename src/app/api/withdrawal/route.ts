@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { rateLimit, clientIp } from '@/lib/rate-limit';
-import { saveWithdrawal } from '@/lib/beta';
+import { checkRateLimit, clientIp } from '@/lib/rate-limit';
+import { saveWithdrawal, saveRejectedWithdrawal } from '@/lib/beta';
 import { emailConfigured, sendWithdrawalReceipt, sendWithdrawalNotice } from '@/lib/email';
 
 /**
@@ -19,11 +19,27 @@ import { emailConfigured, sendWithdrawalReceipt, sendWithdrawalNotice } from '@/
  *
  * Deliberately open to everyone: § 356a Abs. 1 requires the function to be
  * easily accessible throughout the withdrawal period, and a consumer who bought
- * without keeping a session must still be able to reach it. Rate limiting is
- * the only gate.
+ * without keeping a session must still be able to reach it. No login, no
+ * captcha, no puzzle — only filters a human never notices.
+ *
+ * Those filters exist because the form was found by a spam bot within a day of
+ * going live on 10 August 2026: random-string submissions every few minutes,
+ * each one addressed at a stranger's mailbox. Left open, the receipt Abs. 4
+ * demands turns the function into a mail relay pointed at third parties, and
+ * the sending domain's reputation goes with it.
+ *
+ * Every rejection here is recoverable on purpose. A false positive is far more
+ * expensive than a passed-through bot: it would be a consumer whose declaration
+ * we dropped. So nothing is silently swallowed — a rejected submission is
+ * stored with its reason, and the caller gets the error whose message names the
+ * email route, which is an equally effective withdrawal.
  */
 
 const MAX = { name: 200, contractRef: 200, email: 200, note: 2000 } as const;
+
+// A human needs longer than this to read four labels and fill three of them,
+// even pasting from a confirmation mail. Bots post within milliseconds.
+const MIN_DWELL_MS = 2500;
 
 function clean(v: unknown, max: number): string {
   return String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
@@ -38,7 +54,11 @@ export async function POST(request: NextRequest) {
   }
 
   const ip = clientIp(request);
-  const rl = rateLimit(`withdrawal:${ip}`, 10, 60 * 60_000);
+  // Upstash-backed, so the limit holds across serverless instances — the
+  // in-memory limiter this used to call counts per warm Lambda and a bot
+  // spread over instances never reached it. Three per hour still covers a
+  // consumer withdrawing from more than one contract in a sitting.
+  const rl = await checkRateLimit(`withdrawal:${ip}`, 3, 60 * 60_000);
   if (!rl.ok) {
     return NextResponse.json(
       { error: 'rate_limited' },
@@ -52,6 +72,30 @@ export async function POST(request: NextRequest) {
   const note = clean(body.note, MAX.note);
   const locale = body.locale === 'de' ? 'de' : 'en';
 
+  // Two signals a human cannot produce and a bot cannot see. Both are checked
+  // only when present: a tab opened before this deployment posts neither, and
+  // an absent field must never count as evidence against the sender.
+  const honeypot = String(body.website ?? '').trim();
+  const dwellMs = Number(body.elapsedMs);
+  const tooFast = Number.isFinite(dwellMs) && dwellMs >= 0 && dwellMs < MIN_DWELL_MS;
+
+  if (honeypot || tooFast) {
+    // Kept, not discarded. If this ever catches a real person, their
+    // declaration and its arrival time are still on record and can be honoured
+    // with the original timestamp.
+    await saveRejectedWithdrawal({
+      name,
+      contractRef,
+      email,
+      note: note || undefined,
+      receivedAt: new Date().toISOString(),
+      locale,
+      reason: honeypot ? 'honeypot' : 'too_fast',
+      ip,
+    });
+    return NextResponse.json({ error: 'rejected' }, { status: 400 });
+  }
+
   // Only the three items § 356a Abs. 2 lists are required. Asking for more as a
   // condition of withdrawing would itself be an obstacle to the right.
   const missing: string[] = [];
@@ -60,6 +104,17 @@ export async function POST(request: NextRequest) {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) missing.push('email');
   if (missing.length) {
     return NextResponse.json({ error: 'missing_fields', fields: missing }, { status: 400 });
+  }
+
+  // A second limit on the recipient, because the first one is only as good as
+  // the attacker's IP supply. This is what stops the receipt from being aimed
+  // at a stranger's mailbox over and over from rotating addresses.
+  const rlMail = await checkRateLimit(`withdrawal:to:${email}`, 3, 24 * 60 * 60_000);
+  if (!rlMail.ok) {
+    return NextResponse.json(
+      { error: 'rate_limited' },
+      { status: 429, headers: { 'Retry-After': String(rlMail.retryAfter) } }
+    );
   }
 
   const receivedAt = new Date();

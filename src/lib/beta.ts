@@ -109,6 +109,41 @@ export async function saveWithdrawal(entry: {
   }
 }
 
+/**
+ * Store a withdrawal submission the bot filters turned away (capped list of
+ * the last 500, so a flood cannot fill the store).
+ *
+ * Separate from `legal:withdrawals` on purpose, and capped where that one is
+ * not: this list is not evidence of an exercised right, it is the audit trail
+ * showing what the filters caught. If a consumer ever reports that the form
+ * refused them, their submission is in here with its arrival time and can be
+ * honoured as of that moment.
+ */
+export async function saveRejectedWithdrawal(entry: {
+  name: string;
+  contractRef: string;
+  email: string;
+  note?: string;
+  receivedAt: string;
+  locale: string;
+  reason: 'honeypot' | 'too_fast';
+  ip: string;
+}): Promise<boolean> {
+  const r = getClient();
+  if (!r) return false;
+  try {
+    const p = r.pipeline();
+    p.lpush('legal:withdrawals:rejected', JSON.stringify(entry));
+    p.ltrim('legal:withdrawals:rejected', 0, 499);
+    p.incr('legal:withdrawals:rejected:count');
+    await p.exec();
+    return true;
+  } catch (err) {
+    console.warn('[beta] saveRejectedWithdrawal failed:', err instanceof Error ? err.message : err);
+    return false;
+  }
+}
+
 /** Store a captured email (capped list of the last 1000). Returns success. */
 export async function saveEmail(email: string, meta: { locale?: string }): Promise<boolean> {
   const r = getClient();
