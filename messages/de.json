@@ -75,7 +75,7 @@
     "supported": "Unterstützt JPEG, PNG, HEIC. Bis zu {limit} Fotos.",
     "keepFilesNote": "Lass deine Fotos bitte dort liegen, wo sie sind, bis der Download fertig ist. Wenn du sie zwischendurch verschiebst, umbenennst, löschst oder bearbeitest, kann dein Browser sie nicht mehr lesen — diese Fotos landen dann nur als kleine Vorschau im ZIP.",
     "accountGateTitle": "Zuerst brauchst du ein Konto",
-    "accountGateBody": "Für die Analyse brauchst du ein Konto mit bestätigter E-Mail-Adresse — auch im kostenlosen Tarif. So können wir dir die Bestätigung deines Vertrags zusenden, wie es das Gesetz verlangt. Nach der Registrierung schicken wir dir einen Bestätigungslink; sobald du ihn angeklickt hast, geht es hier weiter.",
+    "accountGateBody": "Für die Analyse brauchst du ein Konto mit bestätigter E-Mail-Adresse — auch im kostenlosen Tarif. So können wir dir die Bestätigung deines Vertrags zusenden, wie es das Gesetz verlangt. Nach der Registrierung schicken wir dir einen Bestätigungslink. Klicke ihn an und melde dich einmal an — danach geht es hier weiter.",
     "processing": "Verarbeite {current} von {total}...",
     "ready": "{count} Fotos bereit",
     "continue": "Weiter zu den Kriterien",

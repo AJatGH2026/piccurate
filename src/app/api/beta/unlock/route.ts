@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/server';
 import { rateLimit, clientIp } from '@/lib/rate-limit';
 import { TIER_CONFIGS } from '@/lib/stripe/prices';
 import { saveFeedbackToDb } from '@/lib/feedback';
@@ -62,6 +62,29 @@ export async function POST(request: NextRequest) {
   const photos = TIER_CONFIGS[tier].photoLimit;
   const locale = body.locale === 'de' ? 'de' : 'en';
 
+  // The grant is an UPDATE, so it needs a row to update. That row comes from the
+  // on_auth_user_created trigger on auth.users — which was missing in production
+  // on 2026-08-12, and the database has drifted from supabase/migrations before.
+  // Without the row the conditional update below matches nothing, which is
+  // indistinguishable from "already granted": the tester was told they had an
+  // allowance, the tier came back empty and the count zero, and nothing was
+  // written. Same idempotent upsert the job route uses, for the same reason, and
+  // it is a no-op whenever the trigger did its work. The id comes from the
+  // validated session, never from the body; the admin client is required because
+  // profiles has no INSERT policy.
+  try {
+    await createAdminClient()
+      .from('profiles')
+      .upsert(
+        { id: user.id, email: user.email ?? null, locale, is_anonymous: false },
+        { onConflict: 'id', ignoreDuplicates: true }
+      );
+  } catch (profileErr) {
+    // Not fatal on its own: if the row was already there we did not need this,
+    // and if it truly cannot be written the update below reports it.
+    console.error(`[unlock] profile ensure failed for ${user.id}:`, profileErr);
+  }
+
   // Conditional update: only rows that have no grant yet are touched, so a
   // double click (or a second tab) cannot hand out two allowances.
   const { data: updated, error } = await supabase
@@ -90,11 +113,21 @@ export async function POST(request: NextRequest) {
       .select('beta_grant_tier, beta_grant_photos')
       .eq('id', user.id)
       .maybeSingle();
+
+    // No row at all, despite the upsert above. Then this is not "already
+    // granted" — nothing was granted and nothing can be. Say so, instead of
+    // sending the dialogue into a success state holding a blank tier and zero
+    // photos.
+    if (!existing) {
+      console.error(`[unlock] no profile row for ${user.id} after ensure — grant not written`);
+      return NextResponse.json({ error: 'unlock_failed' }, { status: 500 });
+    }
+
     return NextResponse.json(
       {
         error: 'already_granted',
-        tier: existing?.beta_grant_tier ?? null,
-        photos: existing?.beta_grant_photos ?? null,
+        tier: existing.beta_grant_tier ?? null,
+        photos: existing.beta_grant_photos ?? null,
       },
       { status: 409 }
     );

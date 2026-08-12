@@ -37,6 +37,12 @@ const ALLOWED = new Set<string>([
   'removed',
   'terms_accepted', // A3: 18+ / terms confirmation given before analysis
   'persons_confirmed', // A2: reference-photo collective confirmation given
+  // Which paid tier a tester reaches for while nothing is buyable — written by
+  // /api/beta/unlock. Missing from this list until 2026-08-12, so the route
+  // logged them and this function dropped every one on the floor.
+  'unlock_small',
+  'unlock_medium',
+  'unlock_large',
 ]);
 
 /** Increment a funnel/selection counter (total + per-day). Whitelisted keys only. */
