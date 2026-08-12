@@ -36,6 +36,25 @@ function fmtEur(n: number): string {
   return `€${n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+/** Small-print explainer under a KPI: what it measures, what a good value looks like. */
+function Hint({ children }: { children: React.ReactNode }) {
+  return <p className="mt-1 text-xs leading-snug text-zinc-400">{children}</p>;
+}
+
+// Per-funnel-step small print, keyed by the step names in FUNNEL_STEPS (src/lib/beta.ts).
+// `photobook_click` is deliberately dead right now: the CTA it would count was pulled
+// 2026-08-11 for lack of an affiliate contract (see results/page.tsx) and stays at 0
+// until that link comes back.
+const FUNNEL_HINTS: Record<string, string> = {
+  upload: 'Sessions, die den Upload-Schritt aufrufen. Referenzpunkt (100 %) für alle folgenden Schritte.',
+  configure: 'Erreicht die Kriterien-Auswahl. Ideal: nah an „upload“ — sonst Absprung vor der Konfiguration.',
+  analysis: 'Analyse tatsächlich gestartet. Ideal: nah an „configure“ — sonst Zögern bei Kriterien/Kosten.',
+  review: 'Review-Schritt nach der Analyse erreicht. Ideal: nah an „analysis“, sonst Analyse-Fehler.',
+  results: 'Ergebnis-/Download-Schritt erreicht. Ideal: nah an „review“.',
+  download: 'ZIP tatsächlich heruntergeladen — der eigentliche Erfolgsschritt. Ideal: möglichst hoch, deutlich über 50 % der „results“.',
+  photobook_click: 'Klick auf Fotobuch-Partnerlink. Aktuell strukturell 0 — Link seit 2026-08-11 ohne Partnervertrag entfernt.',
+};
+
 export default async function AdminStatsPage({
   searchParams,
 }: {
@@ -104,6 +123,11 @@ export default async function AdminStatsPage({
         {/* Per-day breakdown */}
         <div className="mt-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
           <h2 className="font-semibold">Letzte 7 Tage</h2>
+          <Hint>
+            Tageswerte der obigen Zähler, um Trends und Ausreißer zu erkennen. Idealerweise eine wachsende oder
+            zumindest stabile Kurve; einzelne Tages-Spitzen ohne erkennbaren Anlass sind eher Bot-Traffic als
+            organisches Wachstum.
+          </Hint>
           <table className="mt-3 w-full text-sm">
             <thead className="text-zinc-500">
               <tr className="text-left border-b border-zinc-200 dark:border-zinc-700">
@@ -128,7 +152,12 @@ export default async function AdminStatsPage({
 
         {/* Beta signals — funnel, selection corrections, feedback, emails */}
         <div className="mt-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="font-semibold">Beta-Signale</h2>
+          <h2 className="font-semibold">Beta-Signale — Funnel</h2>
+          <Hint>
+            Jede Karte zählt Sessions, die diesen Schritt im Ablauf (Upload → Konfiguration → Analyse → Review →
+            Ergebnis → Download) erreicht haben. Idealwert: pro Schritt möglichst nah am vorherigen Wert (hohe
+            Konversion). Ein großer Sprung zwischen zwei benachbarten Schritten markiert, wo Nutzer aussteigen.
+          </Hint>
           {!beta.configured ? (
             <p className="mt-2 text-sm text-zinc-500">Erscheint, sobald Upstash Redis konfiguriert ist.</p>
           ) : (
@@ -138,16 +167,86 @@ export default async function AdminStatsPage({
                   <div key={f.step} className="rounded-lg border border-zinc-100 dark:border-zinc-800 px-3 py-2">
                     <div className="text-zinc-500 capitalize">{f.step}</div>
                     <div className="font-semibold tabular-nums">{fmt(f.total)}</div>
+                    <div className="mt-1 text-[11px] leading-snug text-zinc-400">{FUNNEL_HINTS[f.step]}</div>
                   </div>
                 ))}
               </div>
-              <p className="mt-3 text-sm text-zinc-500">
-                Manuelle Korrekturen: <span className="font-medium text-zinc-700 dark:text-zinc-300">+{fmt(beta.selection.added)}</span> hinzugefügt,{' '}
-                <span className="font-medium text-zinc-700 dark:text-zinc-300">−{fmt(beta.selection.removed)}</span> entfernt · E-Mails:{' '}
-                <span className="font-medium text-zinc-700 dark:text-zinc-300">{fmt(beta.emailCount)}</span>
-              </p>
+
+              <div className="mt-5 border-t border-zinc-100 dark:border-zinc-800 pt-4">
+                <p className="text-sm">
+                  Manuelle Korrekturen: <span className="font-medium text-zinc-700 dark:text-zinc-300">+{fmt(beta.selection.added)}</span> hinzugefügt,{' '}
+                  <span className="font-medium text-zinc-700 dark:text-zinc-300">−{fmt(beta.selection.removed)}</span> entfernt
+                </p>
+                <Hint>
+                  Wie oft Nutzer die KI-Vorauswahl im Review-Schritt per Hand ergänzt oder entfernt haben, aufsummiert
+                  über alle Sessions. Idealwert: niedrig im Verhältnis zur Gesamtauswahl — viele Korrekturen zeigen,
+                  dass die KI-Auswahl nicht trifft, was Nutzer erwarten.
+                </Hint>
+              </div>
+
+              <div className="mt-4">
+                <p className="text-sm">
+                  E-Mails hinterlassen: <span className="font-medium text-zinc-700 dark:text-zinc-300">{fmt(beta.emailCount)}</span>
+                </p>
+                <Hint>
+                  Freiwillig hinterlassene Adressen (Update-/Launch-Interesse), unabhängig vom Feedback-Text. Idealwert:
+                  möglichst hoch im Verhältnis zu „download“ — ein Näherungswert für Rückkehrbereitschaft.
+                </Hint>
+              </div>
+
+              <div className="mt-4">
+                <p className="text-sm">
+                  Pflicht-Bestätigungen vor der Analyse: <span className="font-medium text-zinc-700 dark:text-zinc-300">{fmt(beta.consent.termsAccepted)}</span> AGB/18+,{' '}
+                  <span className="font-medium text-zinc-700 dark:text-zinc-300">{fmt(beta.consent.personsConfirmed)}</span> Personen-Bestätigung
+                </p>
+                <Hint>
+                  Zählt die Checkbox-Bestätigungen unmittelbar vor dem Analyse-Start. Idealwert: nah bei 100 % des
+                  „analysis“-Zählers oben — jede gestartete Analyse sollte genau eine AGB-Bestätigung erzeugen
+                  (Personen-Bestätigung nur, wenn Referenzfotos hinterlegt sind). Eine Lücke deutet auf einen UI- oder
+                  Tracking-Fehler hin, nicht auf ein Nutzungsziel.
+                </Hint>
+              </div>
+
+              <div className="mt-4">
+                <p className="text-sm">
+                  Beta-Freischaltungen nach Tarif:{' '}
+                  <span className="font-medium text-zinc-700 dark:text-zinc-300">{fmt(beta.unlocks.small)}</span> Small ·{' '}
+                  <span className="font-medium text-zinc-700 dark:text-zinc-300">{fmt(beta.unlocks.medium)}</span> Medium ·{' '}
+                  <span className="font-medium text-zinc-700 dark:text-zinc-300">{fmt(beta.unlocks.large)}</span> Large
+                </p>
+                <Hint>
+                  Da die Bezahltarife noch nicht buchbar sind, tritt ein kostenloses Freischalten des gewählten Tarifs an
+                  die Stelle eines Kaufs — ein Proxy für Zahlungsbereitschaft pro Stufe. Kein Absolutwert ist „ideal“;
+                  aufschlussreich ist die Verteilung — ein Schwerpunkt bei Medium/Large deutet auf mehr Zahlungsbereitschaft
+                  hin als bei Small.
+                </Hint>
+              </div>
             </>
           )}
+        </div>
+
+        {/* Vercel Web Analytics — informational only, no data pulled in: the
+            script (VercelAnalytics.tsx) runs entirely in the browser and reports
+            straight to Vercel, so there is nothing to read back into this page
+            without a separate API token/integration. Link out instead of
+            duplicating a system that already exists. */}
+        <div className="mt-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="font-semibold">Vercel Analytics (extern)</h2>
+          <Hint>
+            Seitenaufrufe, eindeutige Besucher, Verweildauer, Absprungrate, Geräte/Browser und Herkunft (Referrer/UTM)
+            laufen bereits über Vercel Web Analytics — direkt aus dem Browser erfasst, nicht über die Upstash-Zähler
+            oben. Ideal: wachsende Besucherzahlen bei sinkender Absprungrate; die Herkunfts-Aufschlüsselung zeigt, ob
+            Besucher durch Kampagnen kommen oder organisch. Zahlen liegen im Vercel-Dashboard, nicht auf dieser Seite,
+            um keine zweite Quelle der Wahrheit zu pflegen.
+          </Hint>
+          <a
+            href="https://vercel.com/aj-gmb-h/piccurate/analytics"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
+          >
+            Zum Vercel-Analytics-Dashboard →
+          </a>
         </div>
 
         {/* Feedback — own card, independent of Upstash: it is stored in
@@ -156,6 +255,11 @@ export default async function AdminStatsPage({
           <h2 className="font-semibold">
             Feedback <span className="font-normal text-zinc-400 text-sm">({fmt(feedbackCount)} gesamt, neueste 20)</span>
           </h2>
+          <Hint>
+            Freitext-Rückmeldungen aus dem Feedback-Widget und aus dem Beta-Freischalt-Dialog. Kein Zielwert an sich —
+            jede einzelne ist inhaltlich wertvoll; die Rücklaufquote im Verhältnis zu „download“ zeigt, wie engagiert
+            die Beta-Tester sind.
+          </Hint>
           {feedback.length === 0 ? (
             <p className="mt-2 text-sm text-zinc-500">Noch kein Feedback eingegangen.</p>
           ) : (
@@ -177,6 +281,31 @@ export default async function AdminStatsPage({
   );
 }
 
+// One metric row: label + value on one line, small-print explainer below.
+function Row({
+  label,
+  value,
+  hint,
+  divider,
+  strong,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  divider?: boolean;
+  strong?: boolean;
+}) {
+  return (
+    <div className={divider ? 'pt-2 border-t border-zinc-100 dark:border-zinc-800' : undefined}>
+      <div className="flex items-baseline justify-between gap-4 text-sm">
+        <span className="text-zinc-500">{label}</span>
+        <span className={`text-right tabular-nums ${strong ? 'font-semibold' : 'font-medium'}`}>{value}</span>
+      </div>
+      <Hint>{hint}</Hint>
+    </div>
+  );
+}
+
 function Card({
   title,
   stats,
@@ -187,24 +316,35 @@ function Card({
   return (
     <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
       <h2 className="font-semibold">{title}</h2>
-      <dl className="mt-3 grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
-        <dt className="text-zinc-500">Fotos analysiert</dt>
-        <dd className="text-right tabular-nums font-medium">{fmt(stats.photos)}</dd>
-
-        <dt className="text-zinc-500">Analyse-Aufrufe (Jobs)</dt>
-        <dd className="text-right tabular-nums">{fmt(stats.jobs)}</dd>
-
-        <dt className="text-zinc-500">Input-Tokens</dt>
-        <dd className="text-right tabular-nums">{fmt(stats.inputTokens)}</dd>
-
-        <dt className="text-zinc-500">Output-Tokens</dt>
-        <dd className="text-right tabular-nums">{fmt(stats.outputTokens)}</dd>
-
-        <dt className="text-zinc-500 pt-2 border-t border-zinc-100 dark:border-zinc-800">Geschätzte Kosten</dt>
-        <dd className="text-right tabular-nums font-semibold pt-2 border-t border-zinc-100 dark:border-zinc-800">
-          {fmtEur(stats.estCostEur)}
-        </dd>
-      </dl>
+      <div className="mt-3 space-y-3">
+        <Row
+          label="Fotos analysiert"
+          value={fmt(stats.photos)}
+          hint="Summe aller von der KI bewerteten Fotos über abgeschlossene Analyse-Aufrufe. Ideal: so hoch wie möglich — der zentrale Nutzungsindikator, ohne Deckel nach oben."
+        />
+        <Row
+          label="Analyse-Aufrufe (Jobs)"
+          value={fmt(stats.jobs)}
+          hint="Wie oft „Jetzt analysieren“ erfolgreich einen API-Call ausgelöst hat (1 Job = 1 Foto-Batch). Ideal: wächst proportional mit „Fotos analysiert“; ein stark abweichendes Foto/Job-Verhältnis zeigt viele kleine statt großer Batches."
+        />
+        <Row
+          label="Input-Tokens"
+          value={fmt(stats.inputTokens)}
+          hint="An Gemini gesendete Tokens (Bilder + Prompt), Grundlage der Kostenschätzung. Kein Zielwert an sich — wichtig ist Tokens/Foto stabil zu halten; ein Anstieg zeigt teurere Prompts oder mehr Custom-Kriterien."
+        />
+        <Row
+          label="Output-Tokens"
+          value={fmt(stats.outputTokens)}
+          hint="Von Gemini zurückgegebene Tokens (Bewertungen/Begründungen). Kein Zielwert an sich — Teil der Kostenformel, sollte proportional zu „Fotos analysiert“ bleiben."
+        />
+        <Row
+          label="Geschätzte Kosten"
+          value={fmtEur(stats.estCostEur)}
+          hint="Schätzung auf Gemini-2.5-Flash-Listenpreisen, nicht die tatsächliche Rechnung. Solange nur der Gratis-Tarif läuft, ist dies reine Ausgabe ohne Gegenposition — beobachten (pro Foto niedrig halten), kein Zielwert per se."
+          divider
+          strong
+        />
+      </div>
     </div>
   );
 }

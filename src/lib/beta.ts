@@ -209,6 +209,8 @@ export interface BetaSignals {
   configured: boolean;
   funnel: { step: string; total: number }[];
   selection: { added: number; removed: number };
+  consent: { termsAccepted: number; personsConfirmed: number };
+  unlocks: { small: number; medium: number; large: number };
   feedbackCount: number;
   emailCount: number;
   recentFeedback: FeedbackEntry[];
@@ -229,13 +231,19 @@ export async function readBetaSignals(): Promise<BetaSignals> {
     configured: false,
     funnel: [],
     selection: { added: 0, removed: 0 },
+    consent: { termsAccepted: 0, personsConfirmed: 0 },
+    unlocks: { small: 0, medium: 0, large: 0 },
     feedbackCount: 0,
     emailCount: 0,
     recentFeedback: [],
   };
   if (!r) return empty;
   try {
-    const totalKeys = [...FUNNEL_STEPS, 'added', 'removed'].map((s) => `beta:funnel:${s}:total`);
+    // Extra keys beyond the funnel/selection ones: consent checkboxes (should
+    // track 1:1 with `analysis`) and beta-unlock clicks per tier (written by
+    // /api/beta/unlock, previously never read back — see product-pipeline.md §4).
+    const extraSteps = ['terms_accepted', 'persons_confirmed', 'unlock_small', 'unlock_medium', 'unlock_large'];
+    const totalKeys = [...FUNNEL_STEPS, 'added', 'removed', ...extraSteps].map((s) => `beta:funnel:${s}:total`);
     const [funnelVals, fbCount, emCount, recent] = await Promise.all([
       r.mget(...totalKeys) as Promise<(number | string | null)[]>,
       r.get('beta:feedback:count') as Promise<number | string | null>,
@@ -246,6 +254,10 @@ export async function readBetaSignals(): Promise<BetaSignals> {
     const funnel = FUNNEL_STEPS.map((s, i) => ({ step: s, total: num(funnelVals[i]) }));
     const added = num(funnelVals[FUNNEL_STEPS.length]);
     const removed = num(funnelVals[FUNNEL_STEPS.length + 1]);
+    const extraBase = FUNNEL_STEPS.length + 2;
+    const [termsAccepted, personsConfirmed, unlockSmall, unlockMedium, unlockLarge] = extraSteps.map(
+      (_, i) => num(funnelVals[extraBase + i])
+    );
     const recentFeedback = recent
       .map((x) => parseEntry<FeedbackEntry>(x))
       .filter((x): x is FeedbackEntry => !!x && typeof x.text === 'string');
@@ -253,6 +265,8 @@ export async function readBetaSignals(): Promise<BetaSignals> {
       configured: true,
       funnel,
       selection: { added, removed },
+      consent: { termsAccepted, personsConfirmed },
+      unlocks: { small: unlockSmall, medium: unlockMedium, large: unlockLarge },
       feedbackCount: num(fbCount),
       emailCount: num(emCount),
       recentFeedback,
