@@ -133,8 +133,11 @@ export default function ConfigurePage() {
     if (res.status === 429 && typeof json?.remaining === 'number') {
       throw new Error(t('budgetExceeded', { remaining: json.remaining, requested: photoCount }));
     }
+    // A 5xx is our fault, not something the user can act on — show a sentence in
+    // their language rather than whatever the server happened to say.
+    if (res.status >= 500) throw new Error(t('jobCreateFailed'));
     if (!res.ok || !json?.data?.jobId) {
-      throw new Error(json?.error || 'Could not create job');
+      throw new Error(json?.error || t('jobCreateFailed'));
     }
     return json.data.jobId as string;
   };

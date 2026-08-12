@@ -147,6 +147,7 @@
     "aiNotice": "Hinweis: AuswahlBuddy nutzt künstliche Intelligenz und erstellt einen unverbindlichen Auswahlvorschlag. Zur Analyse werden verkleinerte Vorschaubilder an Google Gemini übermittelt, dazu Aufnahmedatum, Kameramodell und — falls im Foto vorhanden — der Aufnahmeort als auf etwa einen Kilometer gerundete GPS-Koordinate, aus der die KI den Ortsnamen ableitet. Google kann übermittelte Daten und Antworten zur Missbrauchskontrolle bis zu 55 Tage aufbewahren. Bitte prüfe das Ergebnis und bewahre deine Originale separat auf.",
     "tooManyForAnyTier": "Mehr als {max} Fotos lassen sich derzeit nicht in einem Durchgang verarbeiten. Schreib uns kurz an {email} — bei solchen Mengen finden wir eine Lösung für dich.",
     "accountRequired": "Für die Analyse brauchst du ein Konto — auch im kostenlosen Tarif. Bitte melde dich an oder registriere dich; danach kannst du hier weitermachen.",
+    "jobCreateFailed": "Die Analyse konnte nicht gestartet werden — das liegt an uns, nicht an deinen Fotos. Bitte versuch es in einem Moment noch einmal. Bleibt es dabei, schreib uns kurz; wir sehen dann im Protokoll nach.",
     "analysisPartial": "{done} von {total} Fotos wurden analysiert. Der Rest konnte nicht mehr verarbeitet werden: {error} Die bereits analysierten Fotos siehst du gleich — die übrigen kannst du später nachholen.",
     "budgetExceeded": "Für heute kannst du noch etwa {remaining} Fotos analysieren, ausgewählt sind {requested}. Reduziere die Auswahl oder versuch es morgen noch einmal.",
     "ageConfirm18": "Ich bin mindestens 18 Jahre alt.",

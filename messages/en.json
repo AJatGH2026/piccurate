@@ -147,6 +147,7 @@
     "aiNotice": "Note: ShortlistBuddy uses artificial intelligence to create a non-binding selection proposal. Reduced previews are sent to Google Gemini for analysis, together with the capture date, camera model and — where the photo contains one — the location as a GPS coordinate rounded to about one kilometre, from which the AI derives the place name. Google may retain transmitted data and outputs for abuse monitoring for up to 55 days. Please review the result and keep your originals separately.",
     "tooManyForAnyTier": "More than {max} photos cannot be processed in one run yet. Drop us a line at {email} — at these volumes we will find a way.",
     "accountRequired": "You need an account to run an analysis — including on the free plan. Please log in or sign up; you can carry on here afterwards.",
+    "jobCreateFailed": "The analysis could not be started — that is on us, not on your photos. Please try again in a moment. If it keeps happening, drop us a line and we will check the logs.",
     "analysisPartial": "{done} of {total} photos were analysed. The rest could not be processed: {error} You'll see the analysed ones now — the others can follow later.",
     "budgetExceeded": "You can analyse about {remaining} more photos today, but {requested} are selected. Reduce the selection or try again tomorrow.",
     "ageConfirm18": "I am at least 18 years old.",

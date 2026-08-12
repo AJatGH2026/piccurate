@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/server';
 import { JobManager } from '@/services/job-manager';
 import type { CreateJobRequest, CreateJobResponse, ApiResponse } from '@/types/api';
 import type { Tier } from '@/types/job';
@@ -71,6 +71,41 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // The language this contract is being concluded in. Computed before the job
+    // exists because both the profile row and the § 312f confirmation need it.
+    const requested = String(body.locale || '').toLowerCase();
+    const contractLocale = requested === 'de' || requested === 'en' ? requested : null;
+
+    // jobs.user_id references profiles(id), and that row is created by the
+    // on_auth_user_created trigger on auth.users. On 2026-08-12 that trigger did
+    // not exist in production, so every job insert failed with a raw
+    // jobs_user_id_fkey error in the user's face. The trigger is back, but the
+    // app cannot verify it is there — and the production database has already
+    // drifted from supabase/migrations once.
+    //
+    // So do not depend on it: make sure the row exists first. Idempotent, and a
+    // no-op whenever the trigger did its job. The id comes from the validated
+    // session, never from the request body. Needs the admin client because
+    // profiles has no INSERT policy (the trigger is SECURITY DEFINER instead).
+    try {
+      await createAdminClient()
+        .from('profiles')
+        .upsert(
+          {
+            id: user.id,
+            email: user.email ?? null,
+            locale: contractLocale ?? 'en',
+            is_anonymous: !user.email,
+          },
+          { onConflict: 'id', ignoreDuplicates: true }
+        );
+    } catch (profileErr) {
+      // Never block on this: if the row already exists we did not need it, and
+      // if it genuinely cannot be written the insert below reports the real
+      // problem anyway.
+      console.error(`[jobs] profile ensure failed for ${user.id}:`, profileErr);
+    }
+
     const jobManager = new JobManager(supabase);
     const job = await jobManager.createJob(user.id, body.tier);
     const plan = getPlan(body.tier);
@@ -95,15 +130,8 @@ export async function POST(request: NextRequest) {
         const to = profile?.email || user.email || '';
         // The UI locale wins over the stored preference: the confirmation must
         // be in the language the contract was actually concluded in. Falls back
-        // to the profile, then English. Validated here — it arrives from the
-        // client and must never reach the mail as free text.
-        const requested = String(body.locale || '').toLowerCase();
-        const locale =
-          requested === 'de' || requested === 'en'
-            ? requested
-            : profile?.locale === 'de'
-              ? 'de'
-              : 'en';
+        // to the profile, then English.
+        const locale = contractLocale ?? (profile?.locale === 'de' ? 'de' : 'en');
         if (!to) {
           console.error(`[jobs] ${job.id}: no address for the free-tier contract confirmation`);
         } else if (!emailConfigured()) {
@@ -146,9 +174,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // The raw message belongs in the log, not in the dialog. A user once saw
+    // `insert or update on table "jobs" violates foreign key constraint
+    // "jobs_user_id_fkey"` — unreadable, and it hands out table and constraint
+    // names. The client shows its own translated sentence on a 500.
     console.error('POST /api/jobs error:', err);
     return NextResponse.json<ApiResponse>(
-      { success: false, error: message },
+      { success: false, error: 'Could not create the analysis job.' },
       { status: 500 }
     );
   }
