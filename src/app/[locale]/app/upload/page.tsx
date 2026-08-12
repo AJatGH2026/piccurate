@@ -121,24 +121,29 @@ export default function UploadPage() {
       <main className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{t('title')}</h1>
 
-        {/* Tier indicator */}
-        <div className="mt-2 text-sm text-zinc-500">
-          {/* Both need the locale explicitly: without it the server formats in
-              en-US and the browser in the user's own locale, which is a
-              hydration mismatch and costs this page every click handler.
-              See the note in app/pricing. */}
-          {/* The tier name, not its price: a granted tier was not paid for, and
-              putting "7,99 €" above someone's free allowance invites the
-              question of when they will be charged. */}
-          {plan.tier === 'free'
-            ? tp('freeTitle')
-            : plan.tier === 'small'
-              ? tp('small')
-              : plan.tier === 'medium'
-                ? tp('medium')
-                : tp('large')}{' '}
-          &middot; {t('allowance', { photos: maxPhotos.toLocaleString(locale) })}
-        </div>
+        {/* Tier indicator. Hidden behind the account gate: an allowance printed
+            above a barrier reads as an offer that the next line takes back, and
+            the number is not the reader's yet — the tier follows from the beta
+            grant on the account they still have to create. */}
+        {!needsAccount && (
+          <div className="mt-2 text-sm text-zinc-500">
+            {/* Both need the locale explicitly: without it the server formats in
+                en-US and the browser in the user's own locale, which is a
+                hydration mismatch and costs this page every click handler.
+                See the note in app/pricing. */}
+            {/* The tier name, not its price: a granted tier was not paid for, and
+                putting "7,99 €" above someone's free allowance invites the
+                question of when they will be charged. */}
+            {plan.tier === 'free'
+              ? tp('freeTitle')
+              : plan.tier === 'small'
+                ? tp('small')
+                : plan.tier === 'medium'
+                  ? tp('medium')
+                  : tp('large')}{' '}
+            &middot; {t('allowance', { photos: maxPhotos.toLocaleString(locale) })}
+          </div>
+        )}
 
         {/* Drop zone — replaced by the account gate when registration is required,
             so nobody uploads hundreds of photos before learning they cannot run. */}
