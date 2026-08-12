@@ -207,6 +207,25 @@ export async function sendWithdrawalReceipt(d: WithdrawalDeclaration): Promise<b
   });
 }
 
+/**
+ * Language-universal short label for a paid tier ('small'/'medium'/'large' →
+ * 'S'/'M'/'L'). Deliberately not translated per locale — a size letter needs no
+ * German/English distinction, unlike the raw tier key it replaces (which
+ * rendered literally as "Tarif small" in a German mail).
+ */
+export function paidTierLabel(tier: string): string {
+  switch (tier) {
+    case 'small':
+      return 'S';
+    case 'medium':
+      return 'M';
+    case 'large':
+      return 'L';
+    default:
+      return tier;
+  }
+}
+
 interface OrderConfirmationBase {
   to: string;
   tierLabel: string;
@@ -269,6 +288,90 @@ export async function sendOrderConfirmation(o: OrderConfirmation): Promise<boole
   // withdrawal notice below says "Vertrag" too), so it is framed as a legal
   // formality and paired with what the reader actually wants to know: nothing is
   // owed and nothing has to be cancelled.
+  // Previously two disconnected blocks: "you have 14 days" first, then —
+  // several lines later, under an unrelated heading — "it already expired".
+  // Read top to bottom that reads as a bait, not a disclosure. Rewritten as one
+  // narrative: the right, why it ends early, what to do right now, where the
+  // full statutory text lives.
+  const withdrawal = de
+    ? o.free
+      ? [
+          'Widerrufsrecht',
+          'Du hast grundsätzlich das Recht, diesen Vertrag binnen vierzehn Tagen',
+          'ohne Angabe von Gründen zu widerrufen — auch bei einem kostenlosen',
+          'Angebot, und in jedem Fall ohne Kosten für dich.',
+          '',
+          'Weil du der sofortigen Analyse ausdrücklich zugestimmt und bestätigt',
+          'hast, dass dein Widerrufsrecht mit deren vollständigem Abschluss endet,',
+          'erlischt es in der Praxis meist schon nach wenigen Minuten — sobald der',
+          'Analysevorgang fertig ist, nicht erst nach vierzehn Tagen.',
+          '',
+          'Möchtest du vorher widerrufen, geht das jederzeit formlos, auch online:',
+          `${site}/de/withdrawal`,
+          '',
+          'Die vollständige Widerrufsbelehrung und das Muster-Widerrufsformular',
+          'findest du in den Nutzungsbedingungen:',
+          `${site}/de/terms`,
+        ]
+      : [
+          'Widerrufsrecht',
+          'Du hast das Recht, diesen Vertrag binnen vierzehn Tagen ohne Angabe',
+          'von Gründen zu widerrufen.',
+          '',
+          'Weil du beim Kauf ausdrücklich zugestimmt und bestätigt hast, dass dein',
+          'Widerrufsrecht mit vollständiger Erbringung der Leistung endet, erlischt',
+          'es in der Praxis meist schon nach wenigen Minuten — sobald der',
+          'Analysevorgang fertig ist, nicht erst nach vierzehn Tagen. Widerrufst du',
+          'vorher, ist der Widerruf wirksam; für den bereits erbrachten Teil',
+          'schuldest du dann anteiligen Wertersatz.',
+          '',
+          'Widerrufen kannst du jederzeit formlos, auch online:',
+          `${site}/de/withdrawal`,
+          '',
+          'Die vollständige Widerrufsbelehrung und das Muster-Widerrufsformular',
+          'findest du in den Nutzungsbedingungen:',
+          `${site}/de/terms`,
+        ]
+    : o.free
+      ? [
+          'Right of withdrawal',
+          'You have the right, in principle, to withdraw from this contract',
+          'within fourteen days without giving any reason — this applies to a',
+          'free offer too, and it never results in any cost to you.',
+          '',
+          'Because you expressly consented to the analysis starting immediately',
+          'and confirmed that your right of withdrawal ends once it is fully',
+          'complete, it typically lapses within a few minutes in practice — once',
+          'the analysis job is done, not after fourteen days.',
+          '',
+          'To withdraw before that, you can do so at any time, informally, online:',
+          `${site}/en/withdrawal`,
+          '',
+          'The full withdrawal notice and the model withdrawal form are in the',
+          'Terms of Service:',
+          `${site}/en/terms`,
+        ]
+      : [
+          'Right of withdrawal',
+          'You have the right to withdraw from this contract within fourteen',
+          'days without giving any reason.',
+          '',
+          'Because you expressly consented at checkout to us beginning',
+          'performance immediately and confirmed that your right of withdrawal',
+          'ends once it is fully complete, it typically lapses within a few',
+          'minutes in practice — once the analysis job is done, not after',
+          'fourteen days. If you withdraw before that, the withdrawal is',
+          'effective; you then owe proportionate compensation for the part',
+          'already performed.',
+          '',
+          'You can withdraw at any time, informally, online:',
+          `${site}/en/withdrawal`,
+          '',
+          'The full withdrawal notice and the model withdrawal form are in the',
+          'Terms of Service:',
+          `${site}/en/terms`,
+        ];
+
   const greeting = de ? ['Hallo,', ''] : ['Hello,', ''];
   const opening = o.free
     ? de
@@ -307,29 +410,7 @@ export async function sendOrderConfirmation(o: OrderConfirmation): Promise<boole
         `${(o.free ? 'Vorgangsnummer:' : 'Bestellnummer:').padEnd(16)}${o.orderRef}`,
         `${(o.free ? 'Zeitpunkt:' : 'Bestellt am:').padEnd(16)}${when} (Zeitzone Europe/Berlin)`,
         '',
-        'Widerrufsrecht',
-        ...(o.free
-          ? ['Auch bei einem kostenlosen Angebot steht dir dieses Recht zu.',
-             'Kosten entstehen dadurch in keinem Fall.',
-             '']
-          : []),
-        'Du hast das Recht, binnen vierzehn Tagen ohne Angabe von Gründen zu',
-        'widerrufen. Die vollständige Widerrufsbelehrung und das',
-        'Muster-Widerrufsformular findest du in den Nutzungsbedingungen:',
-        `${site}/de/terms`,
-        '',
-        'Widerrufen kannst du auch direkt online:',
-        `${site}/de/withdrawal`,
-        '',
-        `Hinweis zum vorzeitigen Erlöschen: Du hast ${o.free ? 'vor der Analyse' : 'beim Kauf'} ausdrücklich`,
-        'zugestimmt, dass wir vor Ablauf der Widerrufsfrist mit der Ausführung',
-        'beginnen, und bestätigt, dass du dein Widerrufsrecht mit der',
-        'vollständigen Erbringung der Leistung verlierst. Es erlischt daher,',
-        'sobald der Analysevorgang vollständig durchgeführt ist — nicht schon',
-        'mit seinem Beginn. Widerrufst du vorher, ist der Widerruf wirksam;',
-        o.free
-          ? 'da kein Entgelt anfällt, entstehen dabei weder Erstattungen noch Wertersatz.'
-          : 'für den bereits erbrachten Teil schuldest du dann anteiligen Wertersatz.',
+        ...withdrawal,
         '',
         '—',
         'AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Deutschland',
@@ -338,35 +419,13 @@ export async function sendOrderConfirmation(o: OrderConfirmation): Promise<boole
     : [
         ...opening,
         '',
-        `${'Service:'.padEnd(12)}Photo selection, ${o.tierLabel} plan`,
+        `${'Service:'.padEnd(12)}Photo selection, plan ${o.tierLabel}`,
         `${'Scope:'.padEnd(12)}up to ${o.photoLimit.toLocaleString('en-GB')} photos, one-off job`,
         `${'Price:'.padEnd(12)}${amount}`,
         `${(o.free ? 'Job ref:' : 'Order ref:').padEnd(12)}${o.orderRef}`,
         `${(o.free ? 'Time:' : 'Placed:').padEnd(12)}${when} (time zone Europe/Berlin)`,
         '',
-        'Right of withdrawal',
-        ...(o.free
-          ? ['This right applies to a free offer as well.',
-             'It never results in any cost to you.',
-             '']
-          : []),
-        'You have the right to withdraw within fourteen days without giving any',
-        'reason. The full withdrawal notice and the model withdrawal form are in',
-        'the Terms of Service:',
-        `${site}/en/terms`,
-        '',
-        'You can also withdraw online:',
-        `${site}/en/withdrawal`,
-        '',
-        `Note on early expiry: ${o.free ? 'before the analysis' : 'at checkout'} you expressly consented to us`,
-        'beginning performance before the withdrawal period expires and confirmed',
-        'that you lose your right of withdrawal upon complete performance. It',
-        'therefore expires once the analysis job has been carried out in full —',
-        'not when it begins. If you withdraw before that, the withdrawal is',
-        'effective;',
-        o.free
-          ? 'as no fee is payable, this involves neither refunds nor compensation for value.'
-          : 'you then owe proportionate compensation for the part already performed.',
+        ...withdrawal,
         '',
         '—',
         'AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Germany',

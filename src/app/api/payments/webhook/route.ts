@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe/client';
 import { createAdminClient } from '@/lib/supabase/server';
 import { JobManager } from '@/services/job-manager';
-import { emailConfigured, sendOrderConfirmation } from '@/lib/email';
+import { emailConfigured, sendOrderConfirmation, paidTierLabel } from '@/lib/email';
 import type Stripe from 'stripe';
 
 /**
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
           } else {
             const ok = await sendOrderConfirmation({
               to,
-              tierLabel: String(job?.tier ?? session.metadata?.tier ?? ''),
+              tierLabel: paidTierLabel(String(job?.tier ?? session.metadata?.tier ?? '')),
               photoLimit: Number(job?.photo_limit ?? 0),
               amountGrossCents: session.amount_total ?? 0,
               currency: session.currency ?? 'eur',
