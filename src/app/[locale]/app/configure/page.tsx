@@ -671,6 +671,15 @@ export default function ConfigurePage() {
           {t('aiNotice')}
         </div>
 
+        {/* The § 312f confirmation goes out the moment the analysis starts. Say
+            so before the click, not least because the sending domain is new
+            enough that providers still file it as spam — a confirmation nobody
+            knows to look for is one nobody finds. */}
+        <p className="mt-2 flex items-start gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+          <span aria-hidden="true">✉️</span>
+          <span>{t('contractMailNotice')}</span>
+        </p>
+
         {/* A3: two separate declarations, neither preselected. Kept apart so a
             later change to one threshold does not silently restate the other. */}
         <label className="mt-3 flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300">
