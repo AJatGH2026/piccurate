@@ -6,6 +6,7 @@ import type { Tier } from '@/types/job';
 import { getPlan } from '@/types/pricing';
 import { betaOpenAccess, remainingPhotoBudget, ACCESS_ERRORS } from '@/lib/access';
 import { clientIp } from '@/lib/rate-limit';
+import { emailConfigured, sendOrderConfirmation } from '@/lib/email';
 
 const VALID_TIERS: Tier[] = ['free', 'small', 'medium', 'large'];
 
@@ -73,6 +74,46 @@ export async function POST(request: NextRequest) {
     const jobManager = new JobManager(supabase);
     const job = await jobManager.createJob(user.id, body.tier);
     const plan = getPlan(body.tier);
+
+    // § 312f BGB for the FREE tier. The paid tiers get their confirmation from
+    // the Stripe webhook; a free contract has no payment and therefore no
+    // webhook, so this is its only trigger. It belongs here because this is
+    // where the contract is formed — terms § 3: accepting the terms and
+    // starting the analysis — and § 312f Abs. 2 wants the confirmation before
+    // performance begins, which is the analysis that follows this call.
+    //
+    // Never fail the request on a mail error: the contract exists either way,
+    // and refusing the job would punish the user for our outage. Loud in the
+    // log instead, exactly as the webhook treats the same failure.
+    if (body.tier === 'free') {
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email, locale')
+          .eq('id', user.id)
+          .maybeSingle();
+        const to = profile?.email || user.email || '';
+        const locale = profile?.locale === 'de' ? 'de' : 'en';
+        if (!to) {
+          console.error(`[jobs] ${job.id}: no address for the free-tier contract confirmation`);
+        } else if (!emailConfigured()) {
+          console.error(`[jobs] ${job.id}: RESEND_API_KEY unset, confirmation NOT sent`);
+        } else {
+          const ok = await sendOrderConfirmation({
+            to,
+            free: true,
+            tierLabel: plan.tier,
+            photoLimit: job.photoLimit,
+            orderRef: job.id,
+            placedAt: new Date(),
+            locale,
+          });
+          if (!ok) console.error(`[jobs] ${job.id}: free-tier contract confirmation failed to send`);
+        }
+      } catch (mailErr) {
+        console.error(`[jobs] ${job.id}: confirmation error:`, mailErr);
+      }
+    }
 
     const response: CreateJobResponse = {
       jobId: job.id,

@@ -25,7 +25,7 @@
     "subtitle": "KI analysiert deine Urlaubsfotos und wählt die besten aus.\nDu prüfst, passt an und lädst herunter — und kannst deine Auswahl anschließend für ein Fotobuch verwenden.",
     "cta": "Kostenlos testen mit 250 Fotos",
     "ctaSecondary": "Preise ansehen",
-    "demoNote": "Demo-Modus — kein Konto nötig, läuft auf deinem Gerät"
+    "demoNote": "Kostenlos testen — deine Fotos werden auf deinem Gerät vorbereitet"
   },
   "howItWorks": {
     "title": "So funktioniert es",
@@ -74,6 +74,8 @@
     "dropzoneActive": "Fotos hier ablegen...",
     "supported": "Unterstützt JPEG, PNG, HEIC. Bis zu {limit} Fotos.",
     "keepFilesNote": "Lass deine Fotos bitte dort liegen, wo sie sind, bis der Download fertig ist. Wenn du sie zwischendurch verschiebst, umbenennst, löschst oder bearbeitest, kann dein Browser sie nicht mehr lesen — diese Fotos landen dann nur als kleine Vorschau im ZIP.",
+    "accountGateTitle": "Bitte melde dich zuerst an",
+    "accountGateBody": "Für die Analyse brauchst du ein Konto — auch im kostenlosen Tarif. So können wir dir die Bestätigung deines Vertrags zusenden, wie es das Gesetz verlangt. Die Anmeldung dauert eine Minute, danach geht es hier weiter.",
     "processing": "Verarbeite {current} von {total}...",
     "ready": "{count} Fotos bereit",
     "continue": "Weiter zu den Kriterien",
@@ -144,6 +146,7 @@
     "personFilterActive": "Ausschluss-Filter aktiv — Fotos mit {name} werden immer entfernt, unabhängig von anderen Kriterien.",
     "aiNotice": "Hinweis: AuswahlBuddy nutzt künstliche Intelligenz und erstellt einen unverbindlichen Auswahlvorschlag. Zur Analyse werden verkleinerte Vorschaubilder an Google Gemini übermittelt, dazu Aufnahmedatum, Kameramodell und — falls im Foto vorhanden — der Aufnahmeort als auf etwa einen Kilometer gerundete GPS-Koordinate, aus der die KI den Ortsnamen ableitet. Google kann übermittelte Daten und Antworten zur Missbrauchskontrolle bis zu 55 Tage aufbewahren. Bitte prüfe das Ergebnis und bewahre deine Originale separat auf.",
     "tooManyForAnyTier": "Mehr als {max} Fotos lassen sich derzeit nicht in einem Durchgang verarbeiten. Schreib uns kurz an {email} — bei solchen Mengen finden wir eine Lösung für dich.",
+    "accountRequired": "Für die Analyse brauchst du ein Konto — auch im kostenlosen Tarif. Bitte melde dich an oder registriere dich; danach kannst du hier weitermachen.",
     "analysisPartial": "{done} von {total} Fotos wurden analysiert. Der Rest konnte nicht mehr verarbeitet werden: {error} Die bereits analysierten Fotos siehst du gleich — die übrigen kannst du später nachholen.",
     "budgetExceeded": "Für heute kannst du noch etwa {remaining} Fotos analysieren, ausgewählt sind {requested}. Reduziere die Auswahl oder versuch es morgen noch einmal.",
     "ageConfirm18": "Ich bin mindestens 18 Jahre alt.",

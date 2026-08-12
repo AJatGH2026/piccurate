@@ -95,6 +95,17 @@ export default function ConfigurePage() {
   const ensureJob = async (photoCount: number): Promise<string> => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.is_anonymous) {
+      // When registration is required, signing in anonymously would create an
+      // account that can never analyse — and the privacy policy states that
+      // anonymous accounts only remain from the earlier open beta. Ask the
+      // server rather than guess; on a lookup failure fall through to the old
+      // behaviour, since /api/jobs still refuses.
+      const policy = await fetch('/api/access-policy', { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+      if (policy?.accountRequired === true) throw new Error(t('accountRequired'));
+    }
     if (!user) {
       const { error } = await supabase.auth.signInAnonymously();
       if (error) throw new Error(error.message);

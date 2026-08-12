@@ -32,15 +32,30 @@ export default function UploadPage() {
   // there. Read from the account's beta grant; falls back to free while the
   // lookup is in flight or when there is none.
   const [currentTier, setCurrentTier] = useState<Tier>(DEFAULT_TIER);
+  // When BETA_OPEN_ACCESS is off, a permanent account is required. The server
+  // enforces that in /api/jobs and /api/analyze-demo — but both are only reached
+  // when the user presses Analyse, i.e. AFTER uploading up to 250 photos. On a
+  // slower machine that is ten minutes of work ending in an error. So ask the
+  // server for the policy up front and gate the drop zone instead.
+  const [needsAccount, setNeedsAccount] = useState(false);
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
+        const policy = await fetch('/api/access-policy', { cache: 'no-store' })
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null);
         const supabase = createClient();
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        if (!user || user.is_anonymous) return;
+        const registered = !!user && !user.is_anonymous;
+        // Fail open on a policy lookup error: the server still refuses the job,
+        // so the worst case is the old behaviour, not an unguarded upload.
+        if (!cancelled && policy?.accountRequired === true && !registered) {
+          setNeedsAccount(true);
+        }
+        if (!registered) return;
         const { data: profile } = await supabase
           .from('profiles')
           .select('beta_grant_tier')
@@ -125,25 +140,53 @@ export default function UploadPage() {
           &middot; {t('allowance', { photos: maxPhotos.toLocaleString(locale) })}
         </div>
 
-        {/* Drop zone */}
-        <div className="mt-6">
-          <DropZone
-            onFiles={addFiles}
-            maxPhotos={maxPhotos}
-            disabled={isProcessing && totalCount >= maxPhotos}
-          />
-        </div>
+        {/* Drop zone — replaced by the account gate when registration is required,
+            so nobody uploads hundreds of photos before learning they cannot run. */}
+        {needsAccount ? (
+          <div className="mt-6 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 px-5 py-6 text-center">
+            <h2 className="text-base font-medium text-zinc-900 dark:text-zinc-100">
+              {t('accountGateTitle')}
+            </h2>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+              {t('accountGateBody')}
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href={`/${locale}/auth/register?next=${encodeURIComponent(`/${locale}/app/upload`)}`}
+                className="rounded-full bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+              >
+                {tNav('register')}
+              </Link>
+              <Link
+                href={`/${locale}/auth/login?next=${encodeURIComponent(`/${locale}/app/upload`)}`}
+                className="rounded-full border border-zinc-300 dark:border-zinc-600 px-5 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              >
+                {tNav('login')}
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-6">
+            <DropZone
+              onFiles={addFiles}
+              maxPhotos={maxPhotos}
+              disabled={isProcessing && totalCount >= maxPhotos}
+            />
+          </div>
+        )}
 
         {/* The browser only holds a reference to each file, so the originals must
             stay put until the download. Said here, before the upload, because
             afterwards it can only be reported as damage (results page). */}
-        <p className="mt-3 flex items-start gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-          <span aria-hidden="true">📁</span>
-          <span>{t('keepFilesNote')}</span>
-        </p>
+        {!needsAccount && (
+          <p className="mt-3 flex items-start gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+            <span aria-hidden="true">📁</span>
+            <span>{t('keepFilesNote')}</span>
+          </p>
+        )}
 
         {/* Cloud import */}
-        {dropboxConfigured() && (
+        {!needsAccount && dropboxConfigured() && (
           <div className="mt-3 flex items-center gap-2">
             <span className="text-xs text-zinc-400">{t('orImportFrom')}</span>
             <button

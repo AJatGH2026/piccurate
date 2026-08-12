@@ -207,16 +207,22 @@ export async function sendWithdrawalReceipt(d: WithdrawalDeclaration): Promise<b
   });
 }
 
-export interface OrderConfirmation {
+interface OrderConfirmationBase {
   to: string;
   tierLabel: string;
   photoLimit: number;
-  amountGrossCents: number;
-  currency: string;
   orderRef: string;
   placedAt: Date;
   locale: string;
 }
+
+/**
+ * Paid and free contracts both owe the § 312f confirmation, but only one of
+ * them has a price. Modelled as a union so a paid confirmation cannot be sent
+ * without an amount, and a free one cannot claim one.
+ */
+export type OrderConfirmation = OrderConfirmationBase &
+  ({ free: true } | { free?: false; amountGrossCents: number; currency: string });
 
 /**
  * § 312f BGB: confirmation of the contract on a durable medium, within a
@@ -241,10 +247,14 @@ export interface OrderConfirmation {
  */
 export async function sendOrderConfirmation(o: OrderConfirmation): Promise<boolean> {
   const de = o.locale === 'de';
-  const amount = new Intl.NumberFormat(de ? 'de-DE' : 'en-IE', {
-    style: 'currency',
-    currency: o.currency.toUpperCase(),
-  }).format(o.amountGrossCents / 100);
+  const amount = o.free
+    ? de
+      ? 'kostenlos — es fällt kein Entgelt an'
+      : 'free of charge — no fee is payable'
+    : new Intl.NumberFormat(de ? 'de-DE' : 'en-IE', {
+        style: 'currency',
+        currency: o.currency.toUpperCase(),
+      }).format(o.amountGrossCents / 100) + (de ? ' inkl. gesetzlicher Umsatzsteuer' : ' including statutory VAT');
   const when = o.placedAt.toLocaleString(de ? 'de-DE' : 'en-GB', {
     timeZone: 'Europe/Berlin',
     dateStyle: 'long',
@@ -254,13 +264,18 @@ export async function sendOrderConfirmation(o: OrderConfirmation): Promise<boole
 
   const body = de
     ? [
-        'Vielen Dank für deine Bestellung. Hiermit bestätigen wir den Vertrag.',
+        o.free
+          ? 'Hiermit bestätigen wir den Vertrag über deine kostenlose Fotoauswahl.'
+          : 'Vielen Dank für deine Bestellung. Hiermit bestätigen wir den Vertrag.',
         '',
-        `Leistung:      Fotoauswahl, Tarif ${o.tierLabel}`,
-        `Umfang:        bis zu ${o.photoLimit.toLocaleString('de-DE')} Fotos, einmaliger Vorgang`,
-        `Preis:         ${amount} inkl. gesetzlicher Umsatzsteuer`,
-        `Bestellnummer: ${o.orderRef}`,
-        `Bestellt am:   ${when} (Zeitzone Europe/Berlin)`,
+        // padEnd keeps the columns aligned whichever labels the branch picks —
+        // hand-counted spaces drifted the moment "Bestellnummer" became
+        // "Vorgangsnummer" for the free tier.
+        `${'Leistung:'.padEnd(16)}Fotoauswahl, Tarif ${o.tierLabel}`,
+        `${'Umfang:'.padEnd(16)}bis zu ${o.photoLimit.toLocaleString('de-DE')} Fotos, einmaliger Vorgang`,
+        `${'Preis:'.padEnd(16)}${amount}`,
+        `${(o.free ? 'Vorgangsnummer:' : 'Bestellnummer:').padEnd(16)}${o.orderRef}`,
+        `${(o.free ? 'Geschlossen am:' : 'Bestellt am:').padEnd(16)}${when} (Zeitzone Europe/Berlin)`,
         '',
         'Widerrufsrecht',
         'Du hast das Recht, binnen vierzehn Tagen ohne Angabe von Gründen zu',
@@ -271,26 +286,30 @@ export async function sendOrderConfirmation(o: OrderConfirmation): Promise<boole
         'Widerrufen kannst du auch direkt online:',
         `${site}/de/withdrawal`,
         '',
-        'Hinweis zum vorzeitigen Erlöschen: Du hast beim Kauf ausdrücklich',
+        `Hinweis zum vorzeitigen Erlöschen: Du hast ${o.free ? 'vor der Analyse' : 'beim Kauf'} ausdrücklich`,
         'zugestimmt, dass wir vor Ablauf der Widerrufsfrist mit der Ausführung',
         'beginnen, und bestätigt, dass du dein Widerrufsrecht mit der',
         'vollständigen Erbringung der Leistung verlierst. Es erlischt daher,',
         'sobald der Analysevorgang vollständig durchgeführt ist — nicht schon',
-        'mit seinem Beginn. Widerrufst du vorher, ist der Widerruf wirksam; für',
-        'den bereits erbrachten Teil schuldest du dann anteiligen Wertersatz.',
+        'mit seinem Beginn. Widerrufst du vorher, ist der Widerruf wirksam;',
+        o.free
+          ? 'da kein Entgelt anfällt, entstehen dabei weder Erstattungen noch Wertersatz.'
+          : 'für den bereits erbrachten Teil schuldest du dann anteiligen Wertersatz.',
         '',
         '—',
         'AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Deutschland',
         'Amtsgericht Wiesbaden HRB 33249 · USt-IdNr. DE433664608',
       ]
     : [
-        'Thank you for your order. We hereby confirm the contract.',
+        o.free
+          ? 'We hereby confirm the contract for your free photo selection.'
+          : 'Thank you for your order. We hereby confirm the contract.',
         '',
-        `Service:    Photo selection, ${o.tierLabel} plan`,
-        `Scope:      up to ${o.photoLimit.toLocaleString('en-GB')} photos, one-off job`,
-        `Price:      ${amount} including statutory VAT`,
-        `Order ref:  ${o.orderRef}`,
-        `Placed:     ${when} (time zone Europe/Berlin)`,
+        `${'Service:'.padEnd(12)}Photo selection, ${o.tierLabel} plan`,
+        `${'Scope:'.padEnd(12)}up to ${o.photoLimit.toLocaleString('en-GB')} photos, one-off job`,
+        `${'Price:'.padEnd(12)}${amount}`,
+        `${(o.free ? 'Job ref:' : 'Order ref:').padEnd(12)}${o.orderRef}`,
+        `${(o.free ? 'Concluded:' : 'Placed:').padEnd(12)}${when} (time zone Europe/Berlin)`,
         '',
         'Right of withdrawal',
         'You have the right to withdraw within fourteen days without giving any',
@@ -301,13 +320,15 @@ export async function sendOrderConfirmation(o: OrderConfirmation): Promise<boole
         'You can also withdraw online:',
         `${site}/en/withdrawal`,
         '',
-        'Note on early expiry: at checkout you expressly consented to us',
+        `Note on early expiry: ${o.free ? 'before the analysis' : 'at checkout'} you expressly consented to us`,
         'beginning performance before the withdrawal period expires and confirmed',
         'that you lose your right of withdrawal upon complete performance. It',
         'therefore expires once the analysis job has been carried out in full —',
         'not when it begins. If you withdraw before that, the withdrawal is',
-        'effective; you then owe proportionate compensation for the part already',
-        'performed.',
+        'effective;',
+        o.free
+          ? 'as no fee is payable, this involves neither refunds nor compensation for value.'
+          : 'you then owe proportionate compensation for the part already performed.',
         '',
         '—',
         'AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Germany',
@@ -317,7 +338,13 @@ export async function sendOrderConfirmation(o: OrderConfirmation): Promise<boole
   return sendMail({
     to: o.to,
     replyTo: feedbackAddress(o.locale),
-    subject: de ? `Bestellbestätigung ${o.orderRef}` : `Order confirmation ${o.orderRef}`,
+    subject: o.free
+      ? de
+        ? `Vertragsbestätigung ${o.orderRef}`
+        : `Contract confirmation ${o.orderRef}`
+      : de
+        ? `Bestellbestätigung ${o.orderRef}`
+        : `Order confirmation ${o.orderRef}`,
     text: body.join('\n'),
     locale: o.locale,
   });
