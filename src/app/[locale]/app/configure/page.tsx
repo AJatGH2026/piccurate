@@ -125,7 +125,7 @@ export default function ConfigurePage() {
     const res = await fetch('/api/jobs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tier, photoCount }),
+      body: JSON.stringify({ tier, photoCount, locale }),
     });
     const json = await res.json();
     // Refused for lack of daily budget: say how much is left, in the user's

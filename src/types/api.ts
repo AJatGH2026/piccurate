@@ -12,6 +12,15 @@ export interface ApiResponse<T = unknown> {
 export interface CreateJobRequest {
   tier: Tier;
   photoCount: number;
+  /**
+   * Language the contract is being concluded in — the UI locale at the moment
+   * the user starts the analysis. The § 312f confirmation is sent in it.
+   *
+   * Not taken from profiles.locale: that is a stale account preference, and a
+   * user browsing /de after registering under /en would receive the
+   * confirmation for a German contract in English. Server-side validated.
+   */
+  locale?: string;
 }
 
 export interface CreateJobResponse {

@@ -93,7 +93,17 @@ export async function POST(request: NextRequest) {
           .eq('id', user.id)
           .maybeSingle();
         const to = profile?.email || user.email || '';
-        const locale = profile?.locale === 'de' ? 'de' : 'en';
+        // The UI locale wins over the stored preference: the confirmation must
+        // be in the language the contract was actually concluded in. Falls back
+        // to the profile, then English. Validated here — it arrives from the
+        // client and must never reach the mail as free text.
+        const requested = String(body.locale || '').toLowerCase();
+        const locale =
+          requested === 'de' || requested === 'en'
+            ? requested
+            : profile?.locale === 'de'
+              ? 'de'
+              : 'en';
         if (!to) {
           console.error(`[jobs] ${job.id}: no address for the free-tier contract confirmation`);
         } else if (!emailConfigured()) {
