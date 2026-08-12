@@ -140,7 +140,8 @@ export async function POST(request: NextRequest) {
           const ok = await sendOrderConfirmation({
             to,
             free: true,
-            tierLabel: plan.tier,
+            // Not plan.tier: that renders as "Tarif free" in a German mail.
+            tierLabel: locale === 'de' ? 'Gratis' : 'Free',
             photoLimit: job.photoLimit,
             orderRef: job.id,
             placedAt: new Date(),

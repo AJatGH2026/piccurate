@@ -262,11 +262,41 @@ export async function sendOrderConfirmation(o: OrderConfirmation): Promise<boole
   });
   const site = process.env.NEXT_PUBLIC_APP_URL || 'https://shortlistbuddy.com';
 
+  // The free tier's opening carries the reassurance, and it comes first on
+  // purpose. "Vertragsbestätigung" landing in someone's inbox after they clicked
+  // something free reads like a subscription trap — the word cannot be avoided
+  // entirely (§ 312f asks for a confirmation of the contract, and the statutory
+  // withdrawal notice below says "Vertrag" too), so it is framed as a legal
+  // formality and paired with what the reader actually wants to know: nothing is
+  // owed and nothing has to be cancelled.
+  const greeting = de ? ['Hallo,', ''] : ['Hello,', ''];
+  const opening = o.free
+    ? de
+      ? [
+          ...greeting,
+          'du hast die kostenlose Fotoauswahl gestartet. Diese E-Mail ist die',
+          'Bestätigung, die das Gesetz für Geschäfte im Internet vorschreibt',
+          '(§ 312f BGB).',
+          '',
+          'Es ist kein kostenpflichtiger Vertrag entstanden: Es fällt kein Entgelt',
+          'an, es gibt kein Abonnement, und du musst nichts kündigen.',
+        ]
+      : [
+          ...greeting,
+          'you have started the free photo selection. This email is the',
+          'confirmation that the law requires for online transactions',
+          '(section 312f of the German Civil Code).',
+          '',
+          'No paid contract has been entered into: nothing is charged, there is no',
+          'subscription, and there is nothing to cancel.',
+        ]
+    : de
+      ? [...greeting, 'vielen Dank für deine Bestellung. Hiermit bestätigen wir den Vertrag.']
+      : [...greeting, 'thank you for your order. We hereby confirm the contract.'];
+
   const body = de
     ? [
-        o.free
-          ? 'Hiermit bestätigen wir den Vertrag über deine kostenlose Fotoauswahl.'
-          : 'Vielen Dank für deine Bestellung. Hiermit bestätigen wir den Vertrag.',
+        ...opening,
         '',
         // padEnd keeps the columns aligned whichever labels the branch picks —
         // hand-counted spaces drifted the moment "Bestellnummer" became
@@ -275,9 +305,14 @@ export async function sendOrderConfirmation(o: OrderConfirmation): Promise<boole
         `${'Umfang:'.padEnd(16)}bis zu ${o.photoLimit.toLocaleString('de-DE')} Fotos, einmaliger Vorgang`,
         `${'Preis:'.padEnd(16)}${amount}`,
         `${(o.free ? 'Vorgangsnummer:' : 'Bestellnummer:').padEnd(16)}${o.orderRef}`,
-        `${(o.free ? 'Geschlossen am:' : 'Bestellt am:').padEnd(16)}${when} (Zeitzone Europe/Berlin)`,
+        `${(o.free ? 'Zeitpunkt:' : 'Bestellt am:').padEnd(16)}${when} (Zeitzone Europe/Berlin)`,
         '',
         'Widerrufsrecht',
+        ...(o.free
+          ? ['Auch bei einem kostenlosen Angebot steht dir dieses Recht zu.',
+             'Kosten entstehen dadurch in keinem Fall.',
+             '']
+          : []),
         'Du hast das Recht, binnen vierzehn Tagen ohne Angabe von Gründen zu',
         'widerrufen. Die vollständige Widerrufsbelehrung und das',
         'Muster-Widerrufsformular findest du in den Nutzungsbedingungen:',
@@ -301,17 +336,20 @@ export async function sendOrderConfirmation(o: OrderConfirmation): Promise<boole
         'Amtsgericht Wiesbaden HRB 33249 · USt-IdNr. DE433664608',
       ]
     : [
-        o.free
-          ? 'We hereby confirm the contract for your free photo selection.'
-          : 'Thank you for your order. We hereby confirm the contract.',
+        ...opening,
         '',
         `${'Service:'.padEnd(12)}Photo selection, ${o.tierLabel} plan`,
         `${'Scope:'.padEnd(12)}up to ${o.photoLimit.toLocaleString('en-GB')} photos, one-off job`,
         `${'Price:'.padEnd(12)}${amount}`,
         `${(o.free ? 'Job ref:' : 'Order ref:').padEnd(12)}${o.orderRef}`,
-        `${(o.free ? 'Concluded:' : 'Placed:').padEnd(12)}${when} (time zone Europe/Berlin)`,
+        `${(o.free ? 'Time:' : 'Placed:').padEnd(12)}${when} (time zone Europe/Berlin)`,
         '',
         'Right of withdrawal',
+        ...(o.free
+          ? ['This right applies to a free offer as well.',
+             'It never results in any cost to you.',
+             '']
+          : []),
         'You have the right to withdraw within fourteen days without giving any',
         'reason. The full withdrawal notice and the model withdrawal form are in',
         'the Terms of Service:',
@@ -338,13 +376,16 @@ export async function sendOrderConfirmation(o: OrderConfirmation): Promise<boole
   return sendMail({
     to: o.to,
     replyTo: feedbackAddress(o.locale),
+    // No job id in the subject: it is a UUID, it means nothing to the reader and
+    // it makes a routine mail look like a ticket from a debt collector. The
+    // reference stays in the body, where support can find it.
     subject: o.free
       ? de
-        ? `Vertragsbestätigung ${o.orderRef}`
-        : `Contract confirmation ${o.orderRef}`
+        ? 'Bestätigung Gratis-Angebot'
+        : 'Confirmation of your free plan'
       : de
-        ? `Bestellbestätigung ${o.orderRef}`
-        : `Order confirmation ${o.orderRef}`,
+        ? 'Bestellbestätigung'
+        : 'Order confirmation',
     text: body.join('\n'),
     locale: o.locale,
   });
