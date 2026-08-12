@@ -75,7 +75,7 @@
     "supported": "Supports JPEG, PNG, HEIC. Up to {limit} photos.",
     "keepFilesNote": "Please leave your photos where they are until the download is finished. If they are moved, renamed, deleted or edited in the meantime, your browser can no longer read them — those photos then end up in the ZIP as small previews only.",
     "accountGateTitle": "Please sign in first",
-    "accountGateBody": "You need an account to run an analysis — including on the free plan. That lets us send you the confirmation of your contract, as the law requires. Signing up takes a minute, and you can carry on right here afterwards.",
+    "accountGateBody": "You need an account with a confirmed email address to run an analysis — including on the free plan. That lets us send you the confirmation of your contract, as the law requires. After you sign up we send you a confirmation link; once you have clicked it, you can carry on right here.",
     "processing": "Processing {current} of {total}...",
     "ready": "{count} photos ready",
     "continue": "Continue to criteria",

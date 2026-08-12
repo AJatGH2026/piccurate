@@ -158,7 +158,7 @@ function GermanBody() {
           specific and revocable. What we actually record is an acceptance and
           an acknowledgement. */}
       <p>Wenn du ein Nutzerkonto erstellst, verarbeiten wir deine E-Mail-Adresse, dein verschlüsseltes Passwort, die gewählte Sprache (Spracheinstellung) sowie Zeitpunkt und Nachweis der Annahme der Nutzungsbedingungen und der Kenntnisnahme dieser Datenschutzhinweise. Rechtsgrundlage ist Art. 6 Abs. 1 Buchst. b DSGVO (Vertragserfüllung).</p>
-      <h3>15.1 Anonymes Konto beim Start einer Analyse</h3>
+      <h3>15.1 Konto beim Start einer Analyse</h3>
       <p>Jede Analyse läuft technisch gegen einen benannten Vorgang, damit Fotomengen, Kontingente und Ergebnisse eindeutig zugeordnet werden können. Für eine Analyse ist ein <strong>Konto mit bestätigter E-Mail-Adresse</strong> erforderlich — auch im kostenlosen Tarif. Grund dafür ist die gesetzlich vorgeschriebene Bestätigung des Vertrags in Textform (§ 312f BGB): Ohne eine Adresse könnten wir sie dir nicht zusenden.</p>
       <p>Rechtsgrundlage ist Art. 6 Abs. 1 Buchst. b DSGVO; ohne diese Zuordnung lässt sich der von dir angestoßene Vorgang nicht durchführen. Aus der früheren offenen Beta-Phase können noch <strong>anonyme Konten</strong> ohne Kontaktdaten bestehen; sie erlauben keine Anmeldung von einem anderen Gerät. Diese Konten und die zugehörigen Vorgangsdaten löschen wir turnusmäßig, spätestens 90 Tage nach dem letzten Vorgang.</p>
       <h3>15.2 Konto und Nutzungsmessung</h3>
@@ -300,7 +300,7 @@ function EnglishBody() {
       <p>You may object at any time, on grounds relating to your particular situation, to processing based on Article 6(1)(f) GDPR. We will then cease processing unless we demonstrate compelling legitimate grounds that override your interests, rights and freedoms or the processing is required to establish, exercise or defend legal claims.</p>
       <h2>15. User Account and Registration</h2>
       <p>When you create a user account, we process your email address, your encrypted password, the selected language (locale setting), and the timestamp and record of your acceptance of the Terms of Use and your acknowledgement of this Privacy Policy. The legal basis is Article 6(1)(b) GDPR (performance of contract).</p>
-      <h3>15.1 Anonymous account when starting an analysis</h3>
+      <h3>15.1 Account when starting an analysis</h3>
       <p>Every analysis technically runs against a named job so that photo volumes, allowances and results can be assigned unambiguously. An <strong>account with a confirmed email address</strong> is required to run an analysis — including on the free plan. The reason is the statutory confirmation of the contract in text form (section 312f of the German Civil Code): without an address we could not send it to you.</p>
       <p>The legal basis is Article 6(1)(b) GDPR; without this assignment the job you initiated cannot be carried out. <strong>Anonymous accounts</strong> without contact details may still exist from the earlier open beta phase; they do not allow sign-in from another device. We delete those accounts and the associated job data on a routine basis, at the latest 90 days after the last job.</p>
       <h3>15.2 Account and usage measurement</h3>
