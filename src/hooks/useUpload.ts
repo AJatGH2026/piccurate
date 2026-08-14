@@ -4,12 +4,30 @@ import { useState, useCallback, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type { ClientPhoto } from '@/types/photo';
 import { extractEXIF } from '@/utils/exif';
-import { generateThumbnail, isHEIC, convertHEICtoJPEG } from '@/utils/image';
+import { decodePhoto, isHEIC, convertHEICtoJPEG } from '@/utils/image';
 import { computePHash } from '@/utils/phash';
 import { computeEmbedding } from '@/utils/embedding';
+import { detectFaces, preloadFaceDetector } from '@/utils/faceDetection';
+import { computeFaceEmbedding, preloadFaceEmbedder } from '@/utils/faceEmbedding';
+import { usePhotoStore } from '@/hooks/usePhotoStore';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'image/webp'];
 const MAX_CONCURRENT = 4;
+
+/**
+ * Whether the local person search should run for this upload.
+ *
+ * Read from the store rather than passed in as an option, because the reference
+ * persons are chosen on their own step before the upload (GATE 1, Entscheidung 8)
+ * and nothing in between needs to thread the flag through.
+ *
+ * No reference persons → no face is detected and no embedding computed. That is
+ * § 3 rule 1 ("der Nutzer aktiviert die Personensuche ausdrücklich selbst")
+ * enforced in code rather than in prose.
+ */
+function wantFaceSearch(): boolean {
+  return usePhotoStore.getState().persons.length > 0;
+}
 
 interface UseUploadOptions {
   maxPhotos: number;
@@ -63,18 +81,39 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
       updatePhoto(photo.id, { status: 'extracting' });
       const exif = await extractEXIF(photo.file);
 
+      // Is the local person search active for this run? Read once per photo:
+      // the reference persons are chosen BEFORE the upload starts (GATE 1,
+      // Entscheidung 8), precisely so this is knowable here. § 3 rule 1 says the
+      // user activates the person search explicitly — so when they did not, no
+      // face is ever detected or embedded.
+      const faceSearchActive = wantFaceSearch();
+
       let thumbnailBlob: Blob;
+      let faceBitmap: ImageBitmap | null = null;
 
       if (isHEIC(photo.file)) {
         // HEIC path: small files use the server (sharp handles orientation),
         // large files the browser (heic-to). Both output already-upright pixels.
         updatePhoto(photo.id, { status: 'generating', exif });
-        thumbnailBlob = await convertHEICtoJPEG(photo.file, true);
+        if (faceSearchActive) {
+          // Ask for the large uncropped frame (1600 px) instead of the 512
+          // square: the square is centre-cropped, so anyone at the edge of the
+          // frame is gone and background faces are 15-40 px. The thumbnail is
+          // then derived locally from that same decode.
+          const faceJpeg = await convertHEICtoJPEG(photo.file, false, { face: true });
+          const decoded = await decodePhoto(faceJpeg, { keepBitmap: true });
+          thumbnailBlob = decoded.thumbnail;
+          faceBitmap = decoded.bitmap;
+        } else {
+          thumbnailBlob = await convertHEICtoJPEG(photo.file, true);
+        }
       } else {
         // JPEG/PNG/WebP: thumbnail client-side; createImageBitmap 'from-image'
         // applies EXIF orientation. No manual rotation (it double-applied).
         updatePhoto(photo.id, { status: 'generating', exif });
-        thumbnailBlob = await generateThumbnail(photo.file);
+        const decoded = await decodePhoto(photo.file, { keepBitmap: faceSearchActive });
+        thumbnailBlob = decoded.thumbnail;
+        faceBitmap = decoded.bitmap;
       }
 
       const thumbnailUrl = URL.createObjectURL(thumbnailBlob);
@@ -97,6 +136,36 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
           if (embedding) updatePhoto(photo.id, { embedding });
         })
         .catch(() => {});
+
+      // Face pass. Runs AFTER the photo is marked ready (so the grid keeps
+      // filling at the same pace) but still INSIDE processNext, deliberately:
+      // returning early would free this concurrency slot and let a fifth decode
+      // start while this bitmap is still alive. Four full-resolution bitmaps are
+      // already a few hundred MB against the 2 GB ceiling in § 5.3.
+      //
+      // Unlike the CLIP embedding above this is not fire-and-forget, for the
+      // same reason — it owns a bitmap that must be closed.
+      if (faceBitmap) {
+        try {
+          const faces = await detectFaces(faceBitmap);
+          const faceEmbeddings: number[][] = [];
+          for (const face of faces) {
+            // Crops come from this full-resolution bitmap, not from the
+            // downscaled copy detection ran on (§ 9.5) — it matters for the
+            // small faces that are the weakest bucket anyway.
+            const embedding = await computeFaceEmbedding(faceBitmap, face);
+            if (embedding) faceEmbeddings.push(embedding);
+          }
+          updatePhoto(photo.id, { faceEmbeddings });
+        } catch (err) {
+          // A failed face pass must never fail the upload: the photo is fine,
+          // only the person search is unavailable for it. Leaving faceEmbeddings
+          // at null marks exactly that, and is distinct from "no faces found".
+          console.warn(`[upload] face pass failed for ${photo.filename}:`, err);
+        } finally {
+          faceBitmap.close();
+        }
+      }
     } catch (err) {
       const message =
         err instanceof Error
@@ -170,12 +239,22 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
         thumbnailUrl: null,
         phash: null,
         embedding: null,
+        faceEmbeddings: null,
         status: 'pending' as const,
         error: null,
       }));
 
       acceptedCount.current += newPhotos.length;
       setPhotos((prev) => [...prev, ...newPhotos]);
+
+      // Load the face models up front rather than letting the first photo
+      // trigger it. Two reasons: the download would otherwise land in the middle
+      // of the run and distort any timing measurement, and § 5.4 requires the
+      // matching itself to be request-free — which is only demonstrable if
+      // loading is a completed step beforehand.
+      if (wantFaceSearch()) {
+        void Promise.all([preloadFaceDetector(), preloadFaceEmbedder()]).catch(() => {});
+      }
 
       // Add to processing queue and start
       processingQueue.current.push(...newPhotos);

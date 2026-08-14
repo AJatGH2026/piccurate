@@ -6,20 +6,45 @@
 const THUMBNAIL_SIZE = 512;
 const THUMBNAIL_QUALITY = 0.6;
 
+export interface DecodedPhoto {
+  /** 512×512 centre-cropped JPEG — unchanged from before. */
+  thumbnail: Blob;
+  /**
+   * The decoded bitmap at full resolution, present only when `keepBitmap` was
+   * requested (local person search).
+   *
+   * ⚠️ The caller owns it and MUST call `.close()`. An ImageBitmap lives off the
+   * JS heap and is not reclaimed promptly by GC; with MAX_CONCURRENT uploads a
+   * handful of 12-MP bitmaps is a few hundred MB, and § 5.3 of the person-search
+   * plan caps RAM at 2 GB for 1 500 photos.
+   */
+  bitmap: ImageBitmap | null;
+}
+
 /**
- * Generate a 512x512 JPEG thumbnail from an image file.
- * Uses center-crop to maintain aspect ratio.
+ * Decode an image ONCE and derive everything from that single decode.
  *
- * EXIF orientation is applied by the browser via createImageBitmap's
- * `imageOrientation: 'from-image'` — the decoded bitmap is already upright and
- * its width/height are the display dimensions, so the crop math is correct for
- * every orientation. HEIC inputs arrive already oriented from heic-to, so this
- * is a no-op for them. We must NOT rotate again ourselves (that double-applies
- * — the exact bug that left orientation-6/3/8 photos sideways).
+ * Decoding is the expensive step — § 2.5 of
+ * docs/legal/personensuche-umsetzungsplan.md measured 1.2–4 s per photo, far
+ * above detection or embedding. Doing it twice (once for the thumbnail, once for
+ * face detection) would roughly double upload time, which is why the plan (§ 9.1)
+ * asks for "einmal dekodieren, zwei Ausgaben".
  *
- * @returns Blob of the JPEG thumbnail
+ * Note the face pass deliberately uses the FULL-resolution bitmap, not the
+ * 512 thumbnail: that thumbnail is centre-cropped, so anybody standing at the
+ * edge of the frame is simply gone, and background faces are 15–40 px (§ 2.6).
+ *
+ * EXIF orientation is applied by the browser via `imageOrientation: 'from-image'`
+ * — the decoded bitmap is already upright and its width/height are the display
+ * dimensions, so the crop math is correct for every orientation. HEIC inputs
+ * arrive already oriented from heic-to, so this is a no-op for them. We must NOT
+ * rotate again ourselves (that double-applies — the exact bug that left
+ * orientation-6/3/8 photos sideways).
  */
-export async function generateThumbnail(file: File | Blob): Promise<Blob> {
+export async function decodePhoto(
+  file: File | Blob,
+  opts?: { keepBitmap?: boolean }
+): Promise<DecodedPhoto> {
   const imageBitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
 
   // Determine crop dimensions (center crop to square)
@@ -27,13 +52,30 @@ export async function generateThumbnail(file: File | Blob): Promise<Blob> {
   const sx = (imageBitmap.width - size) / 2;
   const sy = (imageBitmap.height - size) / 2;
 
-  // Try OffscreenCanvas first (better performance, runs in workers)
-  if (typeof OffscreenCanvas !== 'undefined') {
-    return generateWithOffscreenCanvas(imageBitmap, sx, sy, size);
+  try {
+    const thumbnail =
+      typeof OffscreenCanvas !== 'undefined'
+        ? await generateWithOffscreenCanvas(imageBitmap, sx, sy, size)
+        : await generateWithCanvas(imageBitmap, sx, sy, size);
+    return { thumbnail, bitmap: opts?.keepBitmap ? imageBitmap : null };
+  } finally {
+    // Only we close it when the caller did not ask to keep it — otherwise the
+    // bitmap is handed over and closing is the caller's job.
+    if (!opts?.keepBitmap) imageBitmap.close();
   }
+}
 
-  // Fallback to regular canvas
-  return generateWithCanvas(imageBitmap, sx, sy, size);
+/**
+ * Generate a 512x512 JPEG thumbnail from an image file.
+ * Uses center-crop to maintain aspect ratio.
+ *
+ * Thin wrapper around {@link decodePhoto} for callers that only need the
+ * thumbnail and never the bitmap.
+ *
+ * @returns Blob of the JPEG thumbnail
+ */
+export async function generateThumbnail(file: File | Blob): Promise<Blob> {
+  return (await decodePhoto(file)).thumbnail;
 }
 
 async function generateWithOffscreenCanvas(
@@ -46,8 +88,9 @@ async function generateWithOffscreenCanvas(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Failed to get OffscreenCanvas context');
 
+  // NOTE: does not close the bitmap — decodePhoto owns its lifetime, because it
+  // may hand the bitmap on to the face pass.
   ctx.drawImage(bitmap, sx, sy, sourceSize, sourceSize, 0, 0, THUMBNAIL_SIZE, THUMBNAIL_SIZE);
-  bitmap.close();
 
   const blob = await canvas.convertToBlob({
     type: 'image/jpeg',
@@ -69,8 +112,8 @@ async function generateWithCanvas(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Failed to get canvas context');
 
+  // NOTE: does not close the bitmap — see generateWithOffscreenCanvas.
   ctx.drawImage(bitmap, sx, sy, sourceSize, sourceSize, 0, 0, THUMBNAIL_SIZE, THUMBNAIL_SIZE);
-  bitmap.close();
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
@@ -123,13 +166,21 @@ const VERCEL_BODY_LIMIT = Math.max(0, HEIC_SERVER_MAX_MB) * 1024 * 1024;
  * and the browser (heic-to / libheif) both output already-upright pixels, so no
  * caller needs to pass or apply an EXIF orientation.
  */
-export async function convertHEICtoJPEG(file: File, thumbnail = true): Promise<Blob> {
+export async function convertHEICtoJPEG(
+  file: File,
+  thumbnail = true,
+  opts?: { face?: boolean }
+): Promise<Blob> {
   // Big HEICs go straight to the browser fallback — no wasted server round trip.
   if (file.size > VERCEL_BODY_LIMIT) {
-    return convertHEICInBrowser(file, thumbnail);
+    return convertHEICInBrowser(file, thumbnail, opts);
   }
 
-  const url = thumbnail ? '/api/convert?thumbnail=1' : '/api/convert?thumbnail=0';
+  const url = opts?.face
+    ? '/api/convert?face=1'
+    : thumbnail
+      ? '/api/convert?thumbnail=1'
+      : '/api/convert?thumbnail=0';
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': file.type || 'image/heic' },
@@ -139,7 +190,7 @@ export async function convertHEICtoJPEG(file: File, thumbnail = true): Promise<B
   if (!response.ok) {
     // 413 = Vercel's body limit hit us anyway (unlikely at this point since
     // we pre-checked, but small margin errors happen). Fall back to browser.
-    if (response.status === 413) return convertHEICInBrowser(file, thumbnail);
+    if (response.status === 413) return convertHEICInBrowser(file, thumbnail, opts);
     const err = await response.json().catch(() => ({ error: response.statusText }));
     throw new Error(`HEIC conversion failed: ${err.error || response.statusText}`);
   }
@@ -161,12 +212,43 @@ export async function convertHEICtoJPEG(file: File, thumbnail = true): Promise<B
  * do NOT rotate again; doing so double-applied the rotation and left photos
  * sideways. The subsequent generateThumbnail decode is a no-op for orientation.
  */
-async function convertHEICInBrowser(file: File, thumbnail: boolean): Promise<Blob> {
+async function convertHEICInBrowser(
+  file: File,
+  thumbnail: boolean,
+  opts?: { face?: boolean }
+): Promise<Blob> {
   const { heicTo } = await import('heic-to');
   const decoded = await heicTo({ blob: file, type: 'image/jpeg', quality: 0.85 });
   const jpegBlob: Blob = decoded instanceof Blob ? decoded : new Blob([decoded]);
   if (!jpegBlob || jpegBlob.size === 0) throw new Error('HEIC conversion produced empty result');
 
+  // Face mode wants the full decoded frame: uncropped and as large as it comes.
+  // The caller derives both the thumbnail and the detection bitmap from it.
+  if (opts?.face) return jpegBlob;
   if (thumbnail) return generateThumbnail(jpegBlob);
   return jpegBlob;
+}
+
+/**
+ * Decode a HEIC **reference photo** — always in the browser, never via the
+ * server.
+ *
+ * This is a hard rule from § 2.4 of the person-search plan, not an optimisation:
+ * a reference photo is the one image that unambiguously depicts the person being
+ * searched for, and § 3 rule 3 says it must never leave the device. Today that
+ * happens to hold because the file picker's `accept` list excludes HEIC — but
+ * that is an accident of a UI filter, not a guarantee, and the obvious way to
+ * "add HEIC support for reference photos" would be to call convertHEICtoJPEG(),
+ * which would quietly upload the face to /api/convert.
+ *
+ * So: HEIC support for reference photos is provided here, and routed so that it
+ * cannot regress into the server path. The cost is one slow decode (~4 s) for a
+ * single photo, which nobody will notice.
+ */
+export async function convertReferenceHEIC(file: File): Promise<Blob> {
+  const { heicTo } = await import('heic-to');
+  const decoded = await heicTo({ blob: file, type: 'image/jpeg', quality: 0.9 });
+  const blob: Blob = decoded instanceof Blob ? decoded : new Blob([decoded]);
+  if (!blob || blob.size === 0) throw new Error('HEIC conversion produced empty result');
+  return blob;
 }

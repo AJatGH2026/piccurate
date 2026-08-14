@@ -5,13 +5,12 @@ import { brandName } from '@/lib/brand';
 import { useCriteria } from '@/hooks/useCriteria';
 import { usePhotoStore, isNegativeCustom, stripNegativePrefix } from '@/hooks/usePhotoStore';
 import { MAX_PERSONS } from '@/types/criteria';
-import { generateThumbnail } from '@/utils/image';
 import { coarseCoord } from '@/utils/geo';
 import { trackEvent } from '@/lib/analytics';
 import Link from 'next/link';
 import { LegalModal } from '@/components/legal/LegalModal';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { logBeta } from '@/lib/beta-client';
 import { createClient } from '@/lib/supabase/client';
 import { getTierForPhotoCount, MAX_TIER_PHOTOS } from '@/types/pricing';
@@ -35,18 +34,17 @@ export default function ConfigurePage() {
   const analyzedCustomTerms = usePhotoStore((s) => s.analyzedCustomTerms);
   const persons = usePhotoStore((s) => s.persons);
   const analyzedPersons = usePhotoStore((s) => s.analyzedPersons);
-  const addPerson = usePhotoStore((s) => s.addPerson);
   const removePerson = usePhotoStore((s) => s.removePerson);
   const renamePerson = usePhotoStore((s) => s.renamePerson);
   const setPersonWeight = usePhotoStore((s) => s.setPersonWeight);
   const setPersonMode = usePhotoStore((s) => s.setPersonMode);
+  const personThreshold = usePhotoStore((s) => s.personThreshold);
+  const setPersonThreshold = usePhotoStore((s) => s.setPersonThreshold);
   const savedCount = photos.filter((p) => p.saved).length;
-  const personFileInputRef = useRef<HTMLInputElement | null>(null);
-  const [personName, setPersonName] = useState('');
-  const [pendingPersonBlob, setPendingPersonBlob] = useState<Blob | null>(null);
-  const [pendingPersonPreview, setPendingPersonPreview] = useState<string | null>(null);
-  const [personError, setPersonError] = useState<string | null>(null);
-  const [personProcessing, setPersonProcessing] = useState(false);
+  // Reference photos are picked on the upload step now, so the add-form state
+  // (file input, pending blob/preview, processing flag) moved to
+  // components/persons/PersonSetup.tsx along with it.
+  const [personError] = useState<string | null>(null);
   // Custom terms are part of the job setup. Once at least one photo has been
   // analysed, the set of terms is frozen — changing them would trigger a full
   // (paid) re-analysis. For new terms the user must start a new job.
@@ -61,9 +59,9 @@ export default function ConfigurePage() {
   // A2: reference-photo collective confirmation before persons are transmitted.
   const [ageAccepted, setAgeAccepted] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [personsConfirmed, setPersonsConfirmed] = useState(false);
-  const personsNeedConfirm = persons.length > 0 && !hasAnalyzed;
-  const canAnalyze = ageAccepted && termsAccepted && (!personsNeedConfirm || personsConfirmed);
+  // No separate person confirmation any more — see the note further down where
+  // the checkbox used to be. Analysis is gated on age + terms only.
+  const canAnalyze = ageAccepted && termsAccepted;
   useEffect(() => { logBeta('configure'); }, []);
   // Age/terms acceptance is remembered (localStorage) — confirm once, not again
   // when changing criteria or re-running. (The reference-photo confirmation A2
@@ -438,12 +436,23 @@ export default function ConfigurePage() {
 
         {/* Persons (feature 5b) — reference-photo-based face matching. Set
             apart with a purple accent so it's visually distinct from both the
-            motif criteria (indigo) and the custom terms (amber). */}
+            motif criteria (indigo) and the custom terms (amber).
+
+            Only rendered once at least one person exists: reference photos are
+            picked on the upload step, before any photo is processed (GATE 1,
+            Entscheidung 8) — there is nothing this box can do with zero
+            persons, since adding one here could not work (those photos were
+            already processed without a face pass) and the box has no other
+            content in that case. Showing an empty shell that explains a step
+            already missed is confusing, not helpful — reported 2026-08-14. */}
+        {persons.length > 0 && (
         <div className="mt-4 p-4 rounded-xl border-2 border-purple-300 bg-purple-50/70 dark:border-purple-700/60 dark:bg-purple-950/20">
           <h3 className="font-medium text-zinc-900 dark:text-zinc-100">{t('personsTitle')}</h3>
           <p className="text-sm text-zinc-500 mt-0.5">{t('personsDesc')}</p>
+          {/* Local notice, not the old transmission consent — since the cutover
+              nothing about a person leaves the device. */}
           <p className="mt-2 text-xs text-purple-700 dark:text-purple-300">
-            {t('personsConsent')}
+            {t('personsLocalNote')}
           </p>
 
           {persons.length > 0 && (
@@ -517,21 +526,31 @@ export default function ConfigurePage() {
                           {t('personFilterActive', { name: person.name })}
                         </p>
                       ) : (
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs text-zinc-400">{t('low')}</span>
-                          <input
-                            type="range"
-                            min="1"
-                            max="10"
-                            step="1"
-                            value={Math.max(1, Math.round(person.weight * 10))}
-                            onChange={(e) => setPersonWeight(person.id, Number(e.target.value) / 10)}
-                            className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-purple-600"
-                          />
-                          <span className="text-xs text-zinc-400">{t('only')}</span>
-                          <span className="text-xs font-medium text-purple-600 w-12 text-right">
-                            {person.weight >= 1 ? t('only') : `${Math.round(person.weight * 10)}/10`}
-                          </span>
+                        <div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-zinc-400">{t('low')}</span>
+                            <input
+                              type="range"
+                              min="1"
+                              max="10"
+                              step="1"
+                              value={Math.max(1, Math.round(person.weight * 10))}
+                              onChange={(e) => setPersonWeight(person.id, Number(e.target.value) / 10)}
+                              className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-purple-600"
+                            />
+                            <span className="text-xs text-zinc-400">{t('only')}</span>
+                            <span className="text-xs font-medium text-purple-600 w-12 text-right">
+                              {person.weight >= 1 ? t('only') : `${Math.round(person.weight * 10)}/10`}
+                            </span>
+                          </div>
+                          {/* This slider and the shared threshold slider below answer
+                              different questions (reported 2026-08-14: without this
+                              line they read as two copies of the same control) — this
+                              one is selection priority given a match, the threshold is
+                              whether a face counts as a match at all. */}
+                          <p className="mt-1 text-xs text-zinc-400">
+                            {t('personWeightHint', { name: person.name })}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -541,92 +560,48 @@ export default function ConfigurePage() {
             </div>
           )}
 
-          {/* Add-form — only before the first analysis, and only up to MAX. */}
-          {!hasAnalyzed && persons.length < MAX_PERSONS && (
-            <div className="mt-4 space-y-2">
-              {pendingPersonPreview ? (
-                <div className="flex items-center gap-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={pendingPersonPreview}
-                    alt={t('personsPreview')}
-                    className="w-16 h-16 rounded-lg object-cover border border-purple-300 dark:border-purple-700 flex-shrink-0"
-                  />
-                  <input
-                    autoFocus
-                    value={personName}
-                    onChange={(e) => setPersonName(e.target.value)}
-                    placeholder={t('personName')}
-                    className="flex-1 min-w-0 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-1.5 text-sm"
-                  />
-                  <button
-                    onClick={() => {
-                      if (!pendingPersonBlob) return;
-                      const ok = addPerson(personName, pendingPersonBlob);
-                      if (!ok) {
-                        setPersonError(t('personsAddFailed'));
-                        return;
-                      }
-                      if (pendingPersonPreview) URL.revokeObjectURL(pendingPersonPreview);
-                      setPendingPersonBlob(null);
-                      setPendingPersonPreview(null);
-                      setPersonName('');
-                      setPersonError(null);
-                    }}
-                    disabled={!personName.trim() || !pendingPersonBlob}
-                    className="rounded-full bg-purple-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {t('customAdd')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (pendingPersonPreview) URL.revokeObjectURL(pendingPersonPreview);
-                      setPendingPersonBlob(null);
-                      setPendingPersonPreview(null);
-                      setPersonName('');
-                      setPersonError(null);
-                    }}
-                    className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-                  >
-                    {tc('cancel')}
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => personFileInputRef.current?.click()}
-                  disabled={personProcessing}
-                  className="rounded-full border border-purple-300 dark:border-purple-700 px-4 py-1.5 text-sm font-medium text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 disabled:opacity-50 disabled:cursor-wait transition-colors"
-                >
-                  {personProcessing ? t('personsProcessing') : t('personsAdd')}
-                </button>
-              )}
-              <input
-                ref={personFileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="hidden"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  e.target.value = ''; // allow re-picking the same file
-                  setPersonError(null);
-                  setPersonProcessing(true);
-                  try {
-                    // Downscale to a 512x512 JPEG right away: the reference
-                    // photo only needs to identify the face, and small
-                    // thumbnails keep the LLM prompt cheap.
-                    const thumb = await generateThumbnail(file);
-                    if (pendingPersonPreview) URL.revokeObjectURL(pendingPersonPreview);
-                    setPendingPersonBlob(thumb);
-                    setPendingPersonPreview(URL.createObjectURL(thumb));
-                  } catch (err) {
-                    console.error('Person thumbnail failed:', err);
-                    setPersonError(t('personsProcessFailed'));
-                  } finally {
-                    setPersonProcessing(false);
-                  }
-                }}
-              />
+          {/* No add-form here: reference persons are chosen on the upload step,
+              before any photo is processed (GATE 1, Entscheidung 8). Adding one
+              here could not work — those photos were already processed without a
+              face pass, so a new person would simply never match anything.
+              What DOES stay on this page is weight and include/exclude: pure
+              selection logic, re-tunable at any time without touching a pixel. */}
+
+          {/* Threshold slider. § 1(5) of the plan: no cosine value on screen —
+              the number means nothing to a user — but the side effect IS named
+              in both directions, because face matching that quietly guesses
+              wrong is exactly what people should be able to see coming.
+              Re-derives matches instantly from the stored embeddings; no photo
+              is touched again, so this is cheap to drag around. */}
+          {persons.length > 0 && (
+            <div className="mt-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  {t('personThresholdTitle')}
+                </span>
+              </div>
+              <div className="mt-2 flex items-center gap-3">
+                <span className="text-xs text-zinc-500 w-16 text-right">
+                  {t('personThresholdStrict')}
+                </span>
+                {/* The slider is INVERTED against the threshold: dragging right
+                    must feel like "more results", which means a LOWER similarity
+                    cut-off. Both directions use the same mapping
+                    (slider = 100 − threshold·100) so the handle sits where the
+                    current threshold actually is. */}
+                <input
+                  type="range"
+                  min={30}
+                  max={70}
+                  step={2}
+                  value={100 - Math.round(personThreshold * 100)}
+                  onChange={(e) => setPersonThreshold((100 - Number(e.target.value)) / 100)}
+                  className="flex-1 accent-purple-600"
+                  aria-label={t('personThresholdTitle')}
+                />
+                <span className="text-xs text-zinc-500 w-16">{t('personThresholdLoose')}</span>
+              </div>
+              <p className="mt-2 text-xs text-zinc-500">{t('personThresholdHint')}</p>
             </div>
           )}
 
@@ -634,23 +609,14 @@ export default function ConfigurePage() {
             <p className="mt-3 text-xs text-red-600 dark:text-red-400">{personError}</p>
           )}
 
-          {/* A2 (privacy): single, non-preselected collective confirmation for
-              all reference photos of this upload. Reference photos are only
-              transmitted after this is ticked (analysis is gated below). */}
-          {personsNeedConfirm && (
-            <label className="mt-4 flex items-start gap-2 text-xs text-zinc-700 dark:text-zinc-300">
-              <input
-                type="checkbox"
-                checked={personsConfirmed}
-                onChange={(e) => setPersonsConfirmed(e.target.checked)}
-                className="mt-0.5 accent-purple-600"
-              />
-              <span>
-                {t('personsConfirm')}{' '}
-                <LegalModal href={`/${locale}/persons-info`} label={t('personsInfoLink')} linkClassName="underline hover:text-purple-700" />
-              </span>
-            </label>
-          )}
+          {/* The A2 biometric-consent checkbox that used to live here was removed
+              on 2026-08-14 together with the transmission it consented to — its
+              text described sending reference photos to an LLM provider, which
+              is no longer true. Its replacement, a contractual (not Art. 9)
+              usage confirmation, was reinstated where the reference photo is
+              actually picked — the checkbox in components/persons/PersonSetup.tsx
+              on the upload page — not here, since this page can no longer add a
+              reference photo at all. */}
 
           <p className="mt-3 text-xs text-purple-700 dark:text-purple-300">
             {hasAnalyzed
@@ -660,6 +626,7 @@ export default function ConfigurePage() {
                 : t('personsSetupHint', { max: MAX_PERSONS })}
           </p>
         </div>
+        )}
 
         {/* Live selection-mode summary */}
         <div className="mt-6 p-3 rounded-xl bg-indigo-50 text-indigo-800 text-sm dark:bg-indigo-950/30 dark:text-indigo-200">
@@ -714,9 +681,15 @@ export default function ConfigurePage() {
         <div className="mt-6 flex justify-end">
           <button
             onClick={async () => {
-              // A2/A3: record the confirmations (date-keyed) before processing.
+              // A3: record the terms confirmation (date-keyed) before processing.
               logBeta('terms_accepted');
-              if (personsNeedConfirm) logBeta('persons_confirmed');
+              // `persons_confirmed` was removed on 2026-08-14. It told the server
+              // "a person search is happening in this session" — harmless-looking
+              // as a counter, but § 5.4 lists exactly that as a NO-GO: the server
+              // must not be able to know a person search took place, because
+              // correlated with the analysis request of the same session it is a
+              // signal about biometric processing. Do not add a person counter
+              // back, in any form.
               setAnalyzing(true);
               setProgress(t('progressPreparing'));
               try {
@@ -742,25 +715,14 @@ export default function ConfigurePage() {
 
                 // Persons (feature 5b): same diff mechanic — a change in the
                 // set of reference persons forces re-analysis. Names are
-                // compared lowercased so casing edits don't retrigger.
-                const currentPersonNames = persons
-                  .map((p) => p.name.toLowerCase().trim())
-                  .filter(Boolean)
-                  .sort();
-                const personsChanged =
-                  JSON.stringify(currentPersonNames) !== JSON.stringify([...analyzedPersons].sort());
-                // A1 (privacy): never send real names to Google. Reference
-                // persons go to the model as neutral labels ("Person A", …);
-                // the model's answers are mapped back to the real names
-                // client-side, so Google only ever sees the labels.
-                const personLabels = persons.map((_, i) => `Person ${String.fromCharCode(65 + i)}`);
-                const personBlobs = persons.map((p) => p.blob);
-                const labelToName = new Map(
-                  persons.map((p, i) => [`person ${String.fromCharCode(97 + i)}`, p.name.toLowerCase()])
-                );
-
+                // Changing a reference person no longer triggers a re-analysis.
+                // It used to have to: the names and photos went into the Gemini
+                // prompt, so a different set meant different results. Matching is
+                // local now and re-derives instantly from stored embeddings —
+                // re-running the (paid) analysis for it would charge the user for
+                // nothing.
                 const toAnalyze = photos.filter(
-                  (p) => !p.saved && (!p.analyzed || termsChanged || personsChanged)
+                  (p) => !p.saved && (!p.analyzed || termsChanged)
                 );
 
                 if (toAnalyze.length === 0) {
@@ -812,18 +774,12 @@ export default function ConfigurePage() {
                   if (customTerms.length) {
                     formData.append('customTerms', JSON.stringify(customTerms));
                   }
-                  // Reference persons: names + JPEGs. Sent with every batch —
-                  // Gemini has no cross-request memory, so each request needs
-                  // to carry the references. Only marginally more tokens.
-                  if (personLabels.length) {
-                    // Explicit biometric consent (GDPR Art. 9) — required
-                    // server-side whenever reference photos are sent.
-                    formData.append('personsConsent', '1');
-                    formData.append('personNames', JSON.stringify(personLabels));
-                    for (let i = 0; i < personBlobs.length; i++) {
-                      formData.append('personRefs', personBlobs[i], `person-${i}.jpg`);
-                    }
-                  }
+                  // NO reference photos, names or biometric consent are sent any
+                  // more. Person matching happens in the browser (since
+                  // 2026-08-14): the reference photo, the face crops, the
+                  // embeddings and the match results never leave the device.
+                  // Adding a person field back here would silently undo that —
+                  // see docs/legal/personensuche-umsetzungsplan.md § 3 rule 3.
                   for (const photo of batch) {
                     if (photo.thumbnailBlob) {
                       formData.append('thumbnails', photo.thumbnailBlob, photo.filename);
@@ -866,9 +822,6 @@ export default function ConfigurePage() {
                 );
 
                 setProgress(t('progressSelecting'));
-                // A1: translate the neutral labels the model returned back to the
-                // real (lowercased) names, so selection matching + review chips
-                // work exactly as before. Google only ever saw "Person A".
                 // Only the batches that actually returned count as analysed, and
                 // their photo ids must line up with them — otherwise photos would
                 // be marked "analysed" that the model never saw, and a re-run
@@ -889,13 +842,8 @@ export default function ConfigurePage() {
                   throw new Error(failure ?? 'Analysis failed');
                 }
 
-                for (const r of flatResults) {
-                  if (r && Array.isArray(r.persons)) {
-                    r.persons = r.persons.map(
-                      (l: string) => labelToName.get(String(l).toLowerCase()) ?? String(l).toLowerCase()
-                    );
-                  }
-                }
+                // No label→name mapping any more: the model is not asked about
+                // people at all, and the store ignores any `persons` it returns.
                 applyAnalysisResults(flatResults, criteria, analysedIds);
                 trackEvent('analysis_complete', {
                   photos: analysedIds.length,

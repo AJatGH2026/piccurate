@@ -7,10 +7,12 @@
 // Design:
 // - Lazy singleton: the model (~tens of MB, browser-cached) loads only on first
 //   use. WebGPU when available, else WASM.
-// - Serialised: inferences run one at a time (a global promise chain) so we
-//   don't spawn parallel model runs.
+// - Serialised: inferences run one at a time — and, since 2026-08-14, against
+//   YuNet and FaceNet too, not just against itself (utils/inferenceSerializer.ts).
 // - Graceful: any failure returns null; series detection then falls back to
 //   pHash, so nothing breaks if the model can't load.
+
+import { serializeInference } from './inferenceSerializer';
 
 type Extractor = (
   input: string,
@@ -39,15 +41,9 @@ async function getExtractor(): Promise<Extractor | null> {
   return extractorPromise;
 }
 
-// Serialise inference: model runs are heavy and not reentrant-safe.
-let chain: Promise<unknown> = Promise.resolve();
-
 /** Compute a unit-normalised CLIP embedding for an image blob (or null on failure). */
 export function computeEmbedding(blob: Blob): Promise<number[] | null> {
-  const run = () => computeNow(blob);
-  const result = chain.then(run, run);
-  chain = result.catch(() => {});
-  return result;
+  return serializeInference(() => computeNow(blob));
 }
 
 async function computeNow(blob: Blob): Promise<number[] | null> {

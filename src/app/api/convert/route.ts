@@ -21,6 +21,18 @@ const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30 MB
 const THUMBNAIL_SIZE = 512;
 const THUMBNAIL_QUALITY = 70; // 0-100
 
+// Third output mode, for the local person search: a LARGE, UNCROPPED image.
+// The 512 thumbnail is a centre-cropped square, so anybody at the edge of the
+// frame is cut away entirely and background faces are 15–40 px — useless for
+// face detection (§ 2.6 / § 9.5 of docs/legal/personensuche-umsetzungsplan.md).
+// 1600 px long edge is the size the spike's accuracy numbers were measured at.
+//
+// Cost note: ~250–400 KB per photo instead of ~30 KB. Only requested when the
+// user actually activated the person search, so photo sets without it are
+// unaffected — that ratio is why the mode is opt-in rather than the new default.
+const FACE_EDGE = 1600;
+const FACE_QUALITY = 80;
+
 /**
  * Resolve the path to vips.exe (the libvips CLI with native HEIF support).
  * VIPSTHUMBNAIL_PATH points at the bundled vipsthumbnail.exe; vips.exe lives
@@ -159,7 +171,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Empty file' }, { status: 400 });
     }
 
-    const makeThumbnail = request.nextUrl.searchParams.get('thumbnail') !== '0';
+    // Three modes: ?face=1 (large, uncropped — for local face detection),
+    // ?thumbnail=0 (full resolution), and the default 512 square thumbnail.
+    const wantFace = request.nextUrl.searchParams.get('face') === '1';
+    const makeThumbnail = !wantFace && request.nextUrl.searchParams.get('thumbnail') !== '0';
     const t0 = Date.now();
 
     let jpegBuffer: Buffer | null = null;
@@ -184,8 +199,14 @@ export async function POST(request: NextRequest) {
         let pipeline = sharp(buffer, { failOn: 'none' }).rotate();
         if (makeThumbnail) {
           pipeline = pipeline.resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, { fit: 'cover', position: 'centre' });
+        } else if (wantFace) {
+          // 'inside' + withoutEnlargement: cap the long edge, never crop, never
+          // upscale a photo that is already smaller.
+          pipeline = pipeline.resize(FACE_EDGE, FACE_EDGE, { fit: 'inside', withoutEnlargement: true });
         }
-        const buf: Buffer = await pipeline.jpeg({ quality: makeThumbnail ? THUMBNAIL_QUALITY : 85 }).toBuffer();
+        const buf: Buffer = await pipeline
+          .jpeg({ quality: makeThumbnail ? THUMBNAIL_QUALITY : wantFace ? FACE_QUALITY : 85 })
+          .toBuffer();
         console.log(`[Convert] sharp-native: ${(buf.length / 1024).toFixed(0)} KB in ${Date.now() - t0}ms`);
         jpegBuffer = buf;
       } catch {
@@ -198,8 +219,12 @@ export async function POST(request: NextRequest) {
         let pipeline = sharp(raw, { raw: { width, height, channels: 4 } });
         if (makeThumbnail) {
           pipeline = pipeline.resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, { fit: 'cover', position: 'centre' });
+        } else if (wantFace) {
+          pipeline = pipeline.resize(FACE_EDGE, FACE_EDGE, { fit: 'inside', withoutEnlargement: true });
         }
-        const buf: Buffer = await pipeline.jpeg({ quality: makeThumbnail ? THUMBNAIL_QUALITY : 85 }).toBuffer();
+        const buf: Buffer = await pipeline
+          .jpeg({ quality: makeThumbnail ? THUMBNAIL_QUALITY : wantFace ? FACE_QUALITY : 85 })
+          .toBuffer();
         console.log(`[Convert] libheif+sharp: ${width}×${height} → ${(buf.length / 1024).toFixed(0)} KB in ${Date.now() - t0}ms`);
         jpegBuffer = buf;
       }

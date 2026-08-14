@@ -77,3 +77,39 @@ docs/Marketing/
 *.zip
 *.docx
 ~$*
+
+# Spike „Local Person Search" (Phase 1c, Branch spike/local-person-search).
+# Die Cache-Dateien enthalten Gesichts-Embeddings aus den privaten Testfotos —
+# biometrische Daten von Familie und Freunden. Nichts davon gehört in ein
+# öffentliches Repo, auch nicht auf einem Wegwerf-Branch. Die Modellgewichte
+# sind zwar frei lizenziert, aber ~97 MB Binärdaten, die per Skript jederzeit
+# neu beschafft werden können.
+#
+# 14.08.2026: die Ausschluesse reichten nicht weit genug. Die Spike-Quellen
+# selbst tragen den privaten Pfad zum Testset (C:/Users/andre/Pictures/...) und
+# in run.js die Initialen der abgebildeten Familienmitglieder. Beides faellt
+# unter „personal data / private file names" der Pre-Push-Regel in CLAUDE.md.
+# Nach § 9.7 des Umsetzungsplans ist der Spike ohnehin Wegwerf-Code, der nicht
+# in Produktion geht — deshalb jetzt der ganze Baum, nicht nur die Artefakte.
+scripts/spike/
+public/spike/
+# Entwickler-Testseite fuer die Gesichtsmodule, vor dem Launch zu loeschen.
+# Ohne fuehrenden Pfad, weil [ ] in .gitignore eine Zeichenklasse ist: der Pfad
+# src/app/[locale]/... waere als Muster ein Match auf genau ein Zeichen aus
+# {l,o,c,a,e} und traefe das Verzeichnis nie.
+dev-face-test/
+# Same-origin-Kopien der ONNX-Runtime fuer den Offline-Nachweis (~39 MB), per
+# Skript aus node_modules reproduzierbar.
+public/spike/ort/
+
+# Modellgewichte: ~45 MB Binaerdaten, die bei jedem dev/build aus dem privaten
+# Vercel-Blob-Store geladen und per SHA-256 geprueft werden
+# (scripts/fetch-models.mjs). Nicht in die Historie eines oeffentlichen Repos —
+# die LICENSE-/PROVENANCE-Dateien daneben bleiben versioniert.
+public/models/**/*.onnx
+public/models/**/*.bin
+
+# ONNX-Runtime-WASM-Artefakte, bei jedem dev/build aus node_modules kopiert
+# (scripts/copy-ort-assets.mjs). ~39 MB Binaries — gehoeren nicht in die
+# Historie eines oeffentlichen Repos.
+public/ort/

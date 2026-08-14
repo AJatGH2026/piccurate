@@ -131,7 +131,6 @@
     "customFilterActive": "Ausschluss-Filter aktiv — Fotos mit diesem Inhalt werden immer entfernt, unabhängig von anderen Kriterien.",
     "personsTitle": "Personen",
     "personsDesc": "Lade Referenzfotos hoch und benenne Personen — die KI filtert dann gezielt Fotos, auf denen sie erkannt werden.",
-    "personsConsent": "Hinweis: Referenzfotos werden zur Gesichtserkennung an unseren LLM-Anbieter übertragen und in dieser Session gehalten. Sie werden nach Ende der Sitzung nicht gespeichert. Bitte lade nur Fotos von Personen hoch, die einverstanden sind.",
     "personsAdd": "Person hinzufügen",
     "personsProcessing": "Foto wird vorbereitet…",
     "personsProcessFailed": "Foto konnte nicht verarbeitet werden. Bitte anderes Bild versuchen.",
@@ -140,6 +139,8 @@
     "personsSetupHint": "Bis zu {max} Personen — vor dem ersten „Analysieren“ festlegen.",
     "personsMaxReached": "Maximum von {max} Personen erreicht.",
     "personsLockedNote": "Personen sind nach der Analyse gesperrt. Für andere Personen einen neuen Job starten.",
+    "personsPaidOnly": "Die Personensuche ist Teil der kostenpflichtigen Tarife.",
+    "personsPaidOnlyLink": "Tarife ansehen",
     "personName": "Name",
     "personModeInclude": "Mit",
     "personModeExclude": "Ohne",
@@ -154,9 +155,10 @@
     "ageConfirm18": "Ich bin mindestens 18 Jahre alt.",
     "termsConfirm": "Ich akzeptiere die Nutzungsbedingungen.",
     "termsShort": "AGB lesen",
-    "personsConfirm": "Ich bestätige, dass ich alle Referenzfotos ausschließlich für private Zwecke im Familien- oder Freundeskreis verwende und für jede abgebildete Person die erforderliche ausdrückliche Zustimmung zur vorübergehenden KI-gestützten Wiedererkennung sowie zur Übermittlung verkleinerter Bilder an Google vorliegt.",
-    "personsInfoLink": "Hinweise zur Personenfunktion",
-    "confirmRequired": "Bitte Altersbestätigung (und ggf. Referenzfoto-Bestätigung) setzen, um fortzufahren.",
+    "personsConfirm": "Ich bestätige, dass ich für jedes hier hochgeladene Referenzfoto die erforderliche Nutzungsbefugnis im privaten, persönlichen oder familiären Bereich habe.",
+    "personsConfirmRequired": "Bitte zuerst bestätigen.",
+    "personsInfoLink": "Hinweise zur Personensuche",
+    "confirmRequired": "Bitte Altersbestätigung setzen, um fortzufahren.",
     "dedup": "Duplikaterkennung",
     "dedupDesc": "Wie aggressiv ähnliche Fotos entfernt werden",
     "presets": "Schnellvorlagen",
@@ -173,7 +175,17 @@
     "strict": "Streng",
     "analysisFailed": "Analyse fehlgeschlagen: {error}",
     "noPhotosConfigure": "Keine Fotos im Speicher. Bitte zuerst Fotos hochladen.",
-    "backToUpload": "Zum Upload"
+    "backToUpload": "Zum Upload",
+    "personsLocalNote": "Die Gesichtserkennung läuft vollständig auf deinem Gerät. Referenzfoto, Gesichtsdaten und Treffer verlassen dein Gerät nicht.",
+    "personsNoFace": "kein Gesicht erkannt",
+    "personsNoFaceHint": "Auf diesem Foto wurde kein Gesicht gefunden. Du kannst es trotzdem verwenden — ein frontales, scharfes Foto der Person funktioniert aber deutlich besser.",
+    "personsLockedUpload": "Personen stehen für diesen Durchgang fest, sobald die ersten Fotos hinzugefügt wurden. Für andere Personen einen neuen Durchgang starten.",
+    "personsBeforeUpload": "Wenn du nach bestimmten Personen suchen willst, lege sie hier fest — bevor du Fotos hinzufügst.",
+    "personThresholdTitle": "Trefferähnlichkeit",
+    "personThresholdStrict": "streng",
+    "personThresholdLoose": "großzügig",
+    "personThresholdHint": "Gilt für alle hinterlegten Personen gemeinsam — wie genau ein Gesicht erkannt werden muss, um überhaupt als Treffer zu zählen. Streng: weniger Fotos werden gefunden, dafür stimmen die Treffer meistens. Großzügig: mehr Fotos werden gefunden, dafür sind mehr falsche dabei.",
+    "personWeightHint": "Wie stark Fotos mit {name} in der Auswahl bevorzugt werden — unabhängig davon, ob und wie genau das Gesicht erkannt wurde. Das stellst du weiter unten für alle Personen gemeinsam ein."
   },
   "review": {
     "title": "Deine Auswahl prüfen",
@@ -195,7 +207,12 @@
     "groupSelected": "{count} ausgewählt",
     "withLocation": "{count} mit Standort",
     "noPhotos": "Keine Fotos zum Prüfen. Bitte zuerst Fotos hochladen.",
-    "goToUpload": "Zum Upload"
+    "goToUpload": "Zum Upload",
+    "excludeTitle": "{count} Fotos mit {names} würden entfernt",
+    "excludeBody": "Der Ausschluss findet nicht jedes Foto — sieh dir an, was entfernt wird, bevor du bestätigst. Fotos derselben Person können übrig bleiben.",
+    "excludeShow": "{count} Fotos ansehen",
+    "excludeHide": "Ausblenden",
+    "excludeConfirm": "Entfernen bestätigen"
   },
   "results": {
     "title": "Deine kuratierten Fotos sind bereit",
@@ -276,7 +293,8 @@
     "save": "Speichern",
     "delete": "Löschen",
     "close": "Schließen",
-    "stepOf": "Schritt {current} von {total}"
+    "stepOf": "Schritt {current} von {total}",
+    "optional": "optional"
   },
   "feedback": {
     "button": "Feedback",

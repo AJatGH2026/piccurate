@@ -36,7 +36,11 @@ const ALLOWED = new Set<string>([
   'added',
   'removed',
   'terms_accepted', // A3: 18+ / terms confirmation given before analysis
-  'persons_confirmed', // A2: reference-photo collective confirmation given
+  // NOTE: 'persons_confirmed' was removed on 2026-08-14. It told the server that
+  // a person search was happening in a given session — which § 5.4 of
+  // docs/legal/personensuche-umsetzungsplan.md lists as a NO-GO: correlated with
+  // the analysis request of the same session, that counter is a signal about
+  // biometric processing. Do not add a person-related event back here.
   // Which paid tier a tester reaches for while nothing is buyable — written by
   // /api/beta/unlock. Missing from this list until 2026-08-12, so the route
   // logged them and this function dropped every one on the floor.
@@ -209,7 +213,7 @@ export interface BetaSignals {
   configured: boolean;
   funnel: { step: string; total: number }[];
   selection: { added: number; removed: number };
-  consent: { termsAccepted: number; personsConfirmed: number };
+  consent: { termsAccepted: number };
   unlocks: { small: number; medium: number; large: number };
   feedbackCount: number;
   emailCount: number;
@@ -231,7 +235,7 @@ export async function readBetaSignals(): Promise<BetaSignals> {
     configured: false,
     funnel: [],
     selection: { added: 0, removed: 0 },
-    consent: { termsAccepted: 0, personsConfirmed: 0 },
+    consent: { termsAccepted: 0 },
     unlocks: { small: 0, medium: 0, large: 0 },
     feedbackCount: 0,
     emailCount: 0,
@@ -242,7 +246,9 @@ export async function readBetaSignals(): Promise<BetaSignals> {
     // Extra keys beyond the funnel/selection ones: consent checkboxes (should
     // track 1:1 with `analysis`) and beta-unlock clicks per tier (written by
     // /api/beta/unlock, previously never read back — see product-pipeline.md §4).
-    const extraSteps = ['terms_accepted', 'persons_confirmed', 'unlock_small', 'unlock_medium', 'unlock_large'];
+    // 'persons_confirmed' deliberately absent — see the note at ALLOWED above.
+    // Historical values may still sit in Redis; they are simply not read back.
+    const extraSteps = ['terms_accepted', 'unlock_small', 'unlock_medium', 'unlock_large'];
     const totalKeys = [...FUNNEL_STEPS, 'added', 'removed', ...extraSteps].map((s) => `beta:funnel:${s}:total`);
     const [funnelVals, fbCount, emCount, recent] = await Promise.all([
       r.mget(...totalKeys) as Promise<(number | string | null)[]>,
@@ -255,7 +261,9 @@ export async function readBetaSignals(): Promise<BetaSignals> {
     const added = num(funnelVals[FUNNEL_STEPS.length]);
     const removed = num(funnelVals[FUNNEL_STEPS.length + 1]);
     const extraBase = FUNNEL_STEPS.length + 2;
-    const [termsAccepted, personsConfirmed, unlockSmall, unlockMedium, unlockLarge] = extraSteps.map(
+    // Order must match `extraSteps` exactly — this is positional, so dropping a
+    // step there without dropping it here shifts every following counter by one.
+    const [termsAccepted, unlockSmall, unlockMedium, unlockLarge] = extraSteps.map(
       (_, i) => num(funnelVals[extraBase + i])
     );
     const recentFeedback = recent
@@ -265,7 +273,7 @@ export async function readBetaSignals(): Promise<BetaSignals> {
       configured: true,
       funnel,
       selection: { added, removed },
-      consent: { termsAccepted, personsConfirmed },
+      consent: { termsAccepted },
       unlocks: { small: unlockSmall, medium: unlockMedium, large: unlockLarge },
       feedbackCount: num(fbCount),
       emailCount: num(emCount),

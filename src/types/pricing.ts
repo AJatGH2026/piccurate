@@ -87,6 +87,19 @@ export function getPlan(tier: Tier): PricingPlan {
   return plan;
 }
 
+/**
+ * Whether paid tiers can actually be bought — i.e. any tier above free has a
+ * Stripe price configured. The same signal already gates the pricing page's
+ * "bookable" cards and the landing page's structured-data availability; reused
+ * here to gate the person search (AGB § 5 / docs/legal/personensuche-umsetzungsplan.md
+ * § 7b): free for everyone during the beta, paid-tier-only once sales go live.
+ * That switch must not be a second, easy-to-forget flag — it has to be the same
+ * one that turns on checkout.
+ */
+export function salesAreLive(): boolean {
+  return PRICING_PLANS.some((p) => p.tier !== 'free' && Boolean(p.stripePriceId));
+}
+
 /** Largest photo count any tier covers. Derived, so adding a tier updates it. */
 export const MAX_TIER_PHOTOS = Math.max(...PRICING_PLANS.map((p) => p.photoLimit));
 

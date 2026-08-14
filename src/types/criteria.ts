@@ -30,6 +30,20 @@ export interface Person {
   mode: 'include' | 'exclude';
   thumbnailUrl: string; // blob URL for preview (revoked on removal)
   blob: Blob; // JPEG reference photo sent to the LLM at analysis time
+  /**
+   * Face embedding of this person, computed on the device when the reference
+   * photo was picked (local person search).
+   *
+   * Computed at pick time rather than at match time for two reasons: the crop
+   * comes from the ORIGINAL file rather than the 512 px square preview (§ 9.5 —
+   * the square is centre-cropped and loses resolution the match depends on), and
+   * the user finds out immediately when a reference photo contains no usable
+   * face, instead of silently getting no matches later.
+   *
+   * `null` means no face was found in the reference photo, or the models were
+   * unavailable. Never transmitted; dropped with the session.
+   */
+  embedding: number[] | null;
 }
 
 /** Max reference persons the user may define — enforced by the UI. */

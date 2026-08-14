@@ -7,10 +7,11 @@ import { DropZone } from '@/components/upload/DropZone';
 import { UploadProgress } from '@/components/upload/UploadProgress';
 import { PhotoGrid } from '@/components/upload/PhotoGrid';
 import { DropboxImport } from '@/components/upload/DropboxImport';
+import { PersonSetup } from '@/components/persons/PersonSetup';
 import { dropboxConfigured } from '@/lib/cloud/dropbox';
 import { useEffect, useState } from 'react';
 import type { Tier } from '@/types/job';
-import { PRICING_PLANS } from '@/types/pricing';
+import { PRICING_PLANS, salesAreLive } from '@/types/pricing';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { usePhotoStore } from '@/hooks/usePhotoStore';
@@ -78,6 +79,11 @@ export default function UploadPage() {
 
   const plan = PRICING_PLANS.find((p) => p.tier === currentTier)!;
   const maxPhotos = plan.photoLimit;
+  // Free for everyone during the beta — deliberately, to see how testers use
+  // it. Paid-tier-only once sales start (AGB § 5 / plan § 7b, Auflage 1). The
+  // switch is the same one that turns on checkout, not a second flag someone
+  // has to remember to flip separately.
+  const personSearchAvailable = currentTier !== 'free' || !salesAreLive();
 
   const { photos, isProcessing, processedCount, totalCount, addFiles, removePhoto, retryFailed, failedCount, clearAll, error } =
     useUpload({ maxPhotos });
@@ -171,13 +177,26 @@ export default function UploadPage() {
             </div>
           </div>
         ) : (
-          <div className="mt-6">
-            <DropZone
-              onFiles={addFiles}
-              maxPhotos={maxPhotos}
-              disabled={isProcessing && totalCount >= maxPhotos}
-            />
-          </div>
+          <>
+            {/* Reference persons come BEFORE the drop zone, and that order is
+                the whole point: the upload has to know whether to run the face
+                pass, and the person search may only start after the user asked
+                for it (§ 3 rule 1). Collapsed by default — most runs do not use
+                it, and it must not push the drop zone below the fold.
+                Locked once the first photo is queued, because those photos have
+                already been processed under the old setting. */}
+            <div className="mt-6">
+              <PersonSetup locked={totalCount > 0} available={personSearchAvailable} />
+            </div>
+
+            <div className="mt-4">
+              <DropZone
+                onFiles={addFiles}
+                maxPhotos={maxPhotos}
+                disabled={isProcessing && totalCount >= maxPhotos}
+              />
+            </div>
+          </>
         )}
 
         {/* The browser only holds a reference to each file, so the originals must

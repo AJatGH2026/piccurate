@@ -131,7 +131,6 @@
     "customFilterActive": "Exclusion filter active — photos containing this are always removed, regardless of other criteria.",
     "personsTitle": "Persons",
     "personsDesc": "Upload reference photos and name people — the AI then filters for photos where they are recognised.",
-    "personsConsent": "Note: reference photos are sent to our LLM provider for face matching and held only for this session. They are not stored beyond the session. Please only upload photos of people who have consented.",
     "personsAdd": "Add person",
     "personsProcessing": "Preparing photo…",
     "personsProcessFailed": "Could not process this photo. Please try a different image.",
@@ -140,6 +139,8 @@
     "personsSetupHint": "Up to {max} persons — set before the first “Analyse”.",
     "personsMaxReached": "Maximum of {max} persons reached.",
     "personsLockedNote": "Persons are locked once the analysis has run. Start a new job to change them.",
+    "personsPaidOnly": "The person search is part of the paid plans.",
+    "personsPaidOnlyLink": "View plans",
     "personName": "Name",
     "personModeInclude": "With",
     "personModeExclude": "Without",
@@ -154,9 +155,10 @@
     "ageConfirm18": "I am at least 18 years old.",
     "termsConfirm": "I accept the Terms of Use.",
     "termsShort": "read Terms",
-    "personsConfirm": "I confirm that I use all reference photos solely for private purposes among family or friends and that the required explicit agreement is in place for every person shown for temporary AI-assisted recognition and the transfer of reduced images to Google.",
-    "personsInfoLink": "Information on the Persons feature",
-    "confirmRequired": "Please tick the age confirmation (and the reference-photo confirmation, if applicable) to continue.",
+    "personsConfirm": "I confirm that I am authorised to use every reference photo uploaded here in a private, personal or family context.",
+    "personsConfirmRequired": "Please confirm first.",
+    "personsInfoLink": "Information on the person search",
+    "confirmRequired": "Please tick the age confirmation to continue.",
     "dedup": "Duplicate removal",
     "dedupDesc": "How aggressively to remove similar photos",
     "presets": "Quick presets",
@@ -173,7 +175,17 @@
     "strict": "Strict",
     "analysisFailed": "Analysis failed: {error}",
     "noPhotosConfigure": "No photos in memory. Please upload photos first.",
-    "backToUpload": "Go to upload"
+    "backToUpload": "Go to upload",
+    "personsLocalNote": "Face recognition runs entirely on your device. The reference photo, face data and matches never leave it.",
+    "personsNoFace": "no face detected",
+    "personsNoFaceHint": "No face was found in this photo. You can still use it, but a sharp, front-facing photo of the person works considerably better.",
+    "personsLockedUpload": "Persons are fixed for this run once the first photos have been added. Start a new run to change them.",
+    "personsBeforeUpload": "If you want to search for specific people, set them up here — before adding photos.",
+    "personThresholdTitle": "Match similarity",
+    "personThresholdStrict": "strict",
+    "personThresholdLoose": "generous",
+    "personThresholdHint": "Applies to all your reference persons together — how closely a face must match to count as a hit at all. Strict: fewer photos are found, but the matches are usually right. Generous: more photos are found, but more of them are wrong.",
+    "personWeightHint": "How strongly photos with {name} are favoured in the selection — regardless of whether or how confidently the face was recognised. You set that below, for all persons together."
   },
   "review": {
     "title": "Review your selection",
@@ -195,7 +207,12 @@
     "groupSelected": "{count} selected",
     "withLocation": "{count} with location",
     "noPhotos": "No photos to review. Upload photos first.",
-    "goToUpload": "Go to Upload"
+    "goToUpload": "Go to Upload",
+    "excludeTitle": "{count} photos with {names} would be removed",
+    "excludeBody": "The exclusion does not catch every photo — look at what will be removed before you confirm. Photos of the same person may remain.",
+    "excludeShow": "View {count} photos",
+    "excludeHide": "Hide",
+    "excludeConfirm": "Confirm removal"
   },
   "results": {
     "title": "Your curated photos are ready",
@@ -276,7 +293,8 @@
     "save": "Save",
     "delete": "Delete",
     "close": "Close",
-    "stepOf": "Step {current} of {total}"
+    "stepOf": "Step {current} of {total}",
+    "optional": "optional"
   },
   "feedback": {
     "button": "Feedback",

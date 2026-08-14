@@ -15,6 +15,16 @@ export interface ProcessedPhoto {
   thumbnailBlob: Blob | null;
   phash: string | null; // 16-hex perceptual hash for near-duplicate / series detection
   embedding: number[] | null; // CLIP image embedding for cross-camera near-duplicate detection
+  /**
+   * Locally computed face embeddings, one per detected face. Carried over from
+   * the upload pass; `null` means the person search never ran for this photo,
+   * an empty array means it ran and found no face.
+   *
+   * Kept instead of a match result so the "streng ↔ großzügig" threshold can be
+   * re-applied instantly without re-running the model. Session-only, never
+   * persisted, never transmitted.
+   */
+  faceEmbeddings: number[][] | null;
   dateTaken: string | null;
   latitude: number | null;
   longitude: number | null;
@@ -55,6 +65,25 @@ interface PhotoStore {
   persons: Person[];
   /** Person names present at the last analysis (lowercased, for the diff check). */
   analyzedPersons: string[];
+  /**
+   * Similarity threshold for the local person search ("streng ↔ großzügig").
+   * Deliberately exposed as a plain number here and as an unlabelled slider in
+   * the UI — § 1(5) of the plan forbids showing a cosine value to the user.
+   */
+  personThreshold: number;
+  /** Set the threshold and re-derive every photo's person matches from it. */
+  setPersonThreshold: (threshold: number) => void;
+  /**
+   * Has the user seen and confirmed which photos the exclude mode removes?
+   *
+   * GATE 1, Entscheidung 6: exclude never removes silently. Until this is true,
+   * exclude-mode persons are ignored by the selection, so no photo disappears
+   * without the user having looked at it.
+   */
+  excludeConfirmed: boolean;
+  setExcludeConfirmed: (confirmed: boolean, criteria: CriteriaConfig) => void;
+  /** Photos that exclude-mode persons WOULD remove — the confirmation list. */
+  photosPendingExclusion: () => ProcessedPhoto[];
   setPhotosFromUpload: (clientPhotos: ClientPhoto[]) => void;
   /** Apply AI results. If analyzedIds is given, results map to those photos (by id, in order); otherwise to all photos by index. */
   applyAnalysisResults: (results: AIAnalysis[], criteria: CriteriaConfig, analyzedIds?: string[]) => void;
@@ -65,7 +94,12 @@ interface PhotoStore {
   /** Unlock a saved photo (and deselect it). */
   unlock: (id: string) => void;
   /** Add a reference person. Returns false when the max (4) is reached or the name is a duplicate. */
-  addPerson: (name: string, blob: Blob) => boolean;
+  /**
+   * Add a reference person. `embedding` is the locally computed face vector; it
+   * is optional so the cloud path keeps working until the cutover release.
+   * Returns false when the max (4) is reached or the name is a duplicate.
+   */
+  addPerson: (name: string, blob: Blob, embedding?: number[] | null) => boolean;
   removePerson: (id: string) => void;
   renamePerson: (id: string, name: string) => void;
   setPersonWeight: (id: string, weight: number) => void;
@@ -168,6 +202,86 @@ export function isNegativeCustom(term: string): boolean {
 function matchesPerson(p: ProcessedPhoto, name: string): boolean {
   const n = name.toLowerCase().trim();
   return !!n && (p.persons || []).includes(n);
+}
+
+// ---------------------------------------------------------------------------
+// Local person matching
+// ---------------------------------------------------------------------------
+
+/**
+ * Default similarity threshold for include mode.
+ *
+ * 0.48 is the operating point measured on the 309-photo test set for the
+ * shipped configuration (one reference photo per person): it is the loosest
+ * threshold that still holds precision ≥ 0.95, the § 5.2 gate. Recall there is
+ * 0.611 — knowingly below the 0.80 target, see GATE 1 Entscheidung 5.
+ */
+export const DEFAULT_PERSON_THRESHOLD = 0.48;
+
+/**
+ * Exclude mode never matches looser than this, whatever the slider says.
+ *
+ * Exclude REMOVES photos, so its failure mode is destructive in a way include's
+ * is not. § 5.2 demands precision ≥ 0.98 for it; 0.58 is the measured point
+ * where that holds. Letting the "großzügig" end of the slider drag exclude below
+ * it would quietly start deleting other people's photos.
+ */
+export const EXCLUDE_MIN_THRESHOLD = 0.58;
+
+/** Cosine similarity of two unit-normalised face embeddings. */
+function faceSim(a: number[], b: number[]): number {
+  if (a.length !== b.length) return -1;
+  let dot = 0;
+  for (let i = 0; i < a.length; i++) dot += a[i] * b[i];
+  return dot;
+}
+
+/**
+ * Recompute `photo.persons` from locally computed face embeddings.
+ *
+ * Runs entirely on the device: it compares the stored per-face vectors against
+ * each reference person's vector. Nothing here talks to a server — that is the
+ * whole point of the feature (§ 3 rules 3 and 10).
+ *
+ * Photos whose `faceEmbeddings` is null never had a face pass (the person search
+ * was not active when they were uploaded); they are left with no matches rather
+ * than guessed at.
+ */
+function applyLocalPersonMatches(
+  photos: ProcessedPhoto[],
+  persons: Person[],
+  threshold: number
+): ProcessedPhoto[] {
+  const refs = persons
+    .filter((p) => p.embedding && p.name.trim())
+    .map((p) => ({
+      name: p.name.toLowerCase().trim(),
+      embedding: p.embedding as number[],
+      // Exclude gets the stricter of the two thresholds — see EXCLUDE_MIN_THRESHOLD.
+      threshold: p.mode === 'exclude' ? Math.max(threshold, EXCLUDE_MIN_THRESHOLD) : threshold,
+    }));
+
+  if (refs.length === 0) return photos.map((p) => (p.persons.length ? { ...p, persons: [] } : p));
+
+  return photos.map((photo) => {
+    if (!photo.faceEmbeddings || photo.faceEmbeddings.length === 0) {
+      return photo.persons.length ? { ...photo, persons: [] } : photo;
+    }
+    const hits: string[] = [];
+    for (const ref of refs) {
+      // A photo matches a person if ANY face in it is similar enough — group
+      // photos are the normal case, not the exception.
+      let best = -1;
+      for (const face of photo.faceEmbeddings) {
+        const s = faceSim(ref.embedding, face);
+        if (s > best) best = s;
+      }
+      if (best >= ref.threshold) hits.push(ref.name);
+    }
+    const same =
+      hits.length === photo.persons.length && hits.every((h) => photo.persons.includes(h));
+    return same ? photo : { ...photo, persons: hits };
+  });
 }
 
 /** Hamming distance between two 16-hex (64-bit) perceptual hashes. */
@@ -364,7 +478,12 @@ function detectSeries(photos: ProcessedPhoto[], criteria: CriteriaConfig): Proce
  *  - Otherwise → balanced/biased: rank reps by score and take the top N% as a
  *    MAXIMUM (selectionPercentage). Sliders 1–9 bias the ranking toward a motif.
  */
-function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig, persons: Person[]): ProcessedPhoto[] {
+function runSelection(
+  photos: ProcessedPhoto[],
+  criteria: CriteriaConfig,
+  persons: Person[],
+  excludeConfirmed: boolean
+): ProcessedPhoto[] {
   // Split custom criteria into positive (bias/filter) and negative (hard
   // exclusion). Negatives are applied to the pool FIRST — they always win
   // over any positive slider, regardless of its value.
@@ -373,6 +492,22 @@ function runSelection(photos: ProcessedPhoto[], criteria: CriteriaConfig, person
   const positiveCustoms = customs.filter((c) => !isNegativeCustom(c.term));
   // Persons split identically: exclude-mode acts as hard filter, include-mode
   // drives bias/exclusive selection downstream.
+  //
+  // TEMPORARILY disabled 2026-08-14 at the product owner's request: the
+  // mandatory preview+confirm step (components/persons/ExcludeConfirm.tsx,
+  // no longer rendered on the review page) duplicated the review page's own
+  // "show rejected" toggle, which already lets any photo — excluded or not —
+  // be viewed and reselected at any time. Re-enable by restoring the
+  // `excludeConfirmed ?` check below and re-rendering <ExcludeConfirm> in
+  // review/page.tsx. A permanent keep-or-delete decision is owed before
+  // commercial launch — see docs/legal/personensuche-umsetzungsplan.md § 7d.
+  //
+  // ⚠️ The gate existed for a real reason, not just ceremony (GATE 1,
+  // Entscheidung 6, 13.08.2026): exclude-mode recall measures 0.49
+  // (personensuche-spike-messbericht.md), so roughly HALF of an excluded
+  // person's photos can silently remain selected. The reject-toggle only
+  // protects a user who thinks to go looking for them — the permanent
+  // decision should be made with that number in view, not without it.
   const excludePersons = persons.filter((p) => p.mode === 'exclude');
   const includePersons = persons.filter((p) => p.mode !== 'exclude');
 
@@ -458,6 +593,33 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
   analyzedCustomTerms: [],
   persons: [],
   analyzedPersons: [],
+  personThreshold: DEFAULT_PERSON_THRESHOLD,
+
+  setPersonThreshold: (threshold) => {
+    set((state) => ({
+      personThreshold: threshold,
+      photos: applyLocalPersonMatches(state.photos, state.persons, threshold),
+      // Moving the threshold changes WHICH photos exclude would remove, so an
+      // earlier confirmation no longer covers the new set. Ask again.
+      excludeConfirmed: false,
+    }));
+  },
+
+  excludeConfirmed: false,
+
+  setExcludeConfirmed: (confirmed, criteria) => {
+    set((state) => ({
+      excludeConfirmed: confirmed,
+      photos: runSelection(state.photos, criteria, state.persons, confirmed),
+    }));
+  },
+
+  photosPendingExclusion: () => {
+    const { photos, persons } = get();
+    const excludeNames = persons.filter((p) => p.mode === 'exclude').map((p) => p.name);
+    if (excludeNames.length === 0) return [];
+    return photos.filter((p) => !p.saved && excludeNames.some((n) => matchesPerson(p, n)));
+  },
 
   setPhotosFromUpload: (clientPhotos: ClientPhoto[]) => {
     const readyPhotos = clientPhotos.filter((p) => p.status === 'ready' && p.thumbnailUrl);
@@ -476,6 +638,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       thumbnailBlob: p.thumbnailBlob,
       phash: p.phash || null,
       embedding: p.embedding || null,
+      faceEmbeddings: p.faceEmbeddings ?? null,
       dateTaken: p.exif?.dateTaken || null,
       latitude: p.exif?.latitude || null,
       longitude: p.exif?.longitude || null,
@@ -505,7 +668,12 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       analyzed: false,
     }));
 
-    set({ photos: processed });
+    // Derive person matches immediately: the face embeddings arrived with the
+    // upload, so the answer is already computable — no need to wait for the
+    // (network-bound) AI analysis. That independence is the point of § 2.3.
+    set((state) => ({
+      photos: applyLocalPersonMatches(processed, state.persons, state.personThreshold),
+    }));
   },
 
   applyAnalysisResults: (results: AIAnalysis[], criteria: CriteriaConfig, analyzedIds?: string[]) => {
@@ -528,7 +696,11 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
           animalProximity: r.animalAnalysis.proximityScore,
           contentTags: r.contentTags,
           customMatches: r.customMatches || [],
-          persons: r.persons || [],
+          // `persons` is NOT taken from the AI response any more — it is derived
+          // locally from face embeddings (applyLocalPersonMatches). Keeping the
+          // existing value means an analysis run cannot overwrite the local
+          // match with a cloud one.
+          persons: photos[idx].persons,
           // Keep a place already resolved for this photo if a later batch
           // comes back empty — re-analysis must not blank the overview.
           place: r.place || photos[idx].place || '',
@@ -556,7 +728,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       // the model so a later add/remove/rename triggers a re-analysis.
       const analyzedPersons = state.persons.map((p) => p.name.toLowerCase().trim()).filter(Boolean);
       return {
-        photos: runSelection(photos, criteria, state.persons),
+        photos: runSelection(photos, criteria, state.persons, state.excludeConfirmed),
         analyzedCustomTerms,
         analyzedPersons,
       };
@@ -565,7 +737,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
 
   rerunSelection: (criteria: CriteriaConfig) => {
     set((state) => ({
-      photos: runSelection(state.photos, criteria, state.persons),
+      photos: runSelection(state.photos, criteria, state.persons, state.excludeConfirmed),
     }));
   },
 
@@ -597,7 +769,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
     }));
   },
 
-  addPerson: (name, blob) => {
+  addPerson: (name, blob, embedding = null) => {
     const trimmed = name.trim();
     if (!trimmed) return false;
     const state = get();
@@ -611,8 +783,10 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       mode: 'include',
       thumbnailUrl,
       blob,
+      embedding,
     };
-    set({ persons: [...state.persons, person] });
+    const persons = [...state.persons, person];
+    set({ persons, photos: applyLocalPersonMatches(state.photos, persons, state.personThreshold) });
     return true;
   },
 
@@ -620,7 +794,11 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
     set((state) => {
       const target = state.persons.find((p) => p.id === id);
       if (target) URL.revokeObjectURL(target.thumbnailUrl);
-      return { persons: state.persons.filter((p) => p.id !== id) };
+      const persons = state.persons.filter((p) => p.id !== id);
+      return {
+        persons,
+        photos: applyLocalPersonMatches(state.photos, persons, state.personThreshold),
+      };
     });
   },
 
@@ -644,15 +822,28 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
   },
 
   setPersonMode: (id, mode) => {
-    set((state) => ({
-      persons: state.persons.map((p) => (p.id === id ? { ...p, mode } : p)),
-    }));
+    set((state) => {
+      // Recompute matches: exclude mode uses a stricter threshold than include
+      // (EXCLUDE_MIN_THRESHOLD), so flipping the mode genuinely changes which
+      // photos match — it is not just a downstream filter switch.
+      const persons = state.persons.map((p) => (p.id === id ? { ...p, mode } : p));
+      return {
+        persons,
+        photos: applyLocalPersonMatches(state.photos, persons, state.personThreshold),
+      };
+    });
   },
 
   clear: () => {
     // Revoke any outstanding blob URLs for reference photos to release memory.
     const { persons } = get();
     for (const p of persons) URL.revokeObjectURL(p.thumbnailUrl);
-    set({ photos: [], persons: [], analyzedCustomTerms: [], analyzedPersons: [] });
+    set({
+      photos: [],
+      persons: [],
+      analyzedCustomTerms: [],
+      analyzedPersons: [],
+      personThreshold: DEFAULT_PERSON_THRESHOLD,
+    });
   },
 }));

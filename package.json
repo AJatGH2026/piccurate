@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node scripts/fetch-models.mjs && node scripts/copy-ort-assets.mjs && next dev",
+    "build": "node scripts/fetch-models.mjs && node scripts/copy-ort-assets.mjs && next build",
     "start": "next start",
     "lint": "eslint"
   },
@@ -26,6 +26,7 @@
     "jszip": "^3.10.1",
     "next": "16.2.12",
     "next-intl": "^4.13.4",
+    "onnxruntime-web": "^1.27.0",
     "openai": "^7.1.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -37,13 +38,17 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-backend-wasm": "^4.22.0",
     "@types/archiver": "^8.0.0",
     "@types/node": "^26",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",
+    "@vladmandic/face-api": "^1.7.15",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
+    "onnxruntime-node": "^1.27.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

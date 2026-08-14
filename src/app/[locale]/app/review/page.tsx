@@ -8,6 +8,7 @@ import { ReviewPhotoCard } from '@/components/review/ReviewPhotoCard';
 import { Lightbox } from '@/components/review/Lightbox';
 import { SelectionStats } from '@/components/review/SelectionStats';
 import { usePhotoStore } from '@/hooks/usePhotoStore';
+import { useCriteria } from '@/hooks/useCriteria';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 
@@ -21,6 +22,7 @@ export default function ReviewPage() {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const photos = usePhotoStore((s) => s.photos);
+  const { criteria } = useCriteria();
   const persons = usePhotoStore((s) => s.persons);
   const toggleSelection = usePhotoStore((s) => s.toggleSelection);
 
@@ -100,6 +102,12 @@ export default function ReviewPage() {
             <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
               {t('title')}
             </h1>
+
+            {/* <ExcludeConfirm criteria={criteria} /> — TEMPORARILY disabled
+                2026-08-14 at the product owner's request; see the matching
+                comment in hooks/usePhotoStore.ts (runSelection) for why and
+                what's owed before commercial launch. Component file is
+                untouched — re-add the import and this line to restore it. */}
 
             {/* Photos by date group */}
             {Array.from(dateGroups.entries()).map(([date, groupPhotos], groupIdx) => {

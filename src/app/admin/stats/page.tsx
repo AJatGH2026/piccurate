@@ -196,14 +196,16 @@ export default async function AdminStatsPage({
 
               <div className="mt-4">
                 <p className="text-sm">
-                  Pflicht-Bestätigungen vor der Analyse: <span className="font-medium text-zinc-700 dark:text-zinc-300">{fmt(beta.consent.termsAccepted)}</span> AGB/18+,{' '}
-                  <span className="font-medium text-zinc-700 dark:text-zinc-300">{fmt(beta.consent.personsConfirmed)}</span> Personen-Bestätigung
+                  Pflicht-Bestätigungen vor der Analyse: <span className="font-medium text-zinc-700 dark:text-zinc-300">{fmt(beta.consent.termsAccepted)}</span> AGB/18+
                 </p>
                 <Hint>
                   Zählt die Checkbox-Bestätigungen unmittelbar vor dem Analyse-Start. Idealwert: nah bei 100 % des
-                  „analysis“-Zählers oben — jede gestartete Analyse sollte genau eine AGB-Bestätigung erzeugen
-                  (Personen-Bestätigung nur, wenn Referenzfotos hinterlegt sind). Eine Lücke deutet auf einen UI- oder
-                  Tracking-Fehler hin, nicht auf ein Nutzungsziel.
+                  „analysis“-Zählers oben — jede gestartete Analyse sollte genau eine AGB-Bestätigung erzeugen. Eine
+                  Lücke deutet auf einen UI- oder Tracking-Fehler hin, nicht auf ein Nutzungsziel.
+                  <br />
+                  Die frühere Personen-Bestätigung wird bewusst nicht mehr gezählt: Seit die Personensuche lokal im
+                  Browser läuft, würde dieser Zähler dem Server verraten, dass in einer Sitzung eine Gesichtssuche
+                  stattfindet — genau das schließt § 5.4 des Umsetzungsplans als NO-GO aus.
                 </Hint>
               </div>
 

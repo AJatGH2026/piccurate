@@ -82,6 +82,23 @@ export interface ClientPhoto {
   thumbnailUrl: string | null; // Object URL for preview
   phash: string | null; // 16-hex perceptual hash for near-duplicate / series detection
   embedding: number[] | null; // CLIP image embedding (computed in background) for cross-camera dedup
+  /**
+   * One unit-normalised face embedding per face detected in this photo, computed
+   * entirely on the device (local person search).
+   *
+   * `null` means the face pass did not run — either the user never activated the
+   * person search, or the models failed to load. It does NOT mean "no faces";
+   * that is an empty array.
+   *
+   * Deliberately the embeddings and not a match result: the "streng ↔ großzügig"
+   * threshold is a slider the user moves after the fact, and re-matching from
+   * stored vectors is instant, whereas re-running the model over 1 500 photos is
+   * not. Cost is ~2 KB per face.
+   *
+   * Session-only, never persisted, never transmitted (§ 3 rules 3 and 8 of
+   * docs/legal/personensuche-umsetzungsplan.md).
+   */
+  faceEmbeddings: number[][] | null;
   status: 'pending' | 'extracting' | 'generating' | 'ready' | 'uploading' | 'uploaded' | 'error';
   error: string | null;
 }
