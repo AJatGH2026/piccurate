@@ -26,6 +26,23 @@ function sanitizePromptField(s: unknown, max = 80): string {
   return out.replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
+// Gemini's own "please retry" signal — a transient overload on Google's side,
+// not a problem with the request. Reported 2026-08-15: a batch failed outright
+// on `{"error":{"code":503,"message":"The request timed out. Please try
+// again.","status":"UNAVAILABLE"}}`, and neither this route nor the client
+// retried anything — one blip cost the rest of the run. Narrow on purpose:
+// only the exact signal Google uses for "retry me", not a general catch-all —
+// a hard quota/cap error (429/RESOURCE_EXHAUSTED) should still fail immediately
+// rather than retry into the same exhausted budget.
+function isRetryableGeminiError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.includes('"status":"UNAVAILABLE"') || msg.includes('"code":503');
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // A GPS value we are willing to forward to the model: finite, in range, and
 // rounded to place-level precision. Mirrors GEO_SEND_PRECISION in utils/geo.ts
 // — kept as a literal so this server guard does not depend on a client module.
@@ -301,22 +318,36 @@ export async function POST(request: NextRequest) {
       `[Demo Analyze] Sending ${files.length} photos to ${model}...`
     );
 
-    const response = await client.models.generateContent({
-      model,
-      contents: [{ role: 'user', parts }],
-      config: {
-        systemInstruction: ANALYSIS_SYSTEM_PROMPT,
-        // Gemini 2.5 Flash has "thinking" enabled by default — thinking tokens
-        // count against maxOutputTokens and can starve the actual JSON output,
-        // causing "Unterminated string in JSON …" errors. We want plain
-        // structured output, no chain-of-thought needed → disable thinking.
-        thinkingConfig: { thinkingBudget: 0 },
-        // Comfortable ceiling for a 20-photo batch: ~150-200 tokens per photo
-        // × 20 ≈ 4k, plus headroom for edge cases.
-        maxOutputTokens: 16384,
-        responseMimeType: 'application/json',
-      },
-    });
+    // Up to 2 retries (3 attempts total) on Gemini's own transient-overload
+    // signal, short backoff between them. Keeps the added latency bounded
+    // (≤ ~4.5 s) well inside the function timeout even on a batch that ends up
+    // failing anyway.
+    let response;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        response = await client.models.generateContent({
+          model,
+          contents: [{ role: 'user', parts }],
+          config: {
+            systemInstruction: ANALYSIS_SYSTEM_PROMPT,
+            // Gemini 2.5 Flash has "thinking" enabled by default — thinking tokens
+            // count against maxOutputTokens and can starve the actual JSON output,
+            // causing "Unterminated string in JSON …" errors. We want plain
+            // structured output, no chain-of-thought needed → disable thinking.
+            thinkingConfig: { thinkingBudget: 0 },
+            // Comfortable ceiling for a 20-photo batch: ~150-200 tokens per photo
+            // × 20 ≈ 4k, plus headroom for edge cases.
+            maxOutputTokens: 16384,
+            responseMimeType: 'application/json',
+          },
+        });
+        break;
+      } catch (err) {
+        if (attempt >= 2 || !isRetryableGeminiError(err)) throw err;
+        console.warn(`[Demo Analyze] transient Gemini error, retrying (attempt ${attempt + 1}/3)…`);
+        await sleep(1500 * (attempt + 1));
+      }
+    }
 
     const text = response.text;
     if (!text) {

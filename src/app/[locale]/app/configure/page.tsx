@@ -448,7 +448,12 @@ export default function ConfigurePage() {
         {persons.length > 0 && (
         <div className="mt-4 p-4 rounded-xl border-2 border-purple-300 bg-purple-50/70 dark:border-purple-700/60 dark:bg-purple-950/20">
           <h3 className="font-medium text-zinc-900 dark:text-zinc-100">{t('personsTitle')}</h3>
-          <p className="text-sm text-zinc-500 mt-0.5">{t('personsDesc')}</p>
+          {/* personsDesc ("Lade Referenzfotos hoch…") is accurate on the upload
+              step, where you still can — not here, where adding a new person is
+              impossible (see the comment above). A different string for the
+              same box in a different place, not a bug in personsDesc itself.
+              Reported 2026-08-15. */}
+          <p className="text-sm text-zinc-500 mt-0.5">{t('personsConfigureDesc')}</p>
           {/* Local notice, not the old transmission consent — since the cutover
               nothing about a person leaves the device. */}
           <p className="mt-2 text-xs text-purple-700 dark:text-purple-300">

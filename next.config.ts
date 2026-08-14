@@ -36,6 +36,24 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // Face-detection/embedding models and the ONNX Runtime WASM assets they
+      // need (public/models/, public/ort/) — self-hosted so § 5.4's offline
+      // proof holds, but that means every first-time person-search use pulls
+      // ~45–70 MB from our own origin. The default Next.js Cache-Control for
+      // public/ files is "max-age=0, must-revalidate": a live conditional-GET
+      // round trip on every single load, even when nothing changed (observed
+      // 2026-08-15 as a real-world slow first load — not a hang, just no
+      // caching). These files are updated deliberately (fetch-models.mjs pins
+      // them by SHA-256, PROVENANCE.md tracks changes) rather than silently, so
+      // a day of caching before revalidating is safe.
+      {
+        source: "/models/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=86400, must-revalidate" }],
+      },
+      {
+        source: "/ort/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=86400, must-revalidate" }],
+      },
     ];
   },
 };
