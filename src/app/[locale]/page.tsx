@@ -13,23 +13,30 @@ type Props = {
   params: Promise<{ locale: string }>;
 };
 
-// Curated travel stock photos (Unsplash CDN, Unsplash License — free to use).
-// Verified-live photo IDs; sized/cropped via Unsplash URL params.
-const PHOTO_IDS = [
-  '1507525428034-b723cf961d3e', // beach
-  '1469474968028-56623f02e42e', // mountain lake
-  '1502602898657-3e91760cbb34', // Paris street
-  '1501785888041-af3ef285b470', // alpine lake
-  '1488646953014-85cb44e25828', // travel flatlay
-  '1530789253388-582c481c54b0', // tropical aerial
-  '1476514525535-07fb3b4ae5f1', // forest lake
-  '1539635278303-d4002c07eae3', // mountains
-  '1516483638261-f4dbaf036963', // coastal village
-  '1533105079780-92b9be482077', // canyon road
+// Curated travel stock photos, originally Unsplash CDN (Unsplash License —
+// free to use, no attribution required, self-hosting explicitly permitted).
+// Self-hosted since 2026-08-15: both call sites below request the same 400px
+// width, so a live third-party fetch bought nothing — it only meant every
+// landing-page visitor's browser silently contacted images.unsplash.com,
+// undisclosed in the privacy policy's recipient list (flagged in the second
+// Abmahnprüfung, § 2). Downloaded once at that exact size/crop
+// (public/landing/, gitignored source: fetched via the same URLs, same
+// photo IDs kept here for provenance) — no code change needed if a photo
+// ever needs to be swapped, no external call either way now.
+const PHOTO_FILES = [
+  'beach', // 1507525428034-b723cf961d3e
+  'mountain-lake', // 1469474968028-56623f02e42e
+  'paris-street', // 1502602898657-3e91760cbb34
+  'alpine-lake', // 1501785888041-af3ef285b470
+  'travel-flatlay', // 1488646953014-85cb44e25828
+  'tropical-aerial', // 1530789253388-582c481c54b0
+  'forest-lake', // 1476514525535-07fb3b4ae5f1
+  'mountains', // 1539635278303-d4002c07eae3
+  'coastal-village', // 1516483638261-f4dbaf036963
+  'canyon-road', // 1533105079780-92b9be482077
 ];
 
-const img = (id: string, w = 600) =>
-  `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=70`;
+const img = (file: string) => `/landing/${file}.jpg`;
 
 // Homepage hreflang + canonical. Title/description are inherited from the
 // locale layout's generateMetadata; here we add the per-page alternates.
@@ -192,15 +199,15 @@ function HeroSection({ locale }: { locale: string }) {
 
       {/* Photo "filmstrip" */}
       <div className="relative mt-16 flex justify-center items-end gap-3 sm:gap-5 px-4">
-        {PHOTO_IDS.slice(0, 5).map((id, i) => (
+        {PHOTO_FILES.slice(0, 5).map((file, i) => (
           <div
-            key={id}
+            key={file}
             className={`relative aspect-[3/4] w-28 sm:w-44 flex-none overflow-hidden rounded-2xl shadow-xl ring-1 ring-black/5 transition-transform ${
               i === 2 ? 'sm:scale-110 z-10' : i % 2 ? 'rotate-2' : '-rotate-2'
             } ${i > 2 ? 'hidden sm:block' : ''}`}
           >
             <img
-              src={img(id, 400)}
+              src={img(file)}
               alt=""
               aria-hidden="true"
               loading="lazy"
@@ -270,18 +277,18 @@ function ShowcaseSection() {
           </p>
         </div>
         <div className="mt-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-          {PHOTO_IDS.map((id, i) => {
+          {PHOTO_FILES.map((file, i) => {
             const sel = selected.has(i);
             return (
               <div
-                key={id}
+                key={file}
                 className={`group relative aspect-square overflow-hidden rounded-xl transition-all ${
                   sel
                     ? 'ring-4 ring-indigo-500 shadow-lg'
                     : 'opacity-50 saturate-50 hover:opacity-80'
                 }`}
               >
-                <img src={img(id, 400)} alt="" aria-hidden="true" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                <img src={img(file)} alt="" aria-hidden="true" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                 {sel && (
                   <span className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-white text-xs shadow">
                     ✓
