@@ -104,6 +104,20 @@ export default function ResultsPage() {
       : `${names.slice(0, 5).join(', ')} ${t('moreFiles', { count: names.length - 5 })}`;
 
   const handleDownload = async () => {
+    // Open the download's destination tab SYNCHRONOUSLY, in the same tick as
+    // the click — before any `await` below. Reported 2026-08-15: on iPhone
+    // Safari the download silently did nothing (no sound, no error) once the
+    // selection was small enough that it usually worked, but not always.
+    // That matches a known WebKit behaviour: the "user activation" a tap
+    // grants is short-lived and can expire during async work (reading files,
+    // building the ZIP), after which a.click() on a download link is simply
+    // ignored — no exception, nothing to catch. A window opened in direct,
+    // synchronous response to the click keeps its gesture authority even
+    // after the async work that follows; the ZIP only needs to be navigated
+    // to once it exists. Kept 100% client-side on purpose (§ architecture
+    // rule: originals never touch the server) — this only changes *how* the
+    // already-built blob reaches the user, not what gets built.
+    const downloadWindow = window.open('', '_blank');
     setDownloading(true);
     setSourceIssues(null);
     setDownloadError(null);
@@ -226,6 +240,7 @@ export default function ResultsPage() {
       // Nothing readable at all — an empty archive would only confuse. Say what
       // happened instead of handing the user a ZIP with just an index file.
       if (missing.length === sorted.length && sorted.length > 0) {
+        downloadWindow?.close(); // don't leave the reserved tab sitting blank
         setDownloadError(t('sourceAllGone'));
         return;
       }
@@ -245,13 +260,26 @@ export default function ResultsPage() {
 
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${brandName(locale).toLowerCase()}-selection-${selectedCount}-photos.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const filename = `${brandName(locale).toLowerCase()}-selection-${selectedCount}-photos.zip`;
+      if (downloadWindow && !downloadWindow.closed) {
+        // Still holds the gesture authority from the click — navigating it to
+        // the blob now triggers the browser's normal download handling there.
+        downloadWindow.location.href = url;
+      } else {
+        // No popup (blocked, or window.open unsupported) — the synchronous
+        // click still works on browsers that don't drop gesture authority
+        // across the async gap, which is most of them.
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+      // The new tab needs a moment to actually start reading the blob before
+      // its URL is safe to revoke — revoking immediately risks a race on a
+      // slow connection, so this waits rather than freeing it right away.
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
       if (degraded.length > 0 || missing.length > 0) setSourceIssues({ degraded, missing });
       // Primary conversion: a completed download = the user got value.
       trackEvent('download', {
@@ -264,6 +292,7 @@ export default function ResultsPage() {
       logBeta('download');
     } catch (err) {
       console.error('ZIP creation failed:', err);
+      downloadWindow?.close(); // don't leave the reserved tab sitting blank
       setDownloadError(t('zipFailed'));
     } finally {
       setDownloading(false);
@@ -463,6 +492,12 @@ export default function ResultsPage() {
           >
             {downloading ? t('downloading') : t('downloadAction', { count: selectedCount })}
           </button>
+          {/* Reported 2026-08-15: on mobile, a download completes (a sound
+              plays) but nothing on screen says WHERE it went — the browser's
+              own download UI is easy to miss on a phone. We can't point to an
+              exact folder (that's the browser's call, not this page's), but
+              naming the usual place beats saying nothing. */}
+          <p className="mt-2 text-center text-xs text-zinc-400">{t('downloadLocationHint')}</p>
 
           {downloadError && (
             <p className="mt-3 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">

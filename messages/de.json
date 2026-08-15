@@ -228,6 +228,7 @@
     "undatedLabel": "Ohne Datum",
     "fullResNote": "{count} Fotos in voller Auflösung als ZIP-Archiv",
     "downloadAction": "ZIP herunterladen ({count} Fotos)",
+    "downloadLocationHint": "Je nach Gerät landet die Datei im Download-Ordner deines Browsers oder in der Dateien-App (iPhone: Downloads).",
     "zipFlat": "Ein Ordner",
     "zipFlatDesc": "Ganzer Zeitraum — ideal fürs Fotobuch",
     "zipByDay": "Pro Tag",

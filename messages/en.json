@@ -228,6 +228,7 @@
     "undatedLabel": "Undated",
     "fullResNote": "{count} full-resolution photos as a ZIP archive",
     "downloadAction": "Download ZIP ({count} photos)",
+    "downloadLocationHint": "Depending on your device, the file lands in your browser's downloads folder or the Files app (iPhone: Downloads).",
     "zipFlat": "One folder",
     "zipFlatDesc": "Whole trip — ideal for photobooks",
     "zipByDay": "Per day",
