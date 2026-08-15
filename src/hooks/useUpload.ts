@@ -13,6 +13,18 @@ import { usePhotoStore } from '@/hooks/usePhotoStore';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'image/webp'];
 const MAX_CONCURRENT = 4;
+// Face search holds a full-resolution ImageBitmap per in-flight photo on top
+// of the normal decode (§ 5.3: "a handful of 12-MP bitmaps is a few hundred
+// MB"), and for HEIC specifically that sits on top of a second decode (heic-to
+// produces a JPEG blob, which then gets decoded again for the bitmap — see the
+// comment in processNext). Reported 2026-08-15: hangs on iPhone Safari with
+// face search active, HEIC photos, past ~60-100 in one session — iOS Safari's
+// per-tab memory ceiling is much tighter than desktop's, and WASM linear
+// memory (both the face models and heic-to's libheif) only grows across a
+// session, never shrinks. Halving concurrency halves peak simultaneous
+// bitmap + WASM pressure; only kicks in when face search is actually running,
+// so the common case (no reference persons) is untouched.
+const MAX_CONCURRENT_FACE_SEARCH = 2;
 
 /**
  * Whether the local person search should run for this upload.
@@ -71,7 +83,8 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
   }, []);
 
   const processNext = useCallback(async () => {
-    if (activeCount.current >= MAX_CONCURRENT || processingQueue.current.length === 0) return;
+    const concurrencyLimit = wantFaceSearch() ? MAX_CONCURRENT_FACE_SEARCH : MAX_CONCURRENT;
+    if (activeCount.current >= concurrencyLimit || processingQueue.current.length === 0) return;
 
     activeCount.current++;
     const photo = processingQueue.current.shift()!;
