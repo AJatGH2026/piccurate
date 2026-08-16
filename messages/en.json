@@ -22,21 +22,21 @@
   "hero": {
     "title": "1,000 travel photos.",
     "titleHighlight": "50 perfect memories.",
-    "subtitle": "AI analyses your vacation photos and picks the best ones. You review, adjust, and download — and can then use your selection for a photo book.",
+    "subtitle": "Your memories aren't just beautiful — they're private too. That's why your data protection matters to us.\nAI analyses your vacation photos and picks the best ones. You review, adjust, and download — and can then use your selection, e.g. for a photo book.",
     "cta": "Try free with 250 photos",
     "ctaSecondary": "See pricing",
-    "demoNote": "Try it free — your photos are prepared on your own device"
+    "demoNote": "Beta test phase — try it free"
   },
   "howItWorks": {
     "title": "How it works",
     "step1Title": "Upload",
     "step1Desc": "Drop your photos here or connect your Dropbox (more cloud providers are planned). We only read reduced previews — your high-resolution originals are not sent to our AI.",
     "step2Title": "AI Analyses",
-    "step2Desc": "Our AI rates composition, faces, landscapes, animals, duplicates and more, and proposes a selection. How long that takes depends on how many photos there are. Add your own criteria (e.g. “dog”) once, before the analysis; afterwards just move the sliders to rebalance.",
+    "step2Desc": "Our AI rates composition, faces, landscapes, animals, duplicates and more, and proposes a selection. How long that takes depends on how many photos there are. Add your own criteria (e.g. “dog”) once, before the analysis; afterwards just move the sliders to rebalance. You can also find people you know by uploading reference photos. This person-matching runs on your own device — not on our servers, and not with our LLM providers.",
     "step3Title": "Review & Adjust",
     "step3Desc": "Based on your criteria and target count, the AI proposes a selection. Confirm the photos, re-select with different criteria, or add/remove individual shots — as long and as often as you like, until your preferred set is ready. The chosen photos are sorted by date and location.",
     "step4Title": "Download and use",
-    "step4Desc": "Download your selection as a ZIP to keep it locally or in the cloud. You can also use that set directly to create a photo book."
+    "step4Desc": "Download your selection as a ZIP to keep it locally or in the cloud. You can also use that set directly to create a photo book. We don't store your photos permanently — once your session ends, they're no longer available on our side."
   },
   "showcase": {
     "title": "From a thousand shots to your best few",
