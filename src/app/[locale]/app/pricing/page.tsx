@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CheckoutConfirm } from '@/components/checkout/CheckoutConfirm';
+import { trackEv } from '@/lib/events-client';
 
 export default function PricingPage() {
   const t = useTranslations('pricing');
@@ -31,6 +32,13 @@ export default function PricingPage() {
   // makes the tier click readable — the allowance follows the tier, so the
   // click alone always points at "large".
   const photoCount = usePhotoStore((s) => s.photos.length);
+
+  // Event-Spezifikation §7: `pricing_tier_click`. "§7's own words: this
+  // structural question is worth more than any question about price level."
+  const trackTierClick = (tier: Tier) => {
+    const afterSuccessfulRun = usePhotoStore.getState().photos.some((p) => p.analyzed);
+    trackEv('pricing_tier_click', locale, { tier, after_successful_run: afterSuccessfulRun });
+  };
 
   /**
    * Turn a chosen tier into a Stripe Checkout session.
@@ -164,6 +172,7 @@ export default function PricingPage() {
               {plan.tier === 'free' ? (
                 <Link
                   href={`/${locale}/app/upload`}
+                  onClick={() => trackTierClick(plan.tier)}
                   className={`mt-6 w-full text-center rounded-full py-2.5 text-sm font-semibold transition-colors ${
                     plan.highlight
                       ? 'bg-white text-indigo-600 hover:bg-indigo-50'
@@ -174,7 +183,10 @@ export default function PricingPage() {
                 </Link>
               ) : plan.stripePriceId ? (
                 <button
-                  onClick={() => setChosen(plan.tier)}
+                  onClick={() => {
+                    trackTierClick(plan.tier);
+                    setChosen(plan.tier);
+                  }}
                   disabled={busy}
                   className={`mt-6 w-full text-center rounded-full py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 ${
                     plan.highlight
@@ -198,7 +210,10 @@ export default function PricingPage() {
                       below still says plainly that the tier is not bookable, so
                       the button promises nothing it cannot deliver. */}
                   <button
-                    onClick={() => setOffer(plan.tier as 'small' | 'medium' | 'large')}
+                    onClick={() => {
+                      trackTierClick(plan.tier);
+                      setOffer(plan.tier as 'small' | 'medium' | 'large');
+                    }}
                     className={`mt-6 w-full text-center rounded-full py-2.5 text-sm font-semibold transition-colors ${
                       plan.highlight
                         ? 'bg-white text-indigo-600 hover:bg-indigo-50'

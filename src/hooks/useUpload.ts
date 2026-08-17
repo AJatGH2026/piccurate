@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type { ClientPhoto } from '@/types/photo';
 import { extractEXIF } from '@/utils/exif';
@@ -10,6 +10,7 @@ import { computeEmbedding } from '@/utils/embedding';
 import { detectFaces, preloadFaceDetector } from '@/utils/faceDetection';
 import { computeFaceEmbedding, preloadFaceEmbedder } from '@/utils/faceEmbedding';
 import { usePhotoStore } from '@/hooks/usePhotoStore';
+import { trackEv, mark, msSince, photoCountBucket } from '@/lib/events-client';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'image/webp'];
 const MAX_CONCURRENT = 4;
@@ -43,6 +44,7 @@ function wantFaceSearch(): boolean {
 
 interface UseUploadOptions {
   maxPhotos: number;
+  locale: string;
 }
 
 interface UseUploadReturn {
@@ -58,7 +60,7 @@ interface UseUploadReturn {
   error: string | null;
 }
 
-export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
+export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadReturn {
   const [photos, setPhotos] = useState<ClientPhoto[]>([]);
   const [error, setError] = useState<string | null>(null);
   const processingQueue = useRef<ClientPhoto[]>([]);
@@ -75,6 +77,23 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
   const isProcessing = photos.some(
     (p) => p.status === 'pending' || p.status === 'extracting' || p.status === 'generating'
   );
+
+  // Event-Spezifikation §4: `file_transfer_ready` — "alle ausgewählten
+  // Dateien im Browser lesbar". Fires once per processing batch, on the
+  // isProcessing:true → false edge, to measure the iOS-optimised-storage
+  // hypothesis in §4 (originals not on-device yet, so processing stalls
+  // while they're pulled from iCloud). The ref avoids firing on the initial
+  // mount, where isProcessing starts false with no photos.
+  const wasProcessing = useRef(false);
+  useEffect(() => {
+    if (wasProcessing.current && !isProcessing && totalCount > 0) {
+      trackEv('file_transfer_ready', locale, {
+        photo_count: totalCount,
+        duration_since_files_selected_ms: msSince('files_selected'),
+      });
+    }
+    wasProcessing.current = isProcessing;
+  }, [isProcessing, totalCount, locale]);
 
   const updatePhoto = useCallback((id: string, updates: Partial<ClientPhoto>) => {
     setPhotos((prev) =>
@@ -259,6 +278,22 @@ export function useUpload({ maxPhotos }: UseUploadOptions): UseUploadReturn {
 
       acceptedCount.current += newPhotos.length;
       setPhotos((prev) => [...prev, ...newPhotos]);
+
+      // Event-Spezifikation §4: "Dateiauswahl bestätigt". Fired per addFiles
+      // call (one per picker/drop action), not per accepted total — a second
+      // batch later in the same session is its own confirmation.
+      const totalMb = filesToAdd.reduce((sum, f) => sum + f.size, 0) / (1024 * 1024);
+      mark('files_selected');
+      trackEv(
+        'files_selected',
+        locale,
+        {
+          photo_count: filesToAdd.length,
+          total_mb: Math.round(totalMb * 10) / 10,
+          duration_since_demo_start_ms: msSince('demo_start'),
+        },
+        photoCountBucket(acceptedCount.current)
+      );
 
       // Load the face models up front rather than letting the first photo
       // trigger it. Two reasons: the download would otherwise land in the middle

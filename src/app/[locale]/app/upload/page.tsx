@@ -7,6 +7,7 @@ import { DropZone } from '@/components/upload/DropZone';
 import { UploadProgress } from '@/components/upload/UploadProgress';
 import { PhotoGrid } from '@/components/upload/PhotoGrid';
 import { DropboxImport } from '@/components/upload/DropboxImport';
+import { CloudIntentPlaceholder } from '@/components/upload/CloudIntentPlaceholder';
 import { PersonSetup } from '@/components/persons/PersonSetup';
 import { dropboxConfigured } from '@/lib/cloud/dropbox';
 import { useEffect, useState } from 'react';
@@ -17,6 +18,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { usePhotoStore } from '@/hooks/usePhotoStore';
 import { createClient } from '@/lib/supabase/client';
 import { logBeta } from '@/lib/beta-client';
+import { trackEv, mark } from '@/lib/events-client';
 
 const DEFAULT_TIER: Tier = 'free';
 
@@ -27,7 +29,11 @@ export default function UploadPage() {
   const params = useParams();
   const router = useRouter();
   const locale = params.locale as string;
-  useEffect(() => { logBeta('upload'); }, []);
+  useEffect(() => {
+    logBeta('upload');
+    mark('demo_start');
+    trackEv('demo_start', locale);
+  }, [locale]);
   // The tier decides how many photos may be uploaded, so it cannot stay pinned
   // to "free": a tester who unlocked 1,000 was still told 250 and stopped
   // there. Read from the account's beta grant; falls back to free while the
@@ -86,7 +92,7 @@ export default function UploadPage() {
   const personSearchAvailable = currentTier !== 'free' || !salesAreLive();
 
   const { photos, isProcessing, processedCount, totalCount, addFiles, removePhoto, retryFailed, failedCount, clearAll, error } =
-    useUpload({ maxPhotos });
+    useUpload({ maxPhotos, locale });
 
   const readyCount = photos.filter((p) => p.status === 'ready').length;
   const canContinue = readyCount > 0 && !isProcessing;
@@ -231,6 +237,8 @@ export default function UploadPage() {
             }}
           />
         )}
+
+        {!needsAccount && <CloudIntentPlaceholder locale={locale} />}
 
         {/* Error message */}
         {error && (

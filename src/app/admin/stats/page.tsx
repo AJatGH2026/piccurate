@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { notFound } from 'next/navigation';
 import { readStats } from '@/lib/stats';
 import { readBetaSignals } from '@/lib/beta';
+import { readEventSignals } from '@/lib/events';
 import { readFeedbackFromDb } from '@/lib/feedback';
 
 // Admin usage dashboard at /admin/stats (locale-free). Protected by its OWN
@@ -65,9 +66,10 @@ export default async function AdminStatsPage({
     notFound();
   }
 
-  const [stats, beta, db] = await Promise.all([
+  const [stats, beta, events, db] = await Promise.all([
     readStats(7),
     readBetaSignals(),
+    readEventSignals(7),
     readFeedbackFromDb(20),
   ]);
 
@@ -223,6 +225,78 @@ export default async function AdminStatsPage({
                   hin als bei Small.
                 </Hint>
               </div>
+            </>
+          )}
+        </div>
+
+        {/* Event-Funnel — campaign-attributed raw events from the marketing
+            measurement concept (Event-Spezifikation.md), Stufe 1+2 only so
+            far. Separate Upstash keys from the aggregate beta funnel above
+            (lib/events.ts vs lib/beta.ts) — both stay in place. */}
+        <div className="mt-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="font-semibold">Event-Funnel (Marketing-Konzept, Stufe 1+2)</h2>
+          <Hint>
+            Kampagnen- und geräte-attribuierte Rohereignisse aus der Event-Spezifikation —
+            noch ohne Stufe 3+ (Bildselektion, Personensuche). Letzte {events.daysRead || 7} Tage.
+          </Hint>
+          {!events.configured ? (
+            <p className="mt-2 text-sm text-zinc-500">Erscheint, sobald Upstash Redis konfiguriert ist.</p>
+          ) : (
+            <>
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                {events.totals.map((e) => (
+                  <div key={e.name} className="rounded-lg border border-zinc-100 dark:border-zinc-800 px-3 py-2">
+                    <div className="text-zinc-500">{e.name}</div>
+                    <div className="font-semibold tabular-nums">{fmt(e.total)}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 border-t border-zinc-100 dark:border-zinc-800 pt-4 space-y-3">
+                <div>
+                  <p className="text-sm">
+                    files_selected / demo_start:{' '}
+                    <span className="font-medium">
+                      {events.ratios.filesSelectedPerDemoStart != null
+                        ? `${Math.round(events.ratios.filesSelectedPerDemoStart * 100)}%`
+                        : '—'}
+                    </span>
+                  </p>
+                  <Hint>Abbruchkriterium §9: unter 40 % → Einstiegshürde reparieren, bevor irgendetwas anderes messbar wird.</Hint>
+                </div>
+                <div>
+                  <p className="text-sm">
+                    download_completed / results_shown:{' '}
+                    <span className="font-medium">
+                      {events.ratios.downloadCompletedPerResultsShown != null
+                        ? `${Math.round(events.ratios.downloadCompletedPerResultsShown * 100)}%`
+                        : '—'}
+                    </span>
+                  </p>
+                  <Hint>Abbruchkriterium §9: unter 35 % → Produktproblem, kein Reichweitenproblem — kein weiteres Ad-Budget.</Hint>
+                </div>
+              </div>
+
+              {Object.keys(events.byDeviceClass).length > 0 && (
+                <div className="mt-4 border-t border-zinc-100 dark:border-zinc-800 pt-4">
+                  <p className="text-sm text-zinc-500 mb-2">files_selected / demo_start nach Gerät (§4: zwingend aufzuschlüsseln)</p>
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {Object.entries(events.byDeviceClass).map(([dc, v]) => (
+                        <tr key={dc} className="border-b border-zinc-100 dark:border-zinc-800 last:border-0">
+                          <td className="py-1 text-zinc-500">{dc}</td>
+                          <td className="py-1 text-right tabular-nums">
+                            {v.demo_start > 0 ? `${Math.round((v.files_selected / v.demo_start) * 100)}%` : '—'}
+                          </td>
+                          <td className="py-1 text-right text-xs text-zinc-400">
+                            ({fmt(v.files_selected)}/{fmt(v.demo_start)})
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </>
           )}
         </div>

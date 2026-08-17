@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { ANALYSIS_SYSTEM_PROMPT } from '@/lib/anthropic/prompts';
 import { parseAnalysisResponse } from '@/lib/anthropic/parser';
+import crypto from 'crypto';
 import { checkRateLimit, clientIp } from '@/lib/rate-limit';
-import { trackAnalyze, getTodayPhotos, reserveIpDailyPhotos } from '@/lib/stats';
+import { trackAnalyze, getTodayPhotos, reserveIpDailyPhotos, estCostEur } from '@/lib/stats';
+import { logEvent } from '@/lib/events';
+import { classifyUserAgent } from '@/lib/userAgent';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   betaOpenAccess,
@@ -366,6 +369,30 @@ export async function POST(request: NextRequest) {
 
     // Persistent usage tracking — no-op if Upstash isn't configured.
     void trackAnalyze({ photos: files.length, inputTokens, outputTokens, model });
+
+    // Event-Spezifikation §8: `ai_cost_estimate`, "die eigentliche
+    // Geschäftszahl des gesamten Tests". Fires once per batch call rather
+    // than once per full multi-batch analysis run — analyze-demo has no
+    // notion of "the whole run" the way the client's `analysis_completed`
+    // does — so the derived KPI (cost per completed run) sums these across a
+    // session/day rather than reading a single event per run.
+    void logEvent({
+      name: 'ai_cost_estimate',
+      ts: new Date().toISOString(),
+      session_id: String(formData.get('session_id') || ''),
+      user_hash: user.is_anonymous
+        ? null
+        : 'u_' + crypto.createHash('sha256').update(user.id).digest('hex').slice(0, 16),
+      ...classifyUserAgent(request.headers.get('user-agent')),
+      locale: String(formData.get('locale') || ''),
+      traffic_source: (formData.get('traffic_source') as string) || null,
+      campaign: (formData.get('campaign') as string) || null,
+      ad_group: (formData.get('ad_group') as string) || null,
+      keyword: (formData.get('keyword') as string) || null,
+      photo_count_bucket: null,
+      ab_variant: formData.get('ab_variant') === 'pricing_b' ? 'pricing_b' : 'pricing_a',
+      props: { photo_count: files.length, est_cost_eur: estCostEur(inputTokens, outputTokens), model },
+    });
 
     const results = parseAnalysisResponse(text, files.length);
 

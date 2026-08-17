@@ -8,6 +8,7 @@ import { clientConfig } from '@/lib/config';
 import { PRICING_PLANS, formatPrice } from '@/types/pricing';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { LogoutButton } from '@/components/auth/LogoutButton';
+import { TrackLandingView } from '@/components/analytics/TrackLandingView';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -89,6 +90,7 @@ export default async function LandingPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <TrackLandingView locale={locale} />
 
       {/* Header */}
       <Header locale={locale} />

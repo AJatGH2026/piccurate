@@ -95,7 +95,13 @@
     "dbxShiftHint": "Shift-click selects a range",
     "dbxAllFailed": "Couldn't download from Dropbox ({reason}). Please retry.",
     "dbxSomeFailed": "{count} of {total} downloads failed — importing the rest.",
-    "allowance": "Your allowance: {photos} photos"
+    "allowance": "Your allowance: {photos} photos",
+    "moreCloudSources": "More cloud sources",
+    "cloudSourceGooglePhotos": "Google Photos",
+    "cloudSourceOneDrive": "OneDrive",
+    "cloudSourceICloud": "iCloud",
+    "cloudIntentComingSoon": "coming soon — let us know if you need this",
+    "cloudIntentThanks": "Thanks, noted! We'll let you know once it's available."
   },
   "criteria": {
     "title": "Configure selection criteria",
@@ -248,7 +254,12 @@
     "cloudSaveTo": "Save to {provider}",
     "cloudUploading": "Uploading to {provider}… {done} of {total}",
     "cloudDone": "{count} photos saved to {folder}",
-    "cloudFailed": "Cloud upload failed: {error}"
+    "cloudFailed": "Cloud upload failed: {error}",
+    "microSurveyQuestion": "How many of the downloaded photos will you actually keep?",
+    "microSurveyFastAlle": "Almost all",
+    "microSurveyEtwaHaelfte": "About half",
+    "microSurveyWenige": "Just a few",
+    "microSurveyThanks": "Thanks for the feedback!"
   },
   "auth": {
     "login": "Log in",

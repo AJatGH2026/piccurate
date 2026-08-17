@@ -10,12 +10,28 @@ import { trackEvent } from '@/lib/analytics';
 import Link from 'next/link';
 import { LegalModal } from '@/components/legal/LegalModal';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { logBeta } from '@/lib/beta-client';
+// `trackEvent` above is the dormant GA4/Ads tag (lib/analytics.ts) — kept for
+// the Ads conversion pixel once one is configured. `trackEv` here is the
+// separate first-party funnel (Event-Spezifikation.md), always on.
+import { trackEv, mark, msSince, nextRunIndex, getSessionId, getAbVariant, getCampaign } from '@/lib/events-client';
 import { createClient } from '@/lib/supabase/client';
 import { getTierForPhotoCount, MAX_TIER_PHOTOS } from '@/types/pricing';
 
 const BATCH_SIZE = 20;
+
+// Event-Spezifikation §4: `analysis_failed.error_class`. Best-effort — most
+// thrown errors here are already user-facing German/English sentences
+// (ensureJob's t(...) calls), not machine-readable codes, so this classifies
+// by the same substrings a human would recognise rather than a real taxonomy.
+function classifyAnalysisError(err: unknown, message: string): 'network' | 'api_limit' | 'file_access' | 'timeout' | 'other' {
+  if (err instanceof TypeError && /fetch/i.test(message)) return 'network';
+  if (/budget|remaining|rate.?limit|too many/i.test(message)) return 'api_limit';
+  if (/timeout|timed out/i.test(message)) return 'timeout';
+  if (/read|access|file/i.test(message)) return 'file_access';
+  return 'other';
+}
 
 export default function ConfigurePage() {
   const t = useTranslations('criteria');
@@ -28,6 +44,30 @@ export default function ConfigurePage() {
   const supportAddress = locale === 'de' ? 'support@auswahlbuddy.de' : 'support@shortlistbuddy.com';
   const [analyzing, setAnalyzing] = useState(false);
   const [progress, setProgress] = useState('');
+  // Mirrors `analyzing`/batch progress in refs so the pagehide/unmount
+  // listener below (registered once) can read the latest values without
+  // becoming a dependency of the whole click handler.
+  const analyzingRef = useRef(false);
+  const analysisProgressRef = useRef({ done: 0, totalBatches: 0 });
+  const analysisAbandonedFiredRef = useRef(false);
+  // Event-Spezifikation §5: `slider_changed`, fired on release (pointerup),
+  // not per onChange tick — one drag fires dozens of onChange events, and
+  // `direction`/`magnitude` describe one adjustment, not every intermediate
+  // frame of it.
+  const sliderStartRef = useRef<Record<string, number>>({});
+  const armSlider = (criterion: string, current: number) => {
+    sliderStartRef.current[criterion] = current;
+  };
+  const releaseSlider = (criterion: string, current: number) => {
+    const start = sliderStartRef.current[criterion];
+    if (start == null || start === current) return;
+    trackEv('slider_changed', locale, {
+      criterion,
+      direction: current > start ? 'up' : 'down',
+      magnitude: Math.round(Math.abs(current - start) * 100) / 100,
+    });
+    delete sliderStartRef.current[criterion];
+  };
   const photos = usePhotoStore((s) => s.photos);
   const applyAnalysisResults = usePhotoStore((s) => s.applyAnalysisResults);
   const rerunSelection = usePhotoStore((s) => s.rerunSelection);
@@ -63,6 +103,27 @@ export default function ConfigurePage() {
   // the checkbox used to be. Analysis is gated on age + terms only.
   const canAnalyze = ageAccepted && termsAccepted;
   useEffect(() => { logBeta('configure'); }, []);
+  // Event-Spezifikation §4: `analysis_abandoned` — page left mid-analysis.
+  // pagehide covers a hard navigation/tab close; the effect cleanup covers a
+  // client-side (SPA) navigation away, which never fires pagehide/beforeunload.
+  // Both funnel into the same guarded fire so it can only happen once.
+  useEffect(() => {
+    const fireIfAbandoned = () => {
+      if (analyzingRef.current && !analysisAbandonedFiredRef.current) {
+        analysisAbandonedFiredRef.current = true;
+        const { done, totalBatches } = analysisProgressRef.current;
+        trackEv('analysis_abandoned', locale, {
+          pct_at_exit: totalBatches > 0 ? Math.round((done / totalBatches) * 100) : 0,
+          elapsed_ms: msSince('analysis_started'),
+        });
+      }
+    };
+    window.addEventListener('pagehide', fireIfAbandoned);
+    return () => {
+      window.removeEventListener('pagehide', fireIfAbandoned);
+      fireIfAbandoned();
+    };
+  }, [locale]);
   // Age/terms acceptance is remembered (localStorage) — confirm once, not again
   // when changing criteria or re-running. (The reference-photo confirmation A2
   // stays per analysis, as the legal text requires it before each transfer.)
@@ -216,6 +277,8 @@ export default function ConfigurePage() {
               step="1"
               value={Math.max(1, Math.round(criterion.weight * 10))}
               onChange={(e) => setWeight(key, Number(e.target.value) / 10)}
+              onPointerDown={() => armSlider(key, criterion.weight)}
+              onPointerUp={() => releaseSlider(key, criterion.weight)}
               className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
             />
             <span className="text-xs text-zinc-400">{key === 'preferSharpness' ? t('high') : t('only')}</span>
@@ -287,6 +350,8 @@ export default function ConfigurePage() {
               max="30"
               value={criteria.selectionPercentage}
               onChange={(e) => updateCriterion('selectionPercentage', Number(e.target.value))}
+              onPointerDown={() => armSlider('selectionPercentage', criteria.selectionPercentage)}
+              onPointerUp={() => releaseSlider('selectionPercentage', criteria.selectionPercentage)}
               className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
             />
             <span className="text-xs text-zinc-400">30%</span>
@@ -311,6 +376,8 @@ export default function ConfigurePage() {
               step="1"
               value={Math.max(1, Math.round(criteria.preferSharpness.weight * 10))}
               onChange={(e) => setWeight('preferSharpness', Number(e.target.value) / 10)}
+              onPointerDown={() => armSlider('preferSharpness', criteria.preferSharpness.weight)}
+              onPointerUp={() => releaseSlider('preferSharpness', criteria.preferSharpness.weight)}
               className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
             />
             <span className="text-xs text-zinc-400">{t('high')}</span>
@@ -332,6 +399,8 @@ export default function ConfigurePage() {
               max="10"
               value={criteria.dedupSensitivity}
               onChange={(e) => updateCriterion('dedupSensitivity', Number(e.target.value))}
+              onPointerDown={() => armSlider('dedupSensitivity', criteria.dedupSensitivity)}
+              onPointerUp={() => releaseSlider('dedupSensitivity', criteria.dedupSensitivity)}
               className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
             />
             <span className="text-xs text-zinc-400">{t('strict')}</span>
@@ -389,6 +458,8 @@ export default function ConfigurePage() {
                           step="1"
                           value={Math.max(1, Math.round(c.weight * 10))}
                           onChange={(e) => setCustomWeight(c.term, Number(e.target.value) / 10)}
+                          onPointerDown={() => armSlider('custom', c.weight)}
+                          onPointerUp={() => releaseSlider('custom', c.weight)}
                           className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-indigo-600"
                         />
                         <span className="text-xs text-zinc-400">{t('only')}</span>
@@ -541,6 +612,8 @@ export default function ConfigurePage() {
                               step="1"
                               value={Math.max(1, Math.round(person.weight * 10))}
                               onChange={(e) => setPersonWeight(person.id, Number(e.target.value) / 10)}
+                              onPointerDown={() => armSlider('person_weight', person.weight)}
+                              onPointerUp={() => releaseSlider('person_weight', person.weight)}
                               className="flex-1 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-purple-600"
                             />
                             <span className="text-xs text-zinc-400">{t('only')}</span>
@@ -601,6 +674,8 @@ export default function ConfigurePage() {
                   step={2}
                   value={100 - Math.round(personThreshold * 100)}
                   onChange={(e) => setPersonThreshold((100 - Number(e.target.value)) / 100)}
+                  onPointerDown={() => armSlider('personThreshold', personThreshold)}
+                  onPointerUp={() => releaseSlider('personThreshold', personThreshold)}
                   className="flex-1 accent-purple-600"
                   aria-label={t('personThresholdTitle')}
                 />
@@ -696,6 +771,10 @@ export default function ConfigurePage() {
               // signal about biometric processing. Do not add a person counter
               // back, in any form.
               setAnalyzing(true);
+              analyzingRef.current = true;
+              analysisAbandonedFiredRef.current = false;
+              analysisProgressRef.current = { done: 0, totalBatches: 0 };
+              mark('analysis_started');
               setProgress(t('progressPreparing'));
               try {
                 // Custom terms (feature 5a) are tagged DURING analysis, so if the
@@ -732,10 +811,13 @@ export default function ConfigurePage() {
 
                 if (toAnalyze.length === 0) {
                   setProgress(t('progressRecomputing'));
+                  trackEv('reselect_run', locale, { run_index: nextRunIndex() });
                   rerunSelection(criteria);
                   router.push(`/${locale}/app/review`);
                   return;
                 }
+
+                trackEv('analysis_started', locale, { photo_count: toAnalyze.length });
 
                 // One job per analysis run — the server enforces the tier's photo
                 // limit and the once-per-user free tier against it. Created here,
@@ -751,6 +833,12 @@ export default function ConfigurePage() {
                 const CONCURRENCY = 5;
                 const batchResults: any[][] = new Array(totalBatches);
                 let done = 0;
+                analysisProgressRef.current.totalBatches = totalBatches;
+                // Progress checkpoints (§4: "bei 25/50/75%"). Batches can cross
+                // more than one threshold at once (e.g. 2 batches jumps straight
+                // from 0% to 50% to 100%), so each threshold fires at most once,
+                // whenever progress first reaches or passes it.
+                const progressFired = { 25: false, 50: false, 75: false };
 
                 const runBatch = async (b: number) => {
                   const batch = toAnalyze.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE);
@@ -762,6 +850,16 @@ export default function ConfigurePage() {
                   formData.append('consent', '1');
                   // Drives the language of the AI-derived place names.
                   formData.append('locale', locale);
+                  // Event-Spezifikation §8: lets the server attach `ai_cost_estimate`
+                  // to the same session/campaign context as every other event,
+                  // without the client having to know the actual token cost.
+                  formData.append('session_id', getSessionId());
+                  formData.append('ab_variant', getAbVariant());
+                  const campaign = getCampaign();
+                  if (campaign.traffic_source) formData.append('traffic_source', campaign.traffic_source);
+                  if (campaign.campaign) formData.append('campaign', campaign.campaign);
+                  if (campaign.ad_group) formData.append('ad_group', campaign.ad_group);
+                  if (campaign.keyword) formData.append('keyword', campaign.keyword);
                   formData.append(
                     'metadata',
                     JSON.stringify(
@@ -800,7 +898,16 @@ export default function ConfigurePage() {
                   }
                   const data = await response.json();
                   batchResults[b] = data.results;
-                  setProgress(t('progressAnalysing', { done: ++done, total: totalBatches }));
+                  done++;
+                  analysisProgressRef.current.done = done;
+                  setProgress(t('progressAnalysing', { done, total: totalBatches }));
+                  const pct = Math.round((done / totalBatches) * 100);
+                  for (const threshold of [25, 50, 75] as const) {
+                    if (pct >= threshold && !progressFired[threshold]) {
+                      progressFired[threshold] = true;
+                      trackEv('analysis_progress', locale, { pct });
+                    }
+                  }
                 };
 
                 // Concurrency pool. A failing batch must NOT discard the ones that
@@ -856,6 +963,10 @@ export default function ConfigurePage() {
                   partial: failure ? 1 : 0,
                 });
                 logBeta('analysis');
+                trackEv('analysis_completed', locale, {
+                  duration_ms: msSince('analysis_started'),
+                  selected_count: usePhotoStore.getState().photos.filter((p) => p.selected).length,
+                });
                 // Say what happened before showing the result, so nobody wonders
                 // why some photos are missing from the review.
                 if (failure) {
@@ -869,9 +980,12 @@ export default function ConfigurePage() {
               } catch (err) {
                 console.error('Analysis failed:', err);
                 setProgress('');
-                alert(t('analysisFailed', { error: err instanceof Error ? err.message : 'Unknown error' }));
+                const message = err instanceof Error ? err.message : String(err);
+                trackEv('analysis_failed', locale, { error_class: classifyAnalysisError(err, message) });
+                alert(t('analysisFailed', { error: message }));
               } finally {
                 setAnalyzing(false);
+                analyzingRef.current = false;
               }
             }}
             disabled={analyzing || !canAnalyze}

@@ -11,6 +11,7 @@ import { usePhotoStore } from '@/hooks/usePhotoStore';
 import { useCriteria } from '@/hooks/useCriteria';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { trackEv, aiScoreBucket } from '@/lib/events-client';
 
 export default function ReviewPage() {
   const t = useTranslations('review');
@@ -31,9 +32,33 @@ export default function ReviewPage() {
   useEffect(() => { logBeta('review'); }, []);
   const added = useRef(0);
   const removed = useRef(0);
+  // Event-Spezifikation §5: `photo_removed`/`photo_added` — the section's own
+  // words, "hier liegt das wertvollste Signal". Position/rank are computed
+  // from the CURRENT (pre-toggle) selected/rejected order, sorted by score
+  // descending so rank_in_rejected reads as "how deep in the reject pile".
   const wrappedToggle = (id: string) => {
     const p = photos.find((x) => x.id === id);
-    if (p) (p.selected ? removed : added).current++;
+    if (!p) return;
+    if (p.selected) {
+      removed.current++;
+      const position = photos
+        .filter((x) => x.selected)
+        .findIndex((x) => x.id === id);
+      trackEv('photo_removed', locale, {
+        position_in_result: position >= 0 ? position : null,
+        ai_score_bucket: aiScoreBucket(p.aestheticScore),
+      });
+    } else {
+      added.current++;
+      const rank = photos
+        .filter((x) => !x.selected)
+        .sort((a, b) => b.aestheticScore - a.aestheticScore)
+        .findIndex((x) => x.id === id);
+      trackEv('photo_added', locale, {
+        ai_score_bucket: aiScoreBucket(p.aestheticScore),
+        rank_in_rejected: rank >= 0 ? rank : null,
+      });
+    }
     toggleSelection(id);
   };
 
@@ -46,7 +71,10 @@ export default function ReviewPage() {
     list.map((n) => personNameMap.get(n)).filter((n): n is string => !!n);
   const openLightbox = (id: string) => {
     const idx = photos.findIndex((p) => p.id === id);
-    if (idx >= 0) setLightboxIndex(idx);
+    if (idx >= 0) {
+      trackEv('photo_zoomed', locale, { was_selected: !!photos[idx].selected });
+      setLightboxIndex(idx);
+    }
   };
   const saveSelection = usePhotoStore((s) => s.saveSelection);
 

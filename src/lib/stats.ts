@@ -164,7 +164,10 @@ const USD_PER_M_INPUT = 0.30;
 const USD_PER_M_OUTPUT = 2.50;
 const EUR_PER_USD = 0.92;
 
-function estCostEur(inputTokens: number, outputTokens: number): number {
+// Exported so /api/analyze-demo can attach the same estimate to the
+// `ai_cost_estimate` funnel event (lib/events.ts) without duplicating the
+// Gemini pricing constants.
+export function estCostEur(inputTokens: number, outputTokens: number): number {
   const usd = (inputTokens / 1_000_000) * USD_PER_M_INPUT + (outputTokens / 1_000_000) * USD_PER_M_OUTPUT;
   return Math.round(usd * EUR_PER_USD * 100) / 100;
 }

@@ -2,14 +2,18 @@
 
 import { useTranslations } from 'next-intl';
 import { brandName } from '@/lib/brand';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePhotoStore, type ProcessedPhoto } from '@/hooks/usePhotoStore';
 import { enabledCloudProviders, type CloudProvider } from '@/lib/cloud';
 import { dominantPlace, placeFolder } from '@/utils/geo';
+// `trackEvent`/`trackAdsConversion` are the dormant GA4/Ads tag (lib/analytics.ts).
+// `trackEv` is the separate first-party funnel (Event-Spezifikation.md), always on.
 import { trackEvent, trackAdsConversion } from '@/lib/analytics';
+import { trackEv, mark, msSince } from '@/lib/events-client';
 import { logBeta } from '@/lib/beta-client';
 import { EmailCapture } from '@/components/beta/EmailCapture';
 import { ResultsFeedback } from '@/components/beta/ResultsFeedback';
+import { MicroSurvey } from '@/components/results/MicroSurvey';
 import { LogoutButton } from '@/components/auth/LogoutButton';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
@@ -20,8 +24,37 @@ export default function ResultsPage() {
   const tc = useTranslations('common');
   const params = useParams();
   const locale = params.locale as string;
-  useEffect(() => { logBeta('results'); }, []);
+  // Set once a download starts, so the idle-exit listener below (registered
+  // once on mount) never mistakes an active session for an abandoned one.
+  const hasActedRef = useRef(false);
+  useEffect(() => {
+    logBeta('results');
+    const snapPhotos = usePhotoStore.getState().photos;
+    trackEv('results_shown', locale, {
+      selected_count: snapPhotos.filter((p) => p.selected).length,
+      total_count: snapPhotos.length,
+    });
+    // Event-Spezifikation §5: `results_idle_exit` — "die entlarvendste Kennzahl
+    // der ganzen Spezifikation". Same dual-listener pattern as the analysis
+    // page: pagehide for a hard navigation/tab close, effect cleanup for an
+    // in-app (SPA) navigation away, guarded so it only ever fires once.
+    const shownAt = Date.now();
+    const fireIdleExit = () => {
+      if (!hasActedRef.current) {
+        hasActedRef.current = true;
+        trackEv('results_idle_exit', locale, { time_on_results_ms: Date.now() - shownAt });
+      }
+    };
+    window.addEventListener('pagehide', fireIdleExit);
+    return () => {
+      window.removeEventListener('pagehide', fireIdleExit);
+      fireIdleExit();
+    };
+  }, [locale]);
   const [downloading, setDownloading] = useState(false);
+  // Event-Spezifikation §6: one-click question shown right after a completed
+  // download. null = not shown yet, false = shown/unanswered, true = answered.
+  const [microSurvey, setMicroSurvey] = useState<'hidden' | 'shown' | 'answered'>('hidden');
   // Photos whose source file could not be read when the archive was built —
   // moved, renamed, deleted or edited after the upload. `degraded` still made it
   // in as the 512px preview; `missing` could not be included at all.
@@ -121,6 +154,13 @@ export default function ResultsPage() {
     setDownloading(true);
     setSourceIssues(null);
     setDownloadError(null);
+    hasActedRef.current = true; // a started download is never an idle exit, success or not
+    mark('download_started');
+    const selectedMb = selectedPhotos.reduce((sum, p) => sum + (p.originalFile?.size ?? 0), 0) / (1024 * 1024);
+    trackEv('download_started', locale, {
+      selected_count: selectedCount,
+      total_mb: Math.round(selectedMb * 10) / 10,
+    });
     try {
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
@@ -242,6 +282,7 @@ export default function ResultsPage() {
       if (missing.length === sorted.length && sorted.length > 0) {
         downloadWindow?.close(); // don't leave the reserved tab sitting blank
         setDownloadError(t('sourceAllGone'));
+        trackEv('download_failed', locale, { error_class: 'file_missing', selected_count: selectedCount });
         return;
       }
 
@@ -290,10 +331,17 @@ export default function ResultsPage() {
       });
       trackAdsConversion();
       logBeta('download');
+      trackEv('download_completed', locale, { duration_ms: msSince('download_started') });
+      trackEv('micro_survey_shown', locale);
+      setMicroSurvey('shown');
     } catch (err) {
       console.error('ZIP creation failed:', err);
       downloadWindow?.close(); // don't leave the reserved tab sitting blank
       setDownloadError(t('zipFailed'));
+      trackEv('download_failed', locale, {
+        error_class: err instanceof Error && /memory|allocat/i.test(err.message) ? 'memory' : 'other',
+        selected_count: selectedCount,
+      });
     } finally {
       setDownloading(false);
     }
@@ -531,6 +579,15 @@ export default function ResultsPage() {
           )}
 
         </div>
+
+        {/* One-click question, right after a completed download (§6). */}
+        {microSurvey !== 'hidden' && (
+          <MicroSurvey
+            locale={locale}
+            answered={microSurvey === 'answered'}
+            onAnswered={() => setMicroSurvey('answered')}
+          />
+        )}
 
         {/* Beta email capture — its own card, visually separated from the download. */}
         <EmailCapture />

@@ -95,7 +95,13 @@
     "dbxShiftHint": "Shift-Klick wählt einen Bereich",
     "dbxAllFailed": "Download von Dropbox fehlgeschlagen ({reason}). Bitte erneut versuchen.",
     "dbxSomeFailed": "{count} von {total} Downloads fehlgeschlagen — die übrigen werden importiert.",
-    "allowance": "Dein Kontingent: {photos} Fotos"
+    "allowance": "Dein Kontingent: {photos} Fotos",
+    "moreCloudSources": "Weitere Cloud-Quellen",
+    "cloudSourceGooglePhotos": "Google Fotos",
+    "cloudSourceOneDrive": "OneDrive",
+    "cloudSourceICloud": "iCloud",
+    "cloudIntentComingSoon": "in Arbeit — sag uns Bescheid, wenn du das brauchst",
+    "cloudIntentThanks": "Danke, notiert! Wir melden uns, sobald es verfügbar ist."
   },
   "criteria": {
     "title": "Auswahlkriterien konfigurieren",
@@ -248,7 +254,12 @@
     "cloudSaveTo": "In {provider} speichern",
     "cloudUploading": "Hochladen zu {provider}… {done} von {total}",
     "cloudDone": "{count} Fotos in {folder} gespeichert",
-    "cloudFailed": "Cloud-Upload fehlgeschlagen: {error}"
+    "cloudFailed": "Cloud-Upload fehlgeschlagen: {error}",
+    "microSurveyQuestion": "Wie viele der heruntergeladenen Fotos wirst du wirklich behalten?",
+    "microSurveyFastAlle": "Fast alle",
+    "microSurveyEtwaHaelfte": "Etwa die Hälfte",
+    "microSurveyWenige": "Nur wenige",
+    "microSurveyThanks": "Danke für dein Feedback!"
   },
   "auth": {
     "login": "Anmelden",
