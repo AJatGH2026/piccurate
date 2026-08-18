@@ -242,7 +242,7 @@
     "downloadCompleteHint": "Done! Depending on your device, the file is in your browser's downloads folder or the Files app (iPhone: Downloads).",
     "downloadPopupPreparing": "Preparing your download…",
     "downloadPopupReady": "Done! Your download has started.",
-    "downloadPopupBack": "Back to your selection",
+    "downloadPopupBackHint": "Your selection is still open in the other tab.",
     "downloadPopupClose": "Close this window",
     "zipFlat": "One folder",
     "zipFlatDesc": "Whole trip — ideal for photobooks",

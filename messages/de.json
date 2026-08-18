@@ -242,7 +242,7 @@
     "downloadCompleteHint": "Fertig! Je nach Gerät findest du die Datei im Download-Ordner deines Browsers oder in der Dateien-App (iPhone: Downloads).",
     "downloadPopupPreparing": "Dein Download wird vorbereitet…",
     "downloadPopupReady": "Fertig! Der Download hat begonnen.",
-    "downloadPopupBack": "Zurück zu deiner Auswahl",
+    "downloadPopupBackHint": "Deine Auswahl ist weiterhin im anderen Tab geöffnet.",
     "downloadPopupClose": "Fenster schließen",
     "zipFlat": "Ein Ordner",
     "zipFlatDesc": "Ganzer Zeitraum — ideal fürs Fotobuch",

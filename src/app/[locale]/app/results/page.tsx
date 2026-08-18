@@ -188,7 +188,7 @@ export default function ResultsPage() {
     if (downloadWindow) {
       paintDownloadPopup(
         downloadWindow,
-        `<div style="font-size:32px;margin-bottom:12px;">⏳</div><p style="font-size:16px;font-weight:600;margin:0;">${t('downloadPopupPreparing')}</p>`
+        `<div style="font-size:48px;margin-bottom:16px;">⏳</div><p style="font-size:20px;font-weight:700;margin:0;">${t('downloadPopupPreparing')}</p>`
       );
     }
     setDownloading(true);
@@ -344,27 +344,43 @@ export default function ResultsPage() {
       const url = URL.createObjectURL(zipBlob);
       const filename = `${brandName(locale).toLowerCase()}-selection-${selectedCount}-photos.zip`;
       if (downloadWindow && !downloadWindow.closed) {
-        // Still holds the gesture authority from the click — navigating it to
-        // the blob now triggers the browser's normal download handling there.
-        // That hand-off doesn't unload the tab's document (a download, unlike
-        // a real navigation, leaves whatever was on screen in place), so the
-        // popup content painted below stays visible afterwards.
-        downloadWindow.location.href = url;
+        // Still holds the gesture authority from the click. Built as a real
+        // <a download> INSIDE the popup's own document, not a bare
+        // `location.href = url` navigation — the latter has no filename to
+        // offer, so Safari's download-confirmation sheet showed "Unknown.zip"
+        // (reported 2026-08-19). Triggering it doesn't unload the tab's
+        // document (a download, unlike a real navigation, leaves whatever is
+        // on screen in place), so the popup content painted below stays
+        // visible afterwards.
+        const popupLink = downloadWindow.document.createElement('a');
+        popupLink.href = url;
+        popupLink.download = filename;
+        downloadWindow.document.body.appendChild(popupLink);
+        popupLink.click();
+        // Reported 2026-08-19: the painted "back to your selection" link
+        // navigated the POPUP tab to the results URL — a fresh browsing
+        // context with an empty in-memory photo store (nothing is persisted
+        // server-side by design), so it showed "0 photos" and looked like
+        // the analysis had been lost. It hadn't; that tab just never had it.
+        // The real results page is still open, untouched, in the tab this
+        // popup was opened from — so the only safe action here is closing
+        // this one, never navigating it.
         paintDownloadPopup(
           downloadWindow,
-          `<div style="font-size:32px;margin-bottom:12px;">✅</div>` +
-            `<p style="font-size:16px;font-weight:600;margin:0 0 8px;">${t('downloadPopupReady')}</p>` +
-            `<p style="font-size:13px;color:#71717a;margin:0 0 20px;">${t('downloadLocationHint')}</p>` +
-            `<a href="${window.location.href}" style="display:inline-block;padding:10px 20px;border-radius:999px;background:#4f46e5;color:#fff;text-decoration:none;font-size:14px;font-weight:600;">${t('downloadPopupBack')}</a>` +
-            `<br/><button onclick="window.close()" style="margin-top:12px;padding:8px 16px;border-radius:999px;border:1px solid #d4d4d8;background:#fff;color:#3f3f46;font-size:13px;">${t('downloadPopupClose')}</button>`
+          `<div style="font-size:48px;margin-bottom:16px;">✅</div>` +
+            `<p style="font-size:20px;font-weight:700;margin:0 0 12px;">${t('downloadPopupReady')}</p>` +
+            `<p style="font-size:15px;line-height:1.5;color:#52525b;margin:0 0 20px;">${t('downloadLocationHint')}</p>` +
+            `<p style="font-size:14px;line-height:1.5;color:#71717a;margin:0 0 24px;">${t('downloadPopupBackHint')}</p>` +
+            `<button onclick="window.close()" style="padding:14px 32px;border-radius:999px;border:none;background:#4f46e5;color:#fff;font-size:16px;font-weight:600;">${t('downloadPopupClose')}</button>`
         );
-        // Once a navigation resolves to a download, the browser hands it off
-        // to its download manager and detaches it from the tab — closing the
+        // Once a click resolves to a download, the browser hands it off to
+        // its download manager and detaches it from the tab — closing the
         // tab after that point doesn't interrupt the transfer. Best-effort
         // only: reported 2026-08-19, this does not reliably close the tab on
-        // iPhone Safari (a timer isn't a fresh user gesture there), which is
-        // why the painted content above also offers a real close button and
-        // a way back instead of depending on this succeeding.
+        // iPhone Safari (a timer isn't a fresh user gesture there) — the
+        // close button painted above IS a fresh gesture, and reportedly
+        // works, which is why the user always has that regardless of
+        // whether this timer succeeds.
         setTimeout(() => {
           try {
             downloadWindow.close();
