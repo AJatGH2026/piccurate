@@ -10,9 +10,17 @@ interface UploadProgressProps {
   isProcessing: boolean;
 }
 
-// Below this many finished photos in the current run, the measured rate is
-// too noisy to show (the first photo can be a slow outlier decode).
+// Below this many finished photos, or this little elapsed time, the measured
+// rate is too noisy to show — a handful of small/cached files finishing in
+// one burst looks far faster than the batch really is.
 const MIN_SAMPLES_FOR_ETA = 3;
+const MIN_ELAPSED_FOR_ETA_MS = 750;
+// Once shown, the estimate is allowed to change at most this often. It keeps
+// using the full cumulative average since the run started (so it still
+// self-corrects if later photos turn out slower — HEIC vs. JPEG, say), but
+// throttling how often that new number reaches the screen is what stops it
+// from visibly flickering on every single finished photo.
+const RECALC_INTERVAL_MS = 3000;
 
 export function UploadProgress({
   processedCount,
@@ -23,40 +31,43 @@ export function UploadProgress({
   const tc = useTranslations('common');
   const percentage = totalCount > 0 ? Math.round((processedCount / totalCount) * 100) : 0;
 
-  // The total-duration estimate is calibrated ONCE per run, from an early
-  // sample, then frozen — recomputing it on every finished photo made the
-  // number jump around (concurrent decodes finish in bursts, so the rate
-  // between any two single updates is noisy) instead of settling on a
-  // usable prognosis. Re-armed on an idle -> active edge, or if more files
-  // are dropped in mid-run (totalCount grows), since that is a genuinely
+  // Rate is the cumulative average since the run started (not a one-shot
+  // calibration, and not a sliding window) — an early lucky burst of fast
+  // files gets pulled back toward reality as more, possibly slower, photos
+  // complete. Re-armed on an idle -> active edge, or if more files are
+  // dropped in mid-run (totalCount grows), since that is a genuinely
   // different total to estimate.
   const sessionRef = useRef<{ time: number; processed: number; total: number } | null>(null);
-  const lockedRef = useRef(false);
+  // 0 = no estimate shown yet. Otherwise the timestamp of the last update,
+  // used only to throttle how often the displayed text is allowed to change.
+  const lastShownAtRef = useRef(0);
   const [etaText, setEtaText] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isProcessing) {
       sessionRef.current = null;
-      lockedRef.current = false;
+      lastShownAtRef.current = 0;
       setEtaText(null);
       return;
     }
     if (!sessionRef.current || sessionRef.current.total !== totalCount) {
       sessionRef.current = { time: Date.now(), processed: processedCount, total: totalCount };
-      lockedRef.current = false;
+      lastShownAtRef.current = 0;
       setEtaText(null);
     }
-    if (lockedRef.current) return;
 
     const done = processedCount - sessionRef.current.processed;
     const elapsedMs = Date.now() - sessionRef.current.time;
-    if (done < MIN_SAMPLES_FOR_ETA || elapsedMs <= 0) return;
+    if (done < MIN_SAMPLES_FOR_ETA || elapsedMs < MIN_ELAPSED_FOR_ETA_MS) return;
+
+    const now = Date.now();
+    if (lastShownAtRef.current !== 0 && now - lastShownAtRef.current < RECALC_INTERVAL_MS) return;
 
     // Projected across ALL photos (not just the ones still pending), since
     // the goal is the total run time, not a moving "time left" countdown.
     const totalMs = estimateRemainingMs(elapsedMs, done, totalCount);
     if (totalMs == null) return;
-    lockedRef.current = true;
+    lastShownAtRef.current = now;
     setEtaText(formatEtaDuration(totalMs, tc));
   }, [processedCount, totalCount, isProcessing, tc]);
 
