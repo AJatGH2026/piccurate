@@ -312,6 +312,7 @@
     "optional": "optional",
     "etaCalculating": "Estimating time remaining…",
     "etaRemaining": "about {time} left",
+    "etaTotal": "estimated total time: about {time}",
     "etaSeconds": "{seconds, plural, one {# second} other {# seconds}}",
     "etaMinutes": "{minutes, plural, one {# minute} other {# minutes}}"
   },

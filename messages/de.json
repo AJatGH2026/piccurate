@@ -312,6 +312,7 @@
     "optional": "optional",
     "etaCalculating": "Restzeit wird berechnet…",
     "etaRemaining": "noch ca. {time}",
+    "etaTotal": "geschätzte Gesamtdauer: ca. {time}",
     "etaSeconds": "{seconds, plural, one {# Sekunde} other {# Sekunden}}",
     "etaMinutes": "{minutes, plural, one {# Minute} other {# Minuten}}"
   },
