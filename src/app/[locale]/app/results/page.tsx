@@ -20,6 +20,23 @@ import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
+// Reported 2026-08-19: on iPhone Safari, the popup tab opened to preserve
+// download gesture authority (see handleDownload) does download the file
+// correctly, but the tab itself stays on a literal blank page afterwards —
+// window.close() from a timer, not a fresh user gesture inside that window,
+// is not reliably honoured there, so the tab does not close and Safari does
+// not return focus to the results page on its own. Painting real content
+// into it — including a manual close button, which IS a fresh gesture in
+// that window and does get honoured — gives the user a way out instead of a
+// dead end, regardless of whether the timed auto-close below also fires.
+function paintDownloadPopup(win: Window, bodyHtml: string) {
+  try {
+    win.document.body.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fafafa;color:#18181b;"><div style="max-width:320px;text-align:center;">${bodyHtml}</div></div>`;
+  } catch {
+    /* window already closed or otherwise inaccessible — nothing to paint */
+  }
+}
+
 export default function ResultsPage() {
   const t = useTranslations('results');
   const tc = useTranslations('common');
@@ -168,6 +185,12 @@ export default function ResultsPage() {
     const ua = classifyUserAgent(navigator.userAgent);
     const isWebKit = ua.os_family === 'ios' || ua.browser_family === 'safari';
     const downloadWindow = isWebKit ? window.open('', '_blank') : null;
+    if (downloadWindow) {
+      paintDownloadPopup(
+        downloadWindow,
+        `<div style="font-size:32px;margin-bottom:12px;">⏳</div><p style="font-size:16px;font-weight:600;margin:0;">${t('downloadPopupPreparing')}</p>`
+      );
+    }
     setDownloading(true);
     setSourceIssues(null);
     setDownloadError(null);
@@ -323,12 +346,25 @@ export default function ResultsPage() {
       if (downloadWindow && !downloadWindow.closed) {
         // Still holds the gesture authority from the click — navigating it to
         // the blob now triggers the browser's normal download handling there.
+        // That hand-off doesn't unload the tab's document (a download, unlike
+        // a real navigation, leaves whatever was on screen in place), so the
+        // popup content painted below stays visible afterwards.
         downloadWindow.location.href = url;
+        paintDownloadPopup(
+          downloadWindow,
+          `<div style="font-size:32px;margin-bottom:12px;">✅</div>` +
+            `<p style="font-size:16px;font-weight:600;margin:0 0 8px;">${t('downloadPopupReady')}</p>` +
+            `<p style="font-size:13px;color:#71717a;margin:0 0 20px;">${t('downloadLocationHint')}</p>` +
+            `<a href="${window.location.href}" style="display:inline-block;padding:10px 20px;border-radius:999px;background:#4f46e5;color:#fff;text-decoration:none;font-size:14px;font-weight:600;">${t('downloadPopupBack')}</a>` +
+            `<br/><button onclick="window.close()" style="margin-top:12px;padding:8px 16px;border-radius:999px;border:1px solid #d4d4d8;background:#fff;color:#3f3f46;font-size:13px;">${t('downloadPopupClose')}</button>`
+        );
         // Once a navigation resolves to a download, the browser hands it off
         // to its download manager and detaches it from the tab — closing the
-        // tab after that point doesn't interrupt the transfer, only the now-
-        // empty about:blank page sitting around does any harm. The blob
-        // itself stays alive via the delayed revoke below regardless.
+        // tab after that point doesn't interrupt the transfer. Best-effort
+        // only: reported 2026-08-19, this does not reliably close the tab on
+        // iPhone Safari (a timer isn't a fresh user gesture there), which is
+        // why the painted content above also offers a real close button and
+        // a way back instead of depending on this succeeding.
         setTimeout(() => {
           try {
             downloadWindow.close();
