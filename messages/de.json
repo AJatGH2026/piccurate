@@ -72,6 +72,8 @@
     "title": "Lade deine Reisefotos hoch",
     "dropzone": "Fotos hierher ziehen oder klicken zum Auswählen",
     "dropzoneActive": "Fotos hier ablegen...",
+    "dropzonePending": "Fotos werden geladen…",
+    "dropzonePendingHint": "Bei vielen Fotos (z. B. aus iCloud) kann das eine halbe Minute oder länger dauern.",
     "supported": "Unterstützt JPEG, PNG, HEIC. Bis zu {limit} Fotos.",
     "keepFilesNote": "Lass deine Fotos bitte dort liegen, wo sie sind, bis der Download fertig ist. Wenn du sie zwischendurch verschiebst, umbenennst, löschst oder bearbeitest, kann dein Browser sie nicht mehr lesen — diese Fotos landen dann nur als kleine Vorschau im ZIP.",
     "accountGateTitle": "Zuerst brauchst du ein Konto",
@@ -102,7 +104,7 @@
     "cloudSourceICloud": "iCloud",
     "cloudIntentComingSoon": "in Arbeit — sag uns Bescheid, wenn du das brauchst",
     "cloudIntentThanks": "Danke, notiert! Wir melden uns, sobald es verfügbar ist.",
-    "etaDependencyNote": "Die Upload-Dauer ist abhängig von deiner Internetverbindung und Geräteeigenschaften."
+    "etaDependencyNote": "Die Upload-Dauer hängt von deiner Internetverbindung, deinem Gerät und dem Dateiformat deiner Fotos ab (HEIC dauert länger als JPEG)."
   },
   "criteria": {
     "title": "Auswahlkriterien konfigurieren",
@@ -237,6 +239,7 @@
     "fullResNote": "{count} Fotos in voller Auflösung als ZIP-Archiv",
     "downloadAction": "ZIP herunterladen ({count} Fotos)",
     "downloadLocationHint": "Je nach Gerät landet die Datei im Download-Ordner deines Browsers oder in der Dateien-App (iPhone: Downloads).",
+    "downloadCompleteHint": "Fertig! Je nach Gerät findest du die Datei im Download-Ordner deines Browsers oder in der Dateien-App (iPhone: Downloads).",
     "zipFlat": "Ein Ordner",
     "zipFlatDesc": "Ganzer Zeitraum — ideal fürs Fotobuch",
     "zipByDay": "Pro Tag",

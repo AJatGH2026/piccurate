@@ -10,6 +10,7 @@ import { dominantPlace, placeFolder } from '@/utils/geo';
 // `trackEv` is the separate first-party funnel (Event-Spezifikation.md), always on.
 import { trackEvent, trackAdsConversion } from '@/lib/analytics';
 import { trackEv, mark, msSince } from '@/lib/events-client';
+import { classifyUserAgent } from '@/lib/userAgent';
 import { logBeta } from '@/lib/beta-client';
 import { EmailCapture } from '@/components/beta/EmailCapture';
 import { ResultsFeedback } from '@/components/beta/ResultsFeedback';
@@ -60,6 +61,10 @@ export default function ResultsPage() {
   // in as the 512px preview; `missing` could not be included at all.
   const [sourceIssues, setSourceIssues] = useState<{ degraded: string[]; missing: string[] } | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  // Reported 2026-08-19: on mobile, a completed download is easy to miss (a
+  // sound plays, nothing on screen changes) — this drives a more prominent
+  // confirmation than the small print below the button.
+  const [downloadSucceeded, setDownloadSucceeded] = useState(false);
   // 'flat' = one folder for the whole trip (best for photo-book auto-import);
   // 'byday' = one subfolder per day (best for the user's own organisation).
   const [zipMode, setZipMode] = useState<'flat' | 'byday' | 'byplace'>('flat');
@@ -150,10 +155,23 @@ export default function ResultsPage() {
     // to once it exists. Kept 100% client-side on purpose (§ architecture
     // rule: originals never touch the server) — this only changes *how* the
     // already-built blob reaches the user, not what gets built.
-    const downloadWindow = window.open('', '_blank');
+    //
+    // Only WebKit actually needs this: it's a WebKit gesture-expiry quirk,
+    // not a Safari-branding one — Apple requires every iOS browser (Chrome,
+    // Firefox, ...) to run on WebKit too, so "iOS" is checked directly rather
+    // than trusting the UA's browser label. On desktop, only Safari itself is
+    // WebKit; Chrome/Firefox/Edge there use their own engines and already
+    // honour a plain `a.click()` after the async ZIP build, same as Android.
+    // Reported 2026-08-19: the popup tab was landing on everyone, including
+    // browsers that never had the bug, and sitting there on about:blank
+    // instead of leaving the user on the results page.
+    const ua = classifyUserAgent(navigator.userAgent);
+    const isWebKit = ua.os_family === 'ios' || ua.browser_family === 'safari';
+    const downloadWindow = isWebKit ? window.open('', '_blank') : null;
     setDownloading(true);
     setSourceIssues(null);
     setDownloadError(null);
+    setDownloadSucceeded(false);
     hasActedRef.current = true; // a started download is never an idle exit, success or not
     mark('download_started');
     const selectedMb = selectedPhotos.reduce((sum, p) => sum + (p.originalFile?.size ?? 0), 0) / (1024 * 1024);
@@ -306,6 +324,18 @@ export default function ResultsPage() {
         // Still holds the gesture authority from the click — navigating it to
         // the blob now triggers the browser's normal download handling there.
         downloadWindow.location.href = url;
+        // Once a navigation resolves to a download, the browser hands it off
+        // to its download manager and detaches it from the tab — closing the
+        // tab after that point doesn't interrupt the transfer, only the now-
+        // empty about:blank page sitting around does any harm. The blob
+        // itself stays alive via the delayed revoke below regardless.
+        setTimeout(() => {
+          try {
+            downloadWindow.close();
+          } catch {
+            /* already closed by the user, or by the browser — fine either way */
+          }
+        }, 2000);
       } else {
         // No popup (blocked, or window.open unsupported) — the synchronous
         // click still works on browsers that don't drop gesture authority
@@ -334,6 +364,7 @@ export default function ResultsPage() {
       trackEv('download_completed', locale, { duration_ms: msSince('download_started') });
       trackEv('micro_survey_shown', locale);
       setMicroSurvey('shown');
+      setDownloadSucceeded(true);
     } catch (err) {
       console.error('ZIP creation failed:', err);
       downloadWindow?.close(); // don't leave the reserved tab sitting blank
@@ -546,6 +577,16 @@ export default function ResultsPage() {
               exact folder (that's the browser's call, not this page's), but
               naming the usual place beats saying nothing. */}
           <p className="mt-2 text-center text-xs text-zinc-400">{t('downloadLocationHint')}</p>
+
+          {/* Same information as the small print above, but shown prominently
+              right after a completed download — that small print is easy to
+              have never registered before the click, and by the time the
+              download sound plays, attention has often moved elsewhere. */}
+          {downloadSucceeded && !downloadError && (
+            <p className="mt-3 rounded-xl border border-green-300 bg-green-50 p-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/30 dark:text-green-200">
+              {t('downloadCompleteHint')}
+            </p>
+          )}
 
           {downloadError && (
             <p className="mt-3 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
