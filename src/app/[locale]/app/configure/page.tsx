@@ -18,6 +18,7 @@ import { logBeta } from '@/lib/beta-client';
 import { trackEv, mark, msSince, nextRunIndex, getSessionId, getAbVariant, getCampaign } from '@/lib/events-client';
 import { createClient } from '@/lib/supabase/client';
 import { getTierForPhotoCount, MAX_TIER_PHOTOS } from '@/types/pricing';
+import { estimateRemainingMs, formatEtaDuration } from '@/utils/eta';
 
 const BATCH_SIZE = 20;
 
@@ -44,6 +45,7 @@ export default function ConfigurePage() {
   const supportAddress = locale === 'de' ? 'support@auswahlbuddy.de' : 'support@shortlistbuddy.com';
   const [analyzing, setAnalyzing] = useState(false);
   const [progress, setProgress] = useState('');
+  const [analysisEta, setAnalysisEta] = useState<string | null>(null);
   // Mirrors `analyzing`/batch progress in refs so the pagehide/unmount
   // listener below (registered once) can read the latest values without
   // becoming a dependency of the whole click handler.
@@ -776,6 +778,7 @@ export default function ConfigurePage() {
               analysisProgressRef.current = { done: 0, totalBatches: 0 };
               mark('analysis_started');
               setProgress(t('progressPreparing'));
+              setAnalysisEta(null);
               try {
                 // Custom terms (feature 5a) are tagged DURING analysis, so if the
                 // set of terms changed since the last run, already-analysed photos
@@ -834,6 +837,10 @@ export default function ConfigurePage() {
                 const batchResults: any[][] = new Array(totalBatches);
                 let done = 0;
                 analysisProgressRef.current.totalBatches = totalBatches;
+                // Separate mark from `analysis_started`: that one also covers
+                // job creation, which the batch rate below must not be
+                // diluted by.
+                mark('analysis_batches_started');
                 // Progress checkpoints (§4: "bei 25/50/75%"). Batches can cross
                 // more than one threshold at once (e.g. 2 batches jumps straight
                 // from 0% to 50% to 100%), so each threshold fires at most once,
@@ -901,6 +908,12 @@ export default function ConfigurePage() {
                   done++;
                   analysisProgressRef.current.done = done;
                   setProgress(t('progressAnalysing', { done, total: totalBatches }));
+                  const elapsedMs = msSince('analysis_batches_started');
+                  const remainingMs =
+                    elapsedMs == null
+                      ? null
+                      : estimateRemainingMs(elapsedMs, done, totalBatches - done);
+                  setAnalysisEta(remainingMs == null ? null : formatEtaDuration(remainingMs, tc));
                   const pct = Math.round((done / totalBatches) * 100);
                   for (const threshold of [25, 50, 75] as const) {
                     if (pct >= threshold && !progressFired[threshold]) {
@@ -934,6 +947,7 @@ export default function ConfigurePage() {
                 );
 
                 setProgress(t('progressSelecting'));
+                setAnalysisEta(null);
                 // Only the batches that actually returned count as analysed, and
                 // their photo ids must line up with them — otherwise photos would
                 // be marked "analysed" that the model never saw, and a re-run
@@ -980,6 +994,7 @@ export default function ConfigurePage() {
               } catch (err) {
                 console.error('Analysis failed:', err);
                 setProgress('');
+                setAnalysisEta(null);
                 const message = err instanceof Error ? err.message : String(err);
                 trackEv('analysis_failed', locale, { error_class: classifyAnalysisError(err, message) });
                 alert(t('analysisFailed', { error: message }));
@@ -1001,6 +1016,13 @@ export default function ConfigurePage() {
         </div>
         {progress && (
           <p className="mt-3 text-sm text-indigo-600 text-right animate-pulse">{progress}</p>
+        )}
+        {analyzing && (
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 text-right">
+            {analysisEta ? tc('etaRemaining', { time: analysisEta }) : tc('etaCalculating')}
+            {' — '}
+            {t('analysisEtaDependencyNote')}
+          </p>
         )}
       </main>
     </div>

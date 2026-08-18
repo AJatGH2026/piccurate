@@ -101,7 +101,8 @@
     "cloudSourceOneDrive": "OneDrive",
     "cloudSourceICloud": "iCloud",
     "cloudIntentComingSoon": "in Arbeit — sag uns Bescheid, wenn du das brauchst",
-    "cloudIntentThanks": "Danke, notiert! Wir melden uns, sobald es verfügbar ist."
+    "cloudIntentThanks": "Danke, notiert! Wir melden uns, sobald es verfügbar ist.",
+    "etaDependencyNote": "Die Upload-Dauer ist abhängig von deiner Internetverbindung und Geräteeigenschaften."
   },
   "criteria": {
     "title": "Auswahlkriterien konfigurieren",
@@ -166,6 +167,7 @@
     "personsConfirmRequired": "Bitte zuerst bestätigen.",
     "personsInfoLink": "Hinweise zur Personensuche",
     "confirmRequired": "Bitte Altersbestätigung setzen, um fortzufahren.",
+    "analysisEtaDependencyNote": "Die Analyse-Dauer hängt von der Gesamtzahl deiner Fotos und der Serverlast ab.",
     "dedup": "Duplikaterkennung",
     "dedupDesc": "Wie aggressiv ähnliche Fotos entfernt werden",
     "presets": "Schnellvorlagen",
@@ -307,7 +309,11 @@
     "delete": "Löschen",
     "close": "Schließen",
     "stepOf": "Schritt {current} von {total}",
-    "optional": "optional"
+    "optional": "optional",
+    "etaCalculating": "Restzeit wird berechnet…",
+    "etaRemaining": "noch ca. {time}",
+    "etaSeconds": "{seconds, plural, one {# Sekunde} other {# Sekunden}}",
+    "etaMinutes": "{minutes, plural, one {# Minute} other {# Minuten}}"
   },
   "feedback": {
     "button": "Feedback",

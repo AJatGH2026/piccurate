@@ -101,7 +101,8 @@
     "cloudSourceOneDrive": "OneDrive",
     "cloudSourceICloud": "iCloud",
     "cloudIntentComingSoon": "coming soon — let us know if you need this",
-    "cloudIntentThanks": "Thanks, noted! We'll let you know once it's available."
+    "cloudIntentThanks": "Thanks, noted! We'll let you know once it's available.",
+    "etaDependencyNote": "Upload time depends on your internet connection and device."
   },
   "criteria": {
     "title": "Configure selection criteria",
@@ -166,6 +167,7 @@
     "personsConfirmRequired": "Please confirm first.",
     "personsInfoLink": "Information on the person search",
     "confirmRequired": "Please tick the age confirmation to continue.",
+    "analysisEtaDependencyNote": "Analysis time depends on your total number of photos and server load.",
     "dedup": "Duplicate removal",
     "dedupDesc": "How aggressively to remove similar photos",
     "presets": "Quick presets",
@@ -307,7 +309,11 @@
     "delete": "Delete",
     "close": "Close",
     "stepOf": "Step {current} of {total}",
-    "optional": "optional"
+    "optional": "optional",
+    "etaCalculating": "Estimating time remaining…",
+    "etaRemaining": "about {time} left",
+    "etaSeconds": "{seconds, plural, one {# second} other {# seconds}}",
+    "etaMinutes": "{minutes, plural, one {# minute} other {# minutes}}"
   },
   "feedback": {
     "button": "Feedback",
