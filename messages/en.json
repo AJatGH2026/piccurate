@@ -229,7 +229,7 @@
   "results": {
     "title": "Your curated photos are ready",
     "subtitle": "{count} photos selected from {total}",
-    "aiNotice": "The selection comes from an AI and can make mistakes. Review the result before deleting any originals without a backup of your own.",
+    "aiNotice": "The selection comes from an AI and can make mistakes. Review the result — and do not delete any originals without a backup of your own.",
     "download": "Download ZIP",
     "downloading": "Preparing download...",
     "photobook": "Create a photobook",

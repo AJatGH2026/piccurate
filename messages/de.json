@@ -229,7 +229,7 @@
   "results": {
     "title": "Deine kuratierten Fotos sind bereit",
     "subtitle": "{count} Fotos aus {total} ausgewählt",
-    "aiNotice": "Die Auswahl stammt von einer KI und kann Fehler machen. Prüfe das Ergebnis, bevor du Originale löschst, ohne eine eigene Sicherungskopie zu haben.",
+    "aiNotice": "Die Auswahl stammt von einer KI und kann Fehler machen. Prüfe das Ergebnis — und lösche keine Originale, ohne eine eigene Sicherungskopie zu haben.",
     "download": "ZIP herunterladen",
     "downloading": "Download wird vorbereitet...",
     "photobook": "Fotobuch erstellen",
