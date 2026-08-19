@@ -100,7 +100,7 @@ export function DropZone({ onFiles, maxPhotos, disabled = false }: DropZoneProps
         ${
           isDragging
             ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950'
-            : 'border-zinc-300 hover:border-indigo-400 dark:border-zinc-700 dark:hover:border-indigo-500'
+            : 'border-blue-300 bg-blue-50/70 hover:border-indigo-400 dark:border-blue-700/60 dark:bg-blue-950/20 dark:hover:border-indigo-500'
         }
       `}
     >
