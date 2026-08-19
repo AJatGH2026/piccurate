@@ -31,7 +31,19 @@ import { useParams } from 'next/navigation';
 // dead end, regardless of whether the timed auto-close below also fires.
 function paintDownloadPopup(win: Window, bodyHtml: string) {
   try {
-    win.document.body.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fafafa;color:#18181b;"><div style="max-width:320px;text-align:center;">${bodyHtml}</div></div>`;
+    // Reported 2026-08-19 (as "text too small, have to zoom in"): this
+    // document never got a viewport meta tag, so Safari rendered it at
+    // desktop width and shrank the whole page to fit — no font-size fixes
+    // that alone. Idempotent; body.innerHTML below only replaces <body>, so
+    // this only needs to run once, but checking is cheap and it's called on
+    // every paint.
+    if (!win.document.querySelector('meta[name="viewport"]')) {
+      const meta = win.document.createElement('meta');
+      meta.name = 'viewport';
+      meta.content = 'width=device-width, initial-scale=1';
+      win.document.head.appendChild(meta);
+    }
+    win.document.body.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fafafa;color:#18181b;"><div style="max-width:340px;text-align:center;">${bodyHtml}</div></div>`;
   } catch {
     /* window already closed or otherwise inaccessible — nothing to paint */
   }
@@ -188,7 +200,7 @@ export default function ResultsPage() {
     if (downloadWindow) {
       paintDownloadPopup(
         downloadWindow,
-        `<div style="font-size:48px;margin-bottom:16px;">⏳</div><p style="font-size:20px;font-weight:700;margin:0;">${t('downloadPopupPreparing')}</p>`
+        `<div style="font-size:64px;margin-bottom:20px;">⏳</div><p style="font-size:26px;font-weight:700;margin:0;">${t('downloadPopupPreparing')}</p>`
       );
     }
     setDownloading(true);
@@ -367,11 +379,11 @@ export default function ResultsPage() {
         // this one, never navigating it.
         paintDownloadPopup(
           downloadWindow,
-          `<div style="font-size:48px;margin-bottom:16px;">✅</div>` +
-            `<p style="font-size:20px;font-weight:700;margin:0 0 12px;">${t('downloadPopupReady')}</p>` +
-            `<p style="font-size:15px;line-height:1.5;color:#52525b;margin:0 0 20px;">${t('downloadLocationHint')}</p>` +
-            `<p style="font-size:14px;line-height:1.5;color:#71717a;margin:0 0 24px;">${t('downloadPopupBackHint')}</p>` +
-            `<button onclick="window.close()" style="padding:14px 32px;border-radius:999px;border:none;background:#4f46e5;color:#fff;font-size:16px;font-weight:600;">${t('downloadPopupClose')}</button>`
+          `<div style="font-size:64px;margin-bottom:20px;">✅</div>` +
+            `<p style="font-size:26px;font-weight:700;margin:0 0 16px;">${t('downloadPopupReady')}</p>` +
+            `<p style="font-size:19px;line-height:1.5;color:#52525b;margin:0 0 24px;">${t('downloadLocationHint')}</p>` +
+            `<p style="font-size:17px;line-height:1.5;color:#71717a;margin:0 0 28px;">${t('downloadPopupBackHint')}</p>` +
+            `<button onclick="window.close()" style="padding:18px 40px;border-radius:999px;border:none;background:#4f46e5;color:#fff;font-size:20px;font-weight:600;">${t('downloadPopupClose')}</button>`
         );
         // Once a click resolves to a download, the browser hands it off to
         // its download manager and detaches it from the tab — closing the
