@@ -452,12 +452,15 @@ export default function ResultsPage() {
     // Same fix as the ZIP download's popup further up this file: open blank,
     // in-gesture, hand it down so the real auth URL can navigate it once ready.
     //
-    // No `width=`/`height=` features string — reported again 2026-08-19,
-    // still blocked on iPhone Safari even with the open call moved to be
-    // synchronous. The ZIP download's popup (`window.open('', '_blank')`, no
-    // features) already works reliably on the same device; requesting a
-    // sized, chrome-less window is the one thing this call did differently.
-    const popup = window.open('', 'piccurate-oauth');
+    // Target is `_blank`, not a custom name — reported a THIRD time
+    // 2026-08-19, still blocked after both the synchronous-open fix and
+    // dropping the width=/height= features string. The ZIP download's popup
+    // — `window.open('', '_blank')` — is the only one of the two that has
+    // ever worked on the reporting device, and the target name is now the
+    // only remaining difference between the two calls. Trades away a custom
+    // name's one benefit (a second click re-focusing the same window instead
+    // of opening a new one) for actually working.
+    const popup = window.open('', '_blank');
     setCloudBusy(true);
     setCloudStatus(null);
     try {

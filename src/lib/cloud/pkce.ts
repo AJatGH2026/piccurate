@@ -41,18 +41,20 @@ export function randomState(): string {
  * did just click a button. Passing an already-open window sidesteps that —
  * same fix as the ZIP download's popup in app/results/page.tsx.
  *
- * No `width=`/`height=` window-features string, even in this fallback path —
- * reported again 2026-08-19, still blocked on iPhone Safari even once the
- * open call was moved to be the very first synchronous statement at click
- * time. The ZIP download's popup (`window.open('', '_blank')`, no features)
- * has worked reliably on the same device; a features string is what actually
- * asks for special chrome-less window treatment, and that combination is the
- * one thing this call did differently. The window is still small on desktop
- * by default; it just isn't forced to a fixed size any more.
+ * Target is `_blank`, not a custom name, even in this fallback path —
+ * reported a THIRD time 2026-08-19 (still blocked on iPhone Safari after
+ * both the synchronous-open fix and dropping the width=/height= features
+ * string). The ZIP download's popup — `window.open('', '_blank')`, target
+ * `_blank`, no features — is the only one of the two that has ever actually
+ * worked on the reporting device, and by this point the target name is the
+ * only argument still different between the two calls. `_blank` gives up
+ * the one thing a custom name bought (a second click re-focusing the same
+ * window instead of opening a new one) — worth it if that is what iOS
+ * Safari's popup blocker keys on.
  */
 export function popupOAuth(authUrl: string, expectedState: string, popup?: Window | null): Promise<string> {
   return new Promise((resolve, reject) => {
-    const win = popup ?? window.open('', 'piccurate-oauth');
+    const win = popup ?? window.open('', '_blank');
     if (!win) {
       reject(new Error('Popup blocked — please allow popups and try again.'));
       return;
