@@ -6,7 +6,10 @@
 //
 // Design:
 // - Lazy singleton: the model (~tens of MB, browser-cached) loads only on first
-//   use. WebGPU when available, else WASM.
+//   use. WASM only — see utils/faceDetection.ts for why "WebGPU when
+//   available" was dropped there (reported 2026-08-19) and here for
+//   consistency, since this shares the exact same session-creation pattern
+//   and the same soft-failure design that would hide the same kind of break.
 // - Serialised: inferences run one at a time — and, since 2026-08-14, against
 //   YuNet and FaceNet too, not just against itself (utils/inferenceSerializer.ts).
 // - Graceful: any failure returns null; series detection then falls back to
@@ -26,11 +29,9 @@ async function getExtractor(): Promise<Extractor | null> {
   extractorPromise = (async () => {
     try {
       const { pipeline } = await import('@huggingface/transformers');
-      const device =
-        typeof navigator !== 'undefined' && 'gpu' in navigator ? 'webgpu' : 'wasm';
       const pipe = await pipeline('image-feature-extraction', 'Xenova/clip-vit-base-patch32', {
         dtype: 'q8', // quantized → smaller download, faster
-        device,
+        device: 'wasm',
       });
       return pipe as unknown as Extractor;
     } catch (err) {

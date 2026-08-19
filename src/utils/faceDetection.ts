@@ -4,10 +4,18 @@
 // the point of the feature, not an optimisation. See
 // docs/legal/personensuche-umsetzungsplan.md § 3 (Architekturregeln) and § 5.4.
 //
-// Design mirrors utils/embedding.ts: lazy singleton, WebGPU when available else
-// WASM, serialised inference, and a soft failure that returns an empty result
-// instead of throwing — a person search that cannot start must not break the
-// normal photo analysis.
+// Design mirrors utils/embedding.ts: lazy singleton, serialised inference, and
+// a soft failure that returns an empty result instead of throwing — a person
+// search that cannot start must not break the normal photo analysis.
+//
+// WASM only, not "WebGPU when available" — reported 2026-08-19: a reference
+// photo that should trivially detect (clear, frontal, well-lit) silently
+// found nothing, on a device where the same feature had worked before. The
+// onnxruntime-web WebGPU execution provider is far less mature than WASM for
+// a custom exported graph like this one; unlike a slow path, a broken one
+// degrades in total silence (the soft-failure design above catches it and
+// just returns []), which is exactly what makes it worth not risking for a
+// single reference-photo inference where WASM's speed is already a non-issue.
 //
 // Model: YuNet 2023mar re-exported with dynamic input dims (2026may),
 // MIT-licensed, self-hosted under /models/yunet. Weights and provenance:
@@ -67,9 +75,8 @@ async function getSession(): Promise<InferenceSession | null> {
   sessionPromise = (async () => {
     try {
       const ort = await getOrt();
-      const providers =
-        typeof navigator !== 'undefined' && 'gpu' in navigator ? ['webgpu', 'wasm'] : ['wasm'];
-      return await ort.InferenceSession.create(MODEL_URL, { executionProviders: providers });
+      // WASM only, deliberately — see the note at the top of the file.
+      return await ort.InferenceSession.create(MODEL_URL, { executionProviders: ['wasm'] });
     } catch (err) {
       console.warn('[faceDetection] model load failed — person search unavailable:', err);
       return null;

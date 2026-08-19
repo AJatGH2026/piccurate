@@ -40,9 +40,9 @@ async function getSession(): Promise<InferenceSession | null> {
   sessionPromise = (async () => {
     try {
       const ort = await getOrt();
-      const providers =
-        typeof navigator !== 'undefined' && 'gpu' in navigator ? ['webgpu', 'wasm'] : ['wasm'];
-      return await ort.InferenceSession.create(MODEL_URL, { executionProviders: providers });
+      // WASM only, deliberately — see the note in faceDetection.ts (same
+      // reported regression, same shared session-creation pattern).
+      return await ort.InferenceSession.create(MODEL_URL, { executionProviders: ['wasm'] });
     } catch (err) {
       console.warn('[faceEmbedding] model load failed — person search unavailable:', err);
       return null;
