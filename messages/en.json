@@ -155,7 +155,7 @@
     "personModeInclude": "With",
     "personModeExclude": "Without",
     "personFilterActive": "Exclusion filter active — photos with {name} are always removed, regardless of other criteria.",
-    "aiNotice": "Note: ShortlistBuddy uses artificial intelligence to create a non-binding selection proposal. Reduced previews are sent to Google Gemini for analysis, together with the capture date, camera model and — where the photo contains one — the location as a GPS coordinate rounded to about one kilometre, from which the AI derives the place name. Google may retain transmitted data and outputs for abuse monitoring for up to 55 days. Please review the result and keep your originals separately.",
+    "aiNotice": "Note: ShortlistBuddy uses AI and makes a non-binding selection proposal — please review the result. For the analysis, reduced previews and a little metadata go to Google Gemini, including — where the photo has one — a coarsely rounded capture location. Details in the",
     "tooManyForAnyTier": "More than {max} photos cannot be processed in one run yet. Drop us a line at {email} — at these volumes we will find a way.",
     "accountRequired": "You need an account to run an analysis — including on the free plan. Please log in or sign up; you can carry on here afterwards.",
     "jobCreateFailed": "The analysis could not be started — that is on us, not on your photos. Please try again in a moment. If it keeps happening, drop us a line and we will check the logs.",
@@ -196,7 +196,8 @@
     "personThresholdStrict": "strict",
     "personThresholdLoose": "generous",
     "personThresholdHint": "Applies to all your reference persons together — how closely a face must match to count as a hit at all. Strict: fewer photos are found, but the matches are usually right. Generous: more photos are found, but more of them are wrong.",
-    "personWeightHint": "How strongly photos with {name} are favoured in the selection — regardless of whether or how confidently the face was recognised. You set that below, for all persons together."
+    "personWeightHint": "How strongly photos with {name} are favoured in the selection — regardless of whether or how confidently the face was recognised. You set that below, for all persons together.",
+    "aiNoticePrivacy": "Privacy Policy"
   },
   "review": {
     "title": "Review your selection",
@@ -228,7 +229,7 @@
   "results": {
     "title": "Your curated photos are ready",
     "subtitle": "{count} photos selected from {total}",
-    "aiNotice": "This selection was created with AI assistance and is a non-binding proposal.",
+    "aiNotice": "The selection comes from an AI and can make mistakes. Review the result before deleting any originals without a backup of your own.",
     "download": "Download ZIP",
     "downloading": "Preparing download...",
     "photobook": "Create a photobook",

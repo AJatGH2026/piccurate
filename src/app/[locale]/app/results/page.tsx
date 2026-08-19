@@ -525,8 +525,11 @@ export default function ResultsPage() {
           <p className="mt-2 text-zinc-500">
             {t('subtitle', { count: selectedCount, total: totalCount })}
           </p>
-          {/* A4 (AI Act): the selection is AI-generated — say so in the result. */}
-          <p className="mt-2 text-xs text-zinc-400">{t('aiNotice')}</p>
+          {/* The selection is AI-generated, and this is also where the backup
+              warning belongs: the download is where tidying up starts to look
+              tempting. zinc-400 at 12px sat around 2.6:1 on white — legible
+              enough for a footnote, not for the line that backs terms § 12. */}
+          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t('aiNotice')}</p>
         </div>
 
         {/* Selected photo preview */}

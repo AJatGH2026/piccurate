@@ -155,7 +155,7 @@
     "personModeInclude": "Mit",
     "personModeExclude": "Ohne",
     "personFilterActive": "Ausschluss-Filter aktiv — Fotos mit {name} werden immer entfernt, unabhängig von anderen Kriterien.",
-    "aiNotice": "Hinweis: AuswahlBuddy nutzt künstliche Intelligenz und erstellt einen unverbindlichen Auswahlvorschlag. Zur Analyse werden verkleinerte Vorschaubilder an Google Gemini übermittelt, dazu Aufnahmedatum, Kameramodell und — falls im Foto vorhanden — der Aufnahmeort als auf etwa einen Kilometer gerundete GPS-Koordinate, aus der die KI den Ortsnamen ableitet. Google kann übermittelte Daten und Antworten zur Missbrauchskontrolle bis zu 55 Tage aufbewahren. Bitte prüfe das Ergebnis und bewahre deine Originale separat auf.",
+    "aiNotice": "Hinweis: AuswahlBuddy nutzt KI und macht einen unverbindlichen Auswahlvorschlag — bitte prüfe das Ergebnis. Für die Analyse gehen verkleinerte Vorschaubilder und wenige Metadaten an Google Gemini, darunter — falls im Foto vorhanden — ein grob gerundeter Aufnahmeort. Einzelheiten im",
     "tooManyForAnyTier": "Mehr als {max} Fotos lassen sich derzeit nicht in einem Durchgang verarbeiten. Schreib uns kurz an {email} — bei solchen Mengen finden wir eine Lösung für dich.",
     "accountRequired": "Für die Analyse brauchst du ein Konto — auch im kostenlosen Tarif. Bitte melde dich an oder registriere dich; danach kannst du hier weitermachen.",
     "jobCreateFailed": "Die Analyse konnte nicht gestartet werden — das liegt an uns, nicht an deinen Fotos. Bitte versuch es in einem Moment noch einmal. Bleibt es dabei, schreib uns kurz; wir sehen dann im Protokoll nach.",
@@ -196,7 +196,8 @@
     "personThresholdStrict": "streng",
     "personThresholdLoose": "großzügig",
     "personThresholdHint": "Gilt für alle hinterlegten Personen gemeinsam — wie genau ein Gesicht erkannt werden muss, um überhaupt als Treffer zu zählen. Streng: weniger Fotos werden gefunden, dafür stimmen die Treffer meistens. Großzügig: mehr Fotos werden gefunden, dafür sind mehr falsche dabei.",
-    "personWeightHint": "Wie stark Fotos mit {name} in der Auswahl bevorzugt werden — unabhängig davon, ob und wie genau das Gesicht erkannt wurde. Das stellst du weiter unten für alle Personen gemeinsam ein."
+    "personWeightHint": "Wie stark Fotos mit {name} in der Auswahl bevorzugt werden — unabhängig davon, ob und wie genau das Gesicht erkannt wurde. Das stellst du weiter unten für alle Personen gemeinsam ein.",
+    "aiNoticePrivacy": "Datenschutz"
   },
   "review": {
     "title": "Deine Auswahl prüfen",
@@ -228,7 +229,7 @@
   "results": {
     "title": "Deine kuratierten Fotos sind bereit",
     "subtitle": "{count} Fotos aus {total} ausgewählt",
-    "aiNotice": "Diese Auswahl wurde KI-gestützt erstellt und ist ein unverbindlicher Vorschlag.",
+    "aiNotice": "Die Auswahl stammt von einer KI und kann Fehler machen. Prüfe das Ergebnis, bevor du Originale löschst, ohne eine eigene Sicherungskopie zu haben.",
     "download": "ZIP herunterladen",
     "downloading": "Download wird vorbereitet...",
     "photobook": "Fotobuch erstellen",

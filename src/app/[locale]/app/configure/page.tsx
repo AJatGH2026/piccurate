@@ -715,9 +715,25 @@ export default function ConfigurePage() {
           {selectionMode}
         </div>
 
-        {/* A4 (AI Act): transparency notice directly before starting analysis. */}
+        {/* Transparency notice directly before starting the analysis.
+
+            Deliberately short. Recipient, third country and retention are Art. 13
+            GDPR material and are discharged by the privacy policy — repeating
+            them here bought nothing and cost readability, which Art. 12 (1)
+            actually asks for. What stays is what this spot can act on: that the
+            proposal is non-binding (the product-side counterpart to terms § 11,
+            keeping selection quality out of a Beschaffenheitsvereinbarung) and
+            that a coarse capture location leaves the device — the one fact a
+            user would not guess, and the one we rely on without a consent UI.
+            The rest is one click away, in a modal so the flow is not lost. */}
         <div className="mt-4 p-3 rounded-xl bg-zinc-100 text-zinc-600 text-xs dark:bg-zinc-800 dark:text-zinc-300">
-          {t('aiNotice')}
+          {t('aiNotice')}{' '}
+          <LegalModal
+            href={`/${locale}/privacy`}
+            label={t('aiNoticePrivacy')}
+            linkClassName="underline hover:text-indigo-600"
+          />
+          .
         </div>
 
         {/* The § 312f confirmation goes out the moment the analysis starts. Say
