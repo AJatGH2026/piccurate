@@ -443,6 +443,15 @@ export default function ResultsPage() {
   };
 
   const saveToCloud = async (provider: CloudProvider) => {
+    // Open the OAuth popup SYNCHRONOUSLY, in the same tick as the click —
+    // before any `await` below. Reported 2026-08-19: "Popup blocked" on
+    // mobile, because window.open() previously happened deep inside
+    // popupOAuth() — after this function's own async file-reading loop AND
+    // the PKCE challenge (an async crypto.subtle.digest) — several awaits
+    // past the point mobile browsers still treat it as gesture-authorised.
+    // Same fix as the ZIP download's popup further up this file: open blank,
+    // in-gesture, hand it down so the real auth URL can navigate it once ready.
+    const popup = window.open('', 'piccurate-oauth', 'width=520,height=660');
     setCloudBusy(true);
     setCloudStatus(null);
     try {
@@ -477,15 +486,19 @@ export default function ResultsPage() {
         files.push({ name: photo.filename, blob: source });
       }
       if (files.length === 0) {
+        popup?.close(); // nothing to upload, so no OAuth needed either
         setCloudStatus(t('sourceAllGone'));
         return;
       }
-      const res = await provider.uploadSelection(files, (p) =>
-        setCloudStatus(t('cloudUploading', { provider: provider.label, done: p.done, total: p.total }))
+      const res = await provider.uploadSelection(
+        files,
+        (p) => setCloudStatus(t('cloudUploading', { provider: provider.label, done: p.done, total: p.total })),
+        popup
       );
       setCloudStatus(t('cloudDone', { count: res.uploaded, folder: res.folderName }));
       if (degraded.length > 0 || missing.length > 0) setSourceIssues({ degraded, missing });
     } catch (err) {
+      popup?.close(); // leftover if the error happened before uploadSelection took it over
       setCloudStatus(t('cloudFailed', { error: err instanceof Error ? err.message : 'Unknown error' }));
     } finally {
       setCloudBusy(false);

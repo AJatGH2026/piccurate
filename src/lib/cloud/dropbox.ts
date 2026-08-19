@@ -51,7 +51,7 @@ function apiArg(obj: unknown): string {
 }
 
 /** OAuth (popup, PKCE) for the given space-separated scope string. Returns an access token. */
-export async function dropboxAuth(scope: string): Promise<string> {
+export async function dropboxAuth(scope: string, popup?: Window | null): Promise<string> {
   const { verifier, challenge } = await createPkce();
   const state = randomState();
   const authUrl =
@@ -72,7 +72,7 @@ export async function dropboxAuth(scope: string): Promise<string> {
       // tedious for the developer/tester.
     }).toString();
 
-  const code = await popupOAuth(authUrl, state);
+  const code = await popupOAuth(authUrl, state, popup);
 
   const res = await fetch(TOKEN, {
     method: 'POST',
@@ -217,8 +217,8 @@ export const dropbox: CloudProvider = {
   isConfigured() {
     return dropboxConfigured();
   },
-  async uploadSelection(files: CloudFile[], onProgress?: (p: CloudProgress) => void) {
-    const token = await dropboxAuth(DROPBOX_WRITE_SCOPE);
+  async uploadSelection(files: CloudFile[], onProgress?: (p: CloudProgress) => void, popup?: Window | null) {
+    const token = await dropboxAuth(DROPBOX_WRITE_SCOPE, popup);
     let done = 0;
     const failures: { name: string; reason: string }[] = [];
     // Serial: parallel uploads previously caused "Failed to fetch" across

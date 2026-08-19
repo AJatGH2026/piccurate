@@ -19,10 +19,20 @@ export interface CloudProvider {
   label: string;
   /** True when the provider's OAuth app key is configured (env). */
   isConfigured(): boolean;
-  /** OAuth (popup) + upload all files into the selection folder. Returns the folder name and count. */
+  /**
+   * OAuth (popup) + upload all files into the selection folder. Returns the
+   * folder name and count.
+   *
+   * `popup`, if passed, is an already-open blank window to reuse for the
+   * OAuth step instead of opening one internally — the caller opens it
+   * synchronously in the same tick as the triggering click, before any
+   * `await` (including this function's own file-reading work) has a chance
+   * to cost the click its gesture authority on mobile. See pkce.ts.
+   */
   uploadSelection(
     files: CloudFile[],
-    onProgress?: (p: CloudProgress) => void
+    onProgress?: (p: CloudProgress) => void,
+    popup?: Window | null
   ): Promise<{ folderName: string; uploaded: number }>;
 }
 

@@ -24,7 +24,7 @@ function redirectUri(): string {
 const encPath = (p: string) => p.split('/').map(encodeURIComponent).join('/');
 const itemPath = (name: string) => `${GRAPH}/me/drive/root:/${encPath(SELECTION_FOLDER)}/${encodeURIComponent(name)}:`;
 
-async function getToken(): Promise<string> {
+async function getToken(popup?: Window | null): Promise<string> {
   const { verifier, challenge } = await createPkce();
   const state = randomState();
   const authUrl =
@@ -40,7 +40,7 @@ async function getToken(): Promise<string> {
       state,
     }).toString();
 
-  const code = await popupOAuth(authUrl, state);
+  const code = await popupOAuth(authUrl, state, popup);
 
   const res = await fetch(`${AUTH}/token`, {
     method: 'POST',
@@ -96,8 +96,8 @@ export const oneDrive: CloudProvider = {
   isConfigured() {
     return !!CLIENT_ID;
   },
-  async uploadSelection(files: CloudFile[], onProgress?: (p: CloudProgress) => void) {
-    const token = await getToken();
+  async uploadSelection(files: CloudFile[], onProgress?: (p: CloudProgress) => void, popup?: Window | null) {
+    const token = await getToken(popup);
     let done = 0;
     for (const f of files) {
       onProgress?.({ done, total: files.length, current: f.name });

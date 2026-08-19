@@ -28,21 +28,33 @@ export function randomState(): string {
   return randomB64(16);
 }
 
-/** Opens authUrl in a popup; resolves with the authorization code once the
- *  callback posts it back (matching state). Rejects on mismatch, error, or close. */
-export function popupOAuth(authUrl: string, expectedState: string): Promise<string> {
+/**
+ * Opens authUrl in a popup; resolves with the authorization code once the
+ * callback posts it back (matching state). Rejects on mismatch, error, or close.
+ *
+ * `popup`, if passed, must already be open (see the callers in dropbox.ts /
+ * onedrive.ts) — reported 2026-08-19: opening it HERE, after the PKCE
+ * challenge is computed (an async crypto.subtle.digest) and after the
+ * caller's own async file-reading work, put it too many awaits past the
+ * original click for mobile browsers to still treat it as gesture-authorised,
+ * so window.open returned null ("Popup blocked") even though the user really
+ * did just click a button. Passing an already-open window sidesteps that —
+ * same fix as the ZIP download's popup in app/results/page.tsx.
+ */
+export function popupOAuth(authUrl: string, expectedState: string, popup?: Window | null): Promise<string> {
   return new Promise((resolve, reject) => {
-    const popup = window.open(authUrl, 'piccurate-oauth', 'width=520,height=660');
-    if (!popup) {
+    const win = popup ?? window.open('', 'piccurate-oauth', 'width=520,height=660');
+    if (!win) {
       reject(new Error('Popup blocked — please allow popups and try again.'));
       return;
     }
+    win.location.href = authUrl;
     let settled = false;
     const cleanup = () => {
       settled = true;
       window.removeEventListener('message', onMsg);
       clearInterval(timer);
-      try { popup.close(); } catch { /* ignore */ }
+      try { win.close(); } catch { /* ignore */ }
     };
     const onMsg = (e: MessageEvent) => {
       if (e.origin !== window.location.origin) return;
@@ -53,7 +65,7 @@ export function popupOAuth(authUrl: string, expectedState: string): Promise<stri
       if (d.code) { cleanup(); resolve(d.code); }
     };
     const timer = setInterval(() => {
-      if (popup.closed && !settled) { cleanup(); reject(new Error('Authentication cancelled.')); }
+      if (win.closed && !settled) { cleanup(); reject(new Error('Authentication cancelled.')); }
     }, 500);
     window.addEventListener('message', onMsg);
   });
