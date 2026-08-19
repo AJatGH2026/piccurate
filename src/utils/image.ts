@@ -181,22 +181,33 @@ export async function convertHEICtoJPEG(
     : thumbnail
       ? '/api/convert?thumbnail=1'
       : '/api/convert?thumbnail=0';
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': file.type || 'image/heic' },
-    body: file,
-  });
+  // The server hop is an optimisation, never a requirement: the browser decoder
+  // below handles any HEIC on its own, in pure WASM with no native dependency.
+  // So every server failure falls back instead of failing the photo — a broken
+  // or missing libvips/sharp binary, a cold start, a network blip, a 413 from
+  // the body cap. Only 413 used to fall back, which is why a server that could
+  // not load sharp turned into dead photos carrying a raw module error.
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': file.type || 'image/heic' },
+      body: file,
+    });
+  } catch {
+    return convertHEICInBrowser(file, thumbnail, opts);
+  }
 
   if (!response.ok) {
-    // 413 = Vercel's body limit hit us anyway (unlikely at this point since
-    // we pre-checked, but small margin errors happen). Fall back to browser.
-    if (response.status === 413) return convertHEICInBrowser(file, thumbnail, opts);
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(`HEIC conversion failed: ${err.error || response.statusText}`);
+    console.warn(
+      `[HEIC] server conversion failed (${response.status}) — decoding in the browser instead.`
+    );
+    return convertHEICInBrowser(file, thumbnail, opts);
   }
 
   const blob = await response.blob();
-  if (blob.size === 0) throw new Error('HEIC conversion produced empty result');
+  // An empty body is a failed conversion too, and just as recoverable.
+  if (blob.size === 0) return convertHEICInBrowser(file, thumbnail, opts);
   return blob;
 }
 

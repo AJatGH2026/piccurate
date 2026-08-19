@@ -59,11 +59,20 @@ export function PhotoCard({ photo, onRemove }: PhotoCardProps) {
         </div>
       )}
 
-      {/* Error overlay */}
+      {/* Error overlay.
+
+          The tile is roughly 95 px wide, so it can hold a symbol and not much
+          else. It used to render `photo.error` verbatim: a decoder failure
+          filled the square edge to edge with unreadable red text and made the
+          whole grid look broken. The full message stays reachable through the
+          tooltip, where length costs nothing. */}
       {photo.status === 'error' && (
-        <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
-          <span className="text-xs text-red-700 bg-white/80 px-2 py-1 rounded">
-            {photo.error || 'Error'}
+        <div
+          className="absolute inset-0 bg-red-500/20 flex items-center justify-center"
+          title={photo.error || undefined}
+        >
+          <span className="rounded bg-white/85 px-2 py-1 text-xs font-medium text-red-700">
+            !
           </span>
         </div>
       )}

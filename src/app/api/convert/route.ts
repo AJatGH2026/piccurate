@@ -238,10 +238,12 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (err) {
+    // The detail belongs in the server log, not in the response. Handing the
+    // raw message back put module paths and an "npm install --include=optional
+    // sharp" instruction into a photo tile the moment sharp failed to load. The
+    // client treats every failure here the same way — it re-decodes in the
+    // browser — so it has no use for the text either.
     console.error('[Convert] HEIC conversion failed:', err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Conversion failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Conversion failed' }, { status: 500 });
   }
 }
