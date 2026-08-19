@@ -40,10 +40,19 @@ export function randomState(): string {
  * so window.open returned null ("Popup blocked") even though the user really
  * did just click a button. Passing an already-open window sidesteps that —
  * same fix as the ZIP download's popup in app/results/page.tsx.
+ *
+ * No `width=`/`height=` window-features string, even in this fallback path —
+ * reported again 2026-08-19, still blocked on iPhone Safari even once the
+ * open call was moved to be the very first synchronous statement at click
+ * time. The ZIP download's popup (`window.open('', '_blank')`, no features)
+ * has worked reliably on the same device; a features string is what actually
+ * asks for special chrome-less window treatment, and that combination is the
+ * one thing this call did differently. The window is still small on desktop
+ * by default; it just isn't forced to a fixed size any more.
  */
 export function popupOAuth(authUrl: string, expectedState: string, popup?: Window | null): Promise<string> {
   return new Promise((resolve, reject) => {
-    const win = popup ?? window.open('', 'piccurate-oauth', 'width=520,height=660');
+    const win = popup ?? window.open('', 'piccurate-oauth');
     if (!win) {
       reject(new Error('Popup blocked — please allow popups and try again.'));
       return;

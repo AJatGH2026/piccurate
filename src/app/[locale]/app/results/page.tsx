@@ -451,7 +451,13 @@ export default function ResultsPage() {
     // past the point mobile browsers still treat it as gesture-authorised.
     // Same fix as the ZIP download's popup further up this file: open blank,
     // in-gesture, hand it down so the real auth URL can navigate it once ready.
-    const popup = window.open('', 'piccurate-oauth', 'width=520,height=660');
+    //
+    // No `width=`/`height=` features string — reported again 2026-08-19,
+    // still blocked on iPhone Safari even with the open call moved to be
+    // synchronous. The ZIP download's popup (`window.open('', '_blank')`, no
+    // features) already works reliably on the same device; requesting a
+    // sized, chrome-less window is the one thing this call did differently.
+    const popup = window.open('', 'piccurate-oauth');
     setCloudBusy(true);
     setCloudStatus(null);
     try {
