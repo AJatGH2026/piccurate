@@ -56,6 +56,19 @@ export interface ProcessedPhoto {
 
 interface PhotoStore {
   photos: ProcessedPhoto[];
+  /**
+   * The analysis job currently in progress for this photo set, if any —
+   * reused across a retry (partial batch failure, a later "catch up on the
+   * rest" visit to /configure) instead of creating and — once paid tiers are
+   * live — paying for a new one just to finish the same run. Reset whenever
+   * the photo set itself changes (`setPhotosFromUpload`, `clear`), since a
+   * job belongs to the photos it was created for. Server-side, the same job
+   * id can already accept multiple analyze-demo calls (photo_count
+   * accumulates, the tier limit is re-checked each time) — this only makes
+   * the client actually reuse it instead of abandoning it on every retry.
+   */
+  activeJobId: string | null;
+  setActiveJobId: (jobId: string | null) => void;
   /** Custom terms present at the last analysis (to detect when re-analysis is needed). */
   analyzedCustomTerms: string[];
   /**
@@ -590,6 +603,8 @@ function runSelection(
 
 export const usePhotoStore = create<PhotoStore>((set, get) => ({
   photos: [],
+  activeJobId: null,
+  setActiveJobId: (jobId) => set({ activeJobId: jobId }),
   analyzedCustomTerms: [],
   persons: [],
   analyzedPersons: [],
@@ -673,6 +688,10 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
     // (network-bound) AI analysis. That independence is the point of § 2.3.
     set((state) => ({
       photos: applyLocalPersonMatches(processed, state.persons, state.personThreshold),
+      // A new photo set needs its own job — the previous one (if any) was
+      // sized and, once paid tiers are live, paid for a different set of
+      // photos, so it must not be reused for this one.
+      activeJobId: null,
     }));
   },
 
@@ -840,6 +859,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
     for (const p of persons) URL.revokeObjectURL(p.thumbnailUrl);
     set({
       photos: [],
+      activeJobId: null,
       persons: [],
       analyzedCustomTerms: [],
       analyzedPersons: [],

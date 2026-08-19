@@ -71,6 +71,8 @@ export default function ConfigurePage() {
     delete sliderStartRef.current[criterion];
   };
   const photos = usePhotoStore((s) => s.photos);
+  const activeJobId = usePhotoStore((s) => s.activeJobId);
+  const setActiveJobId = usePhotoStore((s) => s.setActiveJobId);
   const applyAnalysisResults = usePhotoStore((s) => s.applyAnalysisResults);
   const rerunSelection = usePhotoStore((s) => s.rerunSelection);
   const analyzedCustomTerms = usePhotoStore((s) => s.analyzedCustomTerms);
@@ -838,12 +840,29 @@ export default function ConfigurePage() {
 
                 trackEv('analysis_started', locale, { photo_count: toAnalyze.length });
 
-                // One job per analysis run — the server enforces the tier's photo
-                // limit and the once-per-user free tier against it. Created here,
-                // as late as possible: the anonymous auth user is only minted when
-                // someone actually analyses, so crawlers never create accounts
-                // (they would count towards Supabase's monthly active users).
-                const jobId = await ensureJob(toAnalyze.length);
+                // One job per photo set, reused across a retry — not one job per
+                // analysis attempt. Reported 2026-08-19: a batch failure (network
+                // blip, say) used to strand the photos that DID succeed in a job
+                // that clicking "Analysieren" again then abandoned for a brand new
+                // one — harmless today (the beta is free), but once paid tiers are
+                // live that would charge a second time just to finish a single
+                // interrupted run, including the "come back later for the rest"
+                // case the partial-failure message already promises. Held in the
+                // photo store (not a page-local ref) specifically so it survives
+                // leaving /configure for /review and coming back — it's reset only
+                // when the photo set itself changes (setPhotosFromUpload / clear in
+                // usePhotoStore.ts), since a job belongs to the photos it was
+                // created for. Reusing costs nothing extra: /api/analyze-demo
+                // already accumulates photo_count across calls against the same job
+                // id and re-checks the tier's limit on every one, so a job that
+                // still has room just keeps going; one that doesn't fails that
+                // batch with a readable "reached its photo limit" error, same as
+                // any other batch failure. Created as late as possible on the FIRST
+                // call: the anonymous auth user is only minted when someone
+                // actually analyses, so crawlers never create accounts (they would
+                // count towards Supabase's monthly active users).
+                const jobId = activeJobId ?? (await ensureJob(toAnalyze.length));
+                setActiveJobId(jobId);
 
                 // Split into batches, then analyse them with bounded concurrency
                 // (parallel requests are ~3-5x faster than sequential). Results map
