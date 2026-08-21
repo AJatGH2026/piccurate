@@ -120,6 +120,11 @@ export interface EventSignals {
     downloadCompletedPerResultsShown: number | null;
   };
   byDeviceClass: Record<string, { demo_start: number; files_selected: number }>;
+  // Keyed by `traffic_source > campaign` (e.g. "google > beta26_su_kern"),
+  // "(none)" when a UTM param was absent — the only way to answer "is any
+  // recorded session actually attributed to a paid campaign" without a raw
+  // Redis read, which the campaign owner's own tooling can't do directly.
+  byCampaign: Record<string, { landing_view: number; demo_start: number }>;
   daysRead: number;
 }
 
@@ -138,6 +143,7 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
     totals: [],
     ratios: { filesSelectedPerDemoStart: null, downloadCompletedPerResultsShown: null },
     byDeviceClass: {},
+    byCampaign: {},
     daysRead: 0,
   };
   if (!r) return empty;
@@ -162,12 +168,18 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
 
     const counts = new Map<string, number>();
     const byDevice: Record<string, { demo_start: number; files_selected: number }> = {};
+    const byCampaign: Record<string, { landing_view: number; demo_start: number }> = {};
     for (const e of events) {
       counts.set(e.name, (counts.get(e.name) || 0) + 1);
       if (e.name === 'demo_start' || e.name === 'files_selected') {
         const dc = e.device_class || 'other';
         byDevice[dc] ??= { demo_start: 0, files_selected: 0 };
         byDevice[dc][e.name]++;
+      }
+      if (e.name === 'landing_view' || e.name === 'demo_start') {
+        const key = e.traffic_source ? `${e.traffic_source} > ${e.campaign || '(kein campaign-Wert)'}` : '(none)';
+        byCampaign[key] ??= { landing_view: 0, demo_start: 0 };
+        byCampaign[key][e.name]++;
       }
     }
 
@@ -185,6 +197,7 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
         downloadCompletedPerResultsShown: resultsShown > 0 ? downloadCompleted / resultsShown : null,
       },
       byDeviceClass: byDevice,
+      byCampaign,
       daysRead: days,
     };
   } catch (err) {

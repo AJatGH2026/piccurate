@@ -297,6 +297,25 @@ export default async function AdminStatsPage({
                   </table>
                 </div>
               )}
+
+              {Object.keys(events.byCampaign).length > 0 && (
+                <div className="mt-4 border-t border-zinc-100 dark:border-zinc-800 pt-4">
+                  <p className="text-sm text-zinc-500 mb-2">landing_view / demo_start je Kampagnen-Attribution (traffic_source &gt; campaign)</p>
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {Object.entries(events.byCampaign)
+                        .sort((a, b) => b[1].landing_view - a[1].landing_view)
+                        .map(([key, v]) => (
+                          <tr key={key} className="border-b border-zinc-100 dark:border-zinc-800 last:border-0">
+                            <td className="py-1 text-zinc-500">{key}</td>
+                            <td className="py-1 text-right tabular-nums">{fmt(v.landing_view)}</td>
+                            <td className="py-1 text-right tabular-nums text-xs text-zinc-400">({fmt(v.demo_start)} demo_start)</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </>
           )}
         </div>
