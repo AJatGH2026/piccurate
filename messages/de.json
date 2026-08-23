@@ -288,6 +288,7 @@
     "confirmedBanner": "Deine E-Mail ist bestätigt — bitte melde dich an.",
     "confirmErrorBanner": "Dieser Bestätigungslink ist ungültig oder abgelaufen. Bitte melde dich an oder registriere dich erneut.",
     "passwordMinHint": "Mindestens 8 Zeichen",
+    "registerFailed": "Die Registrierung hat nicht geklappt. Bitte versuch es gleich noch einmal.",
     "forgotLink": "Passwort vergessen?",
     "forgotTitle": "Passwort zurücksetzen",
     "forgotIntro": "Gib deine E-Mail-Adresse ein. Wir schicken dir einen Link, mit dem du dir ein neues Passwort setzen kannst.",

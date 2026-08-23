@@ -5,9 +5,8 @@ import { brandName } from '@/lib/brand';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { clientConfig } from '@/lib/config';
 import { readNextParam } from '@/lib/auth/next-path';
+import { Honeypot, useBotSignals } from '@/components/forms/Honeypot';
 
 export default function RegisterPage() {
   const t = useTranslations('auth');
@@ -19,6 +18,11 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
+  // The invisible half of the bot filter (src/lib/bot-filter.ts): a field no
+  // human can reach plus the time spent on the form. Registration was the one
+  // public form still bypassing it, because it called Supabase straight from
+  // the browser — see the note in /api/auth/register.
+  const { website, setWebsite, signals } = useBotSignals();
   // Where to return once the account exists. Read after mount rather than
   // during render: there is no window on the server, and an href that differs
   // between server and client output is a hydration mismatch.
@@ -36,9 +40,11 @@ export default function RegisterPage() {
     setLoading(true);
     setError(null);
 
-    const supabase = createClient();
-    const appUrl = clientConfig.appUrl;
-
+    // Goes through our own route rather than calling Supabase directly, so the
+    // bot signals below can actually be checked somewhere. The route keeps the
+    // sign-up itself unchanged — same `locale`/`gdpr_consent_at` payload, same
+    // confirmation redirect, same enumeration protection.
+    //
     // Note on the success screen below: signUp does NOT report an error when
     // the address already has a confirmed account. Supabase suppresses it on
     // purpose, so that nobody can test an address list against us to learn who
@@ -50,26 +56,26 @@ export default function RegisterPage() {
     // account yet, a mail is on its way, otherwise just log in". Please keep it
     // conditional: the previous wording promised a mail unconditionally and
     // left people waiting for one that was never sent.
-    const { error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          locale,
-          gdpr_consent_at: new Date().toISOString(),
-        },
-        // Carry the return path through the confirmation mail. The callback
-        // hands it on to the login page, so someone who came from the pricing
-        // page to unlock a beta grant ends up back there instead of on the home
-        // page with no memory of what they were doing.
-        emailRedirectTo: next && next !== `/${locale}`
-          ? `${appUrl}/${locale}/auth/callback?next=${encodeURIComponent(next)}`
-          : `${appUrl}/${locale}/auth/callback`,
-      },
-    });
+    let res: Response;
+    try {
+      res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, locale, next, ...signals() }),
+      });
+    } catch {
+      setError(t('registerFailed'));
+      setLoading(false);
+      return;
+    }
 
-    if (authError) {
-      setError(authError.message);
+    const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+    if (!res.ok || !json?.ok) {
+      // A bot verdict and a throttle are both shown as the generic failure: the
+      // filters only work while they are not described, and a person who trips
+      // one clears it by simply submitting again.
+      const raw = json?.error;
+      setError(raw && raw !== 'rejected' && raw !== 'rate_limited' ? raw : t('registerFailed'));
       setLoading(false);
     } else {
       setEmailSent(true);
@@ -128,6 +134,7 @@ export default function RegisterPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <Honeypot id="reg-website" value={website} onChange={setWebsite} />
           {error && (
             <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm dark:bg-red-900/20 dark:text-red-400">
               {error}
