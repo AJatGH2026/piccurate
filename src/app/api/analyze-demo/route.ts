@@ -403,6 +403,11 @@ export async function POST(request: NextRequest) {
       if (r.persons) r.persons = [];
     }
 
+    // Mirrors the 'analyzing' write above — without this the job sat at
+    // 'analyzing' forever (no code path ever advanced it), even though the
+    // client already has its results and moved on to /review.
+    await supabase.from('jobs').update({ status: 'selecting' }).eq('id', job.id);
+
     return NextResponse.json({ success: true, results });
   } catch (err) {
     console.error('[Demo Analyze] Error:', err);
