@@ -35,6 +35,13 @@ export const ALLOWED_EVENTS = new Set([
   // Stufe 1
   'landing_view',
   'demo_start',
+  // Fires instead of the drop zone when BETA_OPEN_ACCESS is off and the
+  // visitor has no permanent account. Added 2026-08-24: `demo_start` fires on
+  // upload-page mount and says nothing about what the visitor then saw, so
+  // "reached the upload page" and "was asked to register first" were
+  // indistinguishable — and every campaign visitor lands on the second one.
+  // This is the number that says what the account requirement costs in reach.
+  'account_gate_shown',
   'files_selected',
   'file_transfer_ready',
   'cloud_intent_click',
@@ -118,6 +125,11 @@ export interface EventSignals {
   ratios: {
     filesSelectedPerDemoStart: number | null;
     downloadCompletedPerResultsShown: number | null;
+    // Share of upload-page visitors who were shown the registration wall
+    // instead of the drop zone. The other two ratios only describe people who
+    // got past it, so without this one the dashboard silently reports on
+    // registered users alone — which, during the beta, is nobody but us.
+    accountGatePerDemoStart: number | null;
   };
   byDeviceClass: Record<string, { demo_start: number; files_selected: number }>;
   // Keyed by `traffic_source > campaign` (e.g. "google > beta26_su_kern"),
@@ -141,7 +153,11 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
   const empty: EventSignals = {
     configured: false,
     totals: [],
-    ratios: { filesSelectedPerDemoStart: null, downloadCompletedPerResultsShown: null },
+    ratios: {
+      filesSelectedPerDemoStart: null,
+      downloadCompletedPerResultsShown: null,
+      accountGatePerDemoStart: null,
+    },
     byDeviceClass: {},
     byCampaign: {},
     daysRead: 0,
@@ -188,6 +204,7 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
     const filesSelected = counts.get('files_selected') || 0;
     const resultsShown = counts.get('results_shown') || 0;
     const downloadCompleted = counts.get('download_completed') || 0;
+    const accountGate = counts.get('account_gate_shown') || 0;
 
     return {
       configured: true,
@@ -195,6 +212,7 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
       ratios: {
         filesSelectedPerDemoStart: demoStart > 0 ? filesSelected / demoStart : null,
         downloadCompletedPerResultsShown: resultsShown > 0 ? downloadCompleted / resultsShown : null,
+        accountGatePerDemoStart: demoStart > 0 ? accountGate / demoStart : null,
       },
       byDeviceClass: byDevice,
       byCampaign,

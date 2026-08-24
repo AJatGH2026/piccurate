@@ -255,6 +255,23 @@ export default async function AdminStatsPage({
               <div className="mt-5 border-t border-zinc-100 dark:border-zinc-800 pt-4 space-y-3">
                 <div>
                   <p className="text-sm">
+                    account_gate_shown / demo_start:{' '}
+                    <span className="font-medium">
+                      {events.ratios.accountGatePerDemoStart != null
+                        ? `${Math.round(events.ratios.accountGatePerDemoStart * 100)}%`
+                        : '—'}
+                    </span>
+                  </p>
+                  <Hint>
+                    Anteil der Upload-Seiten-Besucher, denen statt der Drop-Zone die
+                    Registrierungswand gezeigt wurde. Die beiden Quotienten darunter immer
+                    zusammen mit diesem lesen: sie beschreiben nur die Besucher, die an der Wand
+                    vorbeikamen. Nahe 100 % heißt, dass ausschließlich eingeloggte Konten
+                    gemessen werden — im Beta-Betrieb also wir selbst.
+                  </Hint>
+                </div>
+                <div>
+                  <p className="text-sm">
                     files_selected / demo_start:{' '}
                     <span className="font-medium">
                       {events.ratios.filesSelectedPerDemoStart != null

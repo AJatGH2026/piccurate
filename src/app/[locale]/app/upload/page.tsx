@@ -61,6 +61,12 @@ export default function UploadPage() {
         // so the worst case is the old behaviour, not an unguarded upload.
         if (!cancelled && policy?.accountRequired === true && !registered) {
           setNeedsAccount(true);
+          // The counterpart to `demo_start`, which fires on mount and cannot
+          // know yet what the visitor ends up seeing. Without this the funnel
+          // could not tell "left the upload page" from "was asked to register
+          // and left" — the difference that decides whether the account
+          // requirement is what campaign traffic is dying on.
+          trackEv('account_gate_shown', locale);
         }
         if (!registered) return;
         const { data: profile } = await supabase
