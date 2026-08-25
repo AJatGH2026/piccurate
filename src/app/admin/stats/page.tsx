@@ -333,6 +333,38 @@ export default async function AdminStatsPage({
                   </table>
                 </div>
               )}
+
+              {Object.keys(events.byCreative).length > 0 && (
+                <div className="mt-4 border-t border-zinc-100 dark:border-zinc-800 pt-4">
+                  <p className="text-sm text-zinc-500 mb-2">
+                    Eine Ebene tiefer: campaign &gt; ad_group &gt; keyword (utm_campaign / utm_content / utm_term)
+                  </p>
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {Object.entries(events.byCreative)
+                        .sort((a, b) => b[1].landing_view - a[1].landing_view)
+                        .slice(0, 20)
+                        .map(([key, v]) => (
+                          <tr key={key} className="border-b border-zinc-100 dark:border-zinc-800 last:border-0">
+                            <td className="py-1 text-zinc-500">{key}</td>
+                            <td className="py-1 text-right tabular-nums">{fmt(v.landing_view)}</td>
+                            <td className="py-1 text-right tabular-nums text-xs text-zinc-400">
+                              ({fmt(v.demo_start)} demo_start
+                              {v.landing_view > 0 ? ` · ${Math.round((v.demo_start / v.landing_view) * 100)}%` : ''})
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                  <Hint>
+                    Auf Meta trennt das ein Motiv vom anderen (utm_term), auf Google ein Keyword vom
+                    anderen. Die Prozentzahl ist der einzige belastbare Vergleich zwischen zwei
+                    Creatives — Metas eigene Klick- und Aufrufzahlen bewerten das Motiv, das am
+                    billigsten ausgeliefert wird, nicht das, das Nutzer bringt. Nur getaggter Traffic
+                    erscheint hier; höchstens 20 Zeilen.
+                  </Hint>
+                </div>
+              )}
             </>
           )}
         </div>

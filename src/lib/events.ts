@@ -137,6 +137,14 @@ export interface EventSignals {
   // recorded session actually attributed to a paid campaign" without a raw
   // Redis read, which the campaign owner's own tooling can't do directly.
   byCampaign: Record<string, { landing_view: number; demo_start: number }>;
+  // One level deeper than byCampaign: `campaign > ad_group > keyword`, i.e.
+  // utm_campaign/utm_content/utm_term. On Meta that separates one creative
+  // from another (utm_term=motiv_verwandlung vs motiv_texthook); on Google it
+  // separates keywords. Added 2026-08-25 because a creative test was about to
+  // run that our own funnel could not have told apart — leaving Meta's own
+  // numbers as the only verdict, which is exactly what this dashboard exists
+  // not to rely on.
+  byCreative: Record<string, { landing_view: number; demo_start: number }>;
   daysRead: number;
 }
 
@@ -160,6 +168,7 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
     },
     byDeviceClass: {},
     byCampaign: {},
+    byCreative: {},
     daysRead: 0,
   };
   if (!r) return empty;
@@ -185,6 +194,7 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
     const counts = new Map<string, number>();
     const byDevice: Record<string, { demo_start: number; files_selected: number }> = {};
     const byCampaign: Record<string, { landing_view: number; demo_start: number }> = {};
+    const byCreative: Record<string, { landing_view: number; demo_start: number }> = {};
     for (const e of events) {
       counts.set(e.name, (counts.get(e.name) || 0) + 1);
       if (e.name === 'demo_start' || e.name === 'files_selected') {
@@ -196,6 +206,14 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
         const key = e.traffic_source ? `${e.traffic_source} > ${e.campaign || '(kein campaign-Wert)'}` : '(none)';
         byCampaign[key] ??= { landing_view: 0, demo_start: 0 };
         byCampaign[key][e.name]++;
+        // Only tagged traffic: an untagged visit has nothing to break down,
+        // and lumping them together would put organic noise next to the
+        // creative being judged.
+        if (e.ad_group || e.keyword) {
+          const deep = `${e.campaign || '(kein campaign-Wert)'} > ${e.ad_group || '—'} > ${e.keyword || '—'}`;
+          byCreative[deep] ??= { landing_view: 0, demo_start: 0 };
+          byCreative[deep][e.name]++;
+        }
       }
     }
 
@@ -216,6 +234,7 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
       },
       byDeviceClass: byDevice,
       byCampaign,
+      byCreative,
       daysRead: days,
     };
   } catch (err) {
