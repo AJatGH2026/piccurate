@@ -9,6 +9,7 @@ import { classifyUserAgent } from '@/lib/userAgent';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   betaOpenAccess,
+  analysisRequiresAccount,
   ACCESS_ERRORS,
   BETA_MAX_PHOTOS_PER_REQUEST,
   BETA_DAILY_PHOTO_CAP,
@@ -134,7 +135,7 @@ export async function POST(request: NextRequest) {
     if (!jobId || !user) {
       return NextResponse.json({ error: ACCESS_ERRORS.jobRequired }, { status: 401 });
     }
-    if (user.is_anonymous && !betaOpenAccess()) {
+    if (user.is_anonymous && analysisRequiresAccount()) {
       return NextResponse.json({ error: ACCESS_ERRORS.accountRequired }, { status: 401 });
     }
 

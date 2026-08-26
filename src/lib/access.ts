@@ -19,6 +19,30 @@ export function betaOpenAccess(): boolean {
   return (process.env.BETA_OPEN_ACCESS ?? '1') !== '0';
 }
 
+/**
+ * Whether a permanent account is required to RUN AN ANALYSIS.
+ *
+ * Split out of `betaOpenAccess()` on 2026-08-27. The two used to be the same
+ * switch, which meant relaxing the account rule would silently also have
+ * relaxed the payment rule — turning `BETA_OPEN_ACCESS` back on to open the
+ * free flow would have let unpaid paid-tier jobs run. Two questions, two
+ * switches.
+ *
+ * **Defaults to NOT required**, which is the deliberate design as of
+ * 2026-08-27: the free analysis and the on-screen result are the whole free
+ * service (terms § 3), and they are available without an account. What still
+ * requires one is the ZIP download — enforced where that happens, not here.
+ *
+ * Note this is the opposite fail direction from `betaOpenAccess()`, and on
+ * purpose: that one fails open because closing it would have taken a live
+ * flow down; this one fails open because an account gate in front of the
+ * analysis is exactly what we removed. Set `ANALYSIS_REQUIRES_ACCOUNT=1` to
+ * put it back — an explicit act, in one place.
+ */
+export function analysisRequiresAccount(): boolean {
+  return (process.env.ANALYSIS_REQUIRES_ACCOUNT ?? '0') === '1';
+}
+
 // Beta cost/abuse caps. Defined here rather than in the analysis route so the
 // job endpoint can refuse a run *before* it starts, using the same numbers.
 export const BETA_MAX_PHOTOS_PER_REQUEST = Number(process.env.BETA_MAX_PHOTOS_PER_REQUEST ?? '250');

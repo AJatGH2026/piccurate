@@ -4,7 +4,7 @@ import { JobManager } from '@/services/job-manager';
 import type { CreateJobRequest, CreateJobResponse, ApiResponse } from '@/types/api';
 import type { Tier } from '@/types/job';
 import { getPlan } from '@/types/pricing';
-import { betaOpenAccess, remainingPhotoBudget, ACCESS_ERRORS } from '@/lib/access';
+import { analysisRequiresAccount, remainingPhotoBudget, ACCESS_ERRORS } from '@/lib/access';
 import { clientIp } from '@/lib/rate-limit';
 import { emailConfigured, sendOrderConfirmation } from '@/lib/email';
 
@@ -23,10 +23,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Anonymous accounts are real auth users, so a job can always be attached to
-    // one — but once the beta ends they must convert to a permanent account
-    // before starting a job, otherwise `free_tier_used` guards nothing.
-    if (user.is_anonymous && !betaOpenAccess()) {
+    // Anonymous accounts are real auth users, so a job can always be attached
+    // to one. Whether a PERMANENT account is required to get this far is a
+    // separate switch from the payment rule below (split 2026-08-27) — today
+    // it is not, because the free analysis is the whole free service and the
+    // account belongs at the ZIP download instead.
+    if (user.is_anonymous && analysisRequiresAccount()) {
       return NextResponse.json<ApiResponse>(
         { success: false, error: ACCESS_ERRORS.accountRequired },
         { status: 401 }
