@@ -22,7 +22,8 @@
   "hero": {
     "title": "1.000 Reisefotos.",
     "titleHighlight": "50 perfekte Erinnerungen.",
-    "subtitle": "Deine Erinnerungen sind nicht nur schön, sondern auch privat. Darum ist uns dein Datenschutz sehr wichtig.\nKI analysiert deine Urlaubsfotos und wählt die besten aus. Du prüfst, passt an und lädst herunter — und kannst deine Auswahl anschließend z. B. für ein Fotobuch verwenden.",
+    "subtitle": "Lade deine Fotos hoch, die KI schlägt die besten vor – du entscheidest, was bleibt.",
+    "trustNote": "Nur verkleinerte Vorschaubilder werden analysiert – deine Originale bleiben bei dir.",
     "cta": "Kostenlos testen mit 250 Fotos",
     "ctaSecondary": "Preise ansehen",
     "demoNote": "Beta-Testphase – Kostenlos testen"

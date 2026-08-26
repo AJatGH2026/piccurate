@@ -166,8 +166,15 @@ async function Header({ locale }: { locale: string }) {
 function HeroSection({ locale }: { locale: string }) {
   const t = useTranslations('hero');
 
+  // Mobile spacing is deliberately tighter than desktop (2026-08-26): on a
+  // 375x812 phone the first photo used to start at 792px, i.e. below the fold,
+  // and the CTA sat at 634px — right at the edge once the browser chrome is
+  // subtracted. Paid-social visitors arrive without the intent a searcher has,
+  // so a hero they have to scroll to act on loses them: Meta traffic converted
+  // at 2.4% landing_view -> demo_start against 41% for the "foto filtern"
+  // keyword on the very same page. Desktop keeps its original breathing room.
   return (
-    <section className="relative overflow-hidden pt-20 sm:pt-28 pb-16 bg-gradient-to-b from-indigo-50 via-white to-white dark:from-zinc-900 dark:via-zinc-950 dark:to-zinc-950">
+    <section className="relative overflow-hidden pt-10 sm:pt-28 pb-16 bg-gradient-to-b from-indigo-50 via-white to-white dark:from-zinc-900 dark:via-zinc-950 dark:to-zinc-950">
       {/* soft decorative glow */}
       <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 h-72 w-[42rem] rounded-full bg-indigo-200/40 blur-3xl dark:bg-indigo-500/10" />
 
@@ -180,10 +187,10 @@ function HeroSection({ locale }: { locale: string }) {
           <br />
           <span className="text-indigo-600">{t('titleHighlight')}</span>
         </h1>
-        <p className="mt-6 text-lg sm:text-xl leading-8 text-zinc-600 dark:text-zinc-400 max-w-5xl mx-auto whitespace-pre-line">
+        <p className="mt-6 text-lg sm:text-xl leading-8 text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto whitespace-pre-line">
           {t('subtitle')}
         </p>
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+        <div className="mt-6 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             href={`/${locale}/demo`}
             className="rounded-full bg-indigo-600 px-8 py-3 text-lg font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-colors"
@@ -197,10 +204,17 @@ function HeroSection({ locale }: { locale: string }) {
             {t('ctaSecondary')} &darr;
           </a>
         </div>
+        {/* The privacy promise used to open the subtitle, two lines above the
+            fold, answering a question nobody had asked yet. It belongs here
+            instead: short, specific, and at the moment someone hesitates over
+            the button. */}
+        <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto">
+          {t('trustNote')}
+        </p>
       </div>
 
       {/* Photo "filmstrip" */}
-      <div className="relative mt-16 flex justify-center items-end gap-3 sm:gap-5 px-4">
+      <div className="relative mt-8 sm:mt-16 flex justify-center items-end gap-3 sm:gap-5 px-4">
         {PHOTO_FILES.slice(0, 5).map((file, i) => (
           <div
             key={file}

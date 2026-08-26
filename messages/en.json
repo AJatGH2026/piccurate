@@ -22,7 +22,8 @@
   "hero": {
     "title": "1,000 travel photos.",
     "titleHighlight": "50 perfect memories.",
-    "subtitle": "Your memories aren't just beautiful — they're private too. That's why your data protection matters to us.\nAI analyses your vacation photos and picks the best ones. You review, adjust, and download — and can then use your selection, e.g. for a photo book.",
+    "subtitle": "Upload your photos, the AI suggests the best ones – you decide what stays.",
+    "trustNote": "Only downscaled previews are analysed – your originals stay with you.",
     "cta": "Try free with 250 photos",
     "ctaSecondary": "See pricing",
     "demoNote": "Beta test phase — try it free"
