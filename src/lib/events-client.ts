@@ -112,6 +112,57 @@ export function nextRunIndex(): number {
   return runIndex;
 }
 
+// --- Attribution firewall (2026-08-27) -------------------------------------
+//
+// § 312 Abs. 1a Satz 2 BGB lifts the consumer-contract rules only where the
+// trader processes the data the consumer provided "ausschließlich … um seine
+// Leistungspflicht … zu erfüllen, und sie zu keinem anderen Zweck". Campaign
+// measurement is another purpose. So attribution has to stop at the moment the
+// free analysis contract is concluded — the click on "Analysieren" — or the
+// exception cannot be relied on at all (§ 327 Abs. 3 points at the same
+// sentence, so both rule sets turn on it).
+//
+// `analysis_started` is the boundary: it IS the conversion we want to count,
+// so it still carries attribution. Everything after it does not.
+//
+// Two mechanisms, deliberately: the flag is precise (it knows a contract was
+// actually concluded in this session), the name list is a backstop that
+// survives a hard reload of the results page, where the flag would be gone but
+// the events are still post-contract. `pricing_tier_click` is intentionally
+// NOT in the list — someone can reach the pricing page without ever analysing,
+// and that visit is ordinary pre-contract marketing data; the flag catches the
+// case where they got there after a run.
+const POST_CONTRACT_EVENTS = new Set([
+  'analysis_progress',
+  'analysis_completed',
+  'analysis_failed',
+  'analysis_abandoned',
+  'results_shown',
+  'results_idle_exit',
+  'download_started',
+  'download_completed',
+  'download_failed',
+  'photo_removed',
+  'photo_added',
+  'photo_zoomed',
+  'slider_changed',
+  'reselect_run',
+  'micro_survey_shown',
+  'micro_survey_answered',
+]);
+
+let contractSealed = false;
+
+/**
+ * Call once, immediately after `analysis_started` — from then on no event in
+ * this session carries the session identity, the campaign it came from, or the
+ * A/B assignment. There is no way back within the session; a new document
+ * starts unsealed, which is correct because that is a new pre-contract visit.
+ */
+export function sealAttribution(): void {
+  contractSealed = true;
+}
+
 /**
  * Send one funnel event. `locale` is passed explicitly by the caller (every
  * call site already has it from useParams/params) rather than read from the
@@ -124,15 +175,29 @@ export function trackEv(
   photoBucket?: PhotoCountBucket
 ): void {
   try {
-    const body = JSON.stringify({
-      name,
-      session_id: getSessionId(),
-      locale,
-      ...getCampaign(),
-      photo_count_bucket: photoBucket ?? null,
-      ab_variant: getAbVariant(),
-      props: props || {},
-    });
+    const sealed = contractSealed || POST_CONTRACT_EVENTS.has(name);
+    const body = JSON.stringify(
+      sealed
+        ? {
+            // Post-contract: the event still says WHAT happened — that is
+            // product data about our own service — but not who it was or
+            // which ad paid for them. Nothing here links a run back to a
+            // campaign or to another event of the same visit.
+            name,
+            locale,
+            photo_count_bucket: photoBucket ?? null,
+            props: props || {},
+          }
+        : {
+            name,
+            session_id: getSessionId(),
+            locale,
+            ...getCampaign(),
+            photo_count_bucket: photoBucket ?? null,
+            ab_variant: getAbVariant(),
+            props: props || {},
+          }
+    );
     if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
       navigator.sendBeacon('/api/ev', new Blob([body], { type: 'application/json' }));
     } else {

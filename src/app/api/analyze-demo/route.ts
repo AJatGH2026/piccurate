@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { ANALYSIS_SYSTEM_PROMPT } from '@/lib/anthropic/prompts';
 import { parseAnalysisResponse } from '@/lib/anthropic/parser';
-import crypto from 'crypto';
 import { checkRateLimit, clientIp } from '@/lib/rate-limit';
 import { trackAnalyze, getTodayPhotos, reserveIpDailyPhotos, estCostEur } from '@/lib/stats';
 import { logEvent } from '@/lib/events';
@@ -379,23 +378,23 @@ export async function POST(request: NextRequest) {
     void logEvent({
       name: 'ai_cost_estimate',
       ts: new Date().toISOString(),
-      session_id: String(formData.get('session_id') || ''),
-      user_hash: user.is_anonymous
-        ? null
-        : 'u_' + crypto.createHash('sha256').update(user.id).digest('hex').slice(0, 16),
+      // Everything that could tie this cost back to a visitor or to the ad
+      // that paid for them is deliberately absent (2026-08-27). This request
+      // performs the free analysis contract, and § 312 Abs. 1a Satz 2 BGB only
+      // lifts the consumer-contract rules where the data serve no second
+      // purpose — so the cost record says what a run cost us and nothing about
+      // whose run it was. `user_hash` goes too: it was never read anywhere,
+      // and an identity that serves no purpose is the easiest thing to drop.
+      // See the firewall note in lib/events-client.ts.
+      session_id: '',
+      user_hash: null,
       ...classifyUserAgent(request.headers.get('user-agent')),
       locale: String(formData.get('locale') || ''),
-      traffic_source: (formData.get('traffic_source') as string) || null,
-      campaign: (formData.get('campaign') as string) || null,
-      ad_group: (formData.get('ad_group') as string) || null,
-      keyword: (formData.get('keyword') as string) || null,
+      traffic_source: null,
+      campaign: null,
+      ad_group: null,
+      keyword: null,
       photo_count_bucket: null,
-      // The client stopped sending `ab_variant` here on 2026-08-27: both
-      // variants render the same pricing UI, so it steered nothing, and the
-      // analysis request is where the free contract is concluded — anything
-      // not needed to perform it does not belong in it. Recorded as null
-      // rather than defaulting to 'pricing_a', which would have invented an
-      // assignment this event never knew.
       ab_variant: null,
       props: { photo_count: files.length, est_cost_eur: estCostEur(inputTokens, outputTokens), model },
     });
