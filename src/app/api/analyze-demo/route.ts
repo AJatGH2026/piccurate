@@ -390,7 +390,13 @@ export async function POST(request: NextRequest) {
       ad_group: (formData.get('ad_group') as string) || null,
       keyword: (formData.get('keyword') as string) || null,
       photo_count_bucket: null,
-      ab_variant: formData.get('ab_variant') === 'pricing_b' ? 'pricing_b' : 'pricing_a',
+      // The client stopped sending `ab_variant` here on 2026-08-27: both
+      // variants render the same pricing UI, so it steered nothing, and the
+      // analysis request is where the free contract is concluded — anything
+      // not needed to perform it does not belong in it. Recorded as null
+      // rather than defaulting to 'pricing_a', which would have invented an
+      // assignment this event never knew.
+      ab_variant: null,
       props: { photo_count: files.length, est_cost_eur: estCostEur(inputTokens, outputTokens), model },
     });
 

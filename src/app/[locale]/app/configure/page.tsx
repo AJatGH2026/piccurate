@@ -15,7 +15,7 @@ import { logBeta } from '@/lib/beta-client';
 // `trackEvent` above is the dormant GA4/Ads tag (lib/analytics.ts) — kept for
 // the Ads conversion pixel once one is configured. `trackEv` here is the
 // separate first-party funnel (Event-Spezifikation.md), always on.
-import { trackEv, mark, msSince, nextRunIndex, getSessionId, getAbVariant, getCampaign } from '@/lib/events-client';
+import { trackEv, mark, msSince, nextRunIndex, getSessionId, getCampaign } from '@/lib/events-client';
 import { createClient } from '@/lib/supabase/client';
 import { getTierForPhotoCount, MAX_TIER_PHOTOS } from '@/types/pricing';
 import { estimateRemainingMs, formatEtaDuration } from '@/utils/eta';
@@ -896,7 +896,13 @@ export default function ConfigurePage() {
                   // to the same session/campaign context as every other event,
                   // without the client having to know the actual token cost.
                   formData.append('session_id', getSessionId());
-                  formData.append('ab_variant', getAbVariant());
+                  // `ab_variant` deliberately NOT sent (2026-08-27): both
+                  // variants render the same pricing UI today (see the note in
+                  // lib/events.ts), so the value steers nothing here — it was
+                  // pure payload. And the analysis is where the free contract
+                  // is concluded, so anything that is not needed to perform it
+                  // is the first thing to drop while the § 312 Abs. 1a question
+                  // is open. The client still records it on its own events.
                   const campaign = getCampaign();
                   if (campaign.traffic_source) formData.append('traffic_source', campaign.traffic_source);
                   if (campaign.campaign) formData.append('campaign', campaign.campaign);

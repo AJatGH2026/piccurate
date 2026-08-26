@@ -9,7 +9,22 @@
 // keep running side by side; the old one still feeds the existing admin
 // dashboard section.
 //
-// Retention: 90 days raw (§1.3), enforced via a Redis TTL on each day's key.
+// Retention: 30 days raw, enforced via a Redis TTL on each day's key.
+//
+// Was 90 (Event-Spezifikation §1.3). Shortened on 2026-08-27 because the raw
+// log is session-level: one row per event, carrying session_id plus the
+// campaign it came from, so a visitor's path through the funnel is
+// reconstructible for as long as the rows exist. The beta campaign runs three
+// weeks and every question we ask of this data is answered inside a 7-day
+// window, so months of reconstructible sessions bought nothing operationally
+// and were the weakest point in the argument that we do not treat personal
+// data as an economic asset (§ 312 Abs. 1a BGB, still to be settled).
+//
+// Note what §1.3 promises but the code does not do: there is no aggregation
+// job. When these keys expire the campaign-level history is gone, not rolled
+// up — only `ev:count:{name}:total` survives, and it has no campaign
+// dimension. Anything worth keeping longer has to be written as its own
+// counter at event time.
 
 import { Redis } from '@upstash/redis';
 
@@ -94,7 +109,7 @@ export interface EventRecord {
 }
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
-const DAY_TTL_S = 90 * 24 * 3600;
+const DAY_TTL_S = 30 * 24 * 3600;
 // A 700€/3-week beta campaign will not come close to this per day — the cap
 // only exists so a runaway client loop cannot grow one key without bound.
 const MAX_PER_DAY = 20_000;
