@@ -60,7 +60,7 @@ function GermanBody({ withdrawalUrl }: { withdrawalUrl: string }) {
   return (
     <>
       <h1>Nutzungsbedingungen</h1>
-      <p>Stand: 14. August 2026</p>
+      <p>Stand: 27. August 2026</p>
       <h2>1. Anbieter und Geltungsbereich</h2>
       <p>Diese Nutzungsbedingungen gelten für die Nutzung des Fotoauswahldienstes AuswahlBuddy der AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Deutschland („AJ GmbH“, „wir“).</p>
       <p>AuswahlBuddy ist ausschließlich für persönliche, private oder familiäre Zwecke bestimmt. Eine berufliche, gewerbliche oder institutionelle Nutzung ist nicht gestattet.</p>
@@ -75,10 +75,10 @@ function GermanBody({ withdrawalUrl }: { withdrawalUrl: string }) {
       <p><strong>Welche Tarife jeweils buchbar sind, ergibt sich aus der Preisseite. Derzeit ist nur der kostenlose Tarif freigeschaltet.</strong></p>
       <h2>3. Vertragsschluss, Zahlung und Rechnung</h2>
       <p>Diese Nutzungsbedingungen kannst du vor jedem Vertragsschluss abrufen und speichern.</p>
-      <p>Im kostenlosen Tarif kommt der Vertrag über den einzelnen Analysevorgang zustande, wenn du diesen Bedingungen zustimmst und die Analyse startest. Auch der kostenlose Tarif setzt ein Konto mit bestätigter E-Mail-Adresse voraus: Ohne eine Adresse könnten wir dir die Bestätigung des Vertrags in Textform nicht zusenden.</p>
+      <p>Im kostenlosen Tarif kommt der Vertrag über den einzelnen Analysevorgang zustande, wenn du diesen Bedingungen zustimmst und die Analyse startest. Ein Konto ist dafür nicht erforderlich. Für den Download deines Ergebnisses als ZIP-Datei benötigst du ein Konto mit bestätigter E-Mail-Adresse.</p>
       <p>In einem kostenpflichtigen Tarif geben wir mit der Darstellung der Tarife noch kein bindendes Angebot ab. Du gibst ein verbindliches Angebot ab, indem du im Bestelldialog die Schaltfläche mit der Beschriftung „zahlungspflichtig bestellen“ betätigst. Vor dieser Schaltfläche zeigen wir dir den gewählten Tarif, die enthaltene Fotomenge und den Gesamtpreis an. Der Vertrag kommt mit unserer Bestätigung in Textform oder mit der Freischaltung des bezahlten Vorgangs zustande, je nachdem, was zuerst eintritt.</p>
       <p>Die Zahlung wickeln wir über Stripe Payments Europe, Ltd. ab. Die Zahlungsdaten gibst du direkt bei Stripe ein; vollständige Karten- oder Kontodaten erreichen uns nicht. Der Betrag ist mit Vertragsschluss sofort fällig.</p>
-      <p>Die Bestätigung des Vertrags senden wir dir in jedem Tarif in Textform an die im Konto hinterlegte E-Mail-Adresse; in kostenpflichtigen Tarifen zusätzlich die Rechnung. Jeder Vertrag setzt daher ein Konto mit bestätigter E-Mail-Adresse voraus.</p>
+      <p>Die Bestätigung des Vertrags senden wir dir in Textform an die zu deinem Konto hinterlegte E-Mail-Adresse; in kostenpflichtigen Tarifen zusätzlich die Rechnung.</p>
       <h2>4. Widerrufsrecht für Verbraucher</h2>
       <p>Verbrauchern steht das folgende gesetzliche Widerrufsrecht zu. Es gilt für kostenpflichtige Verträge und ebenso für den kostenlosen Tarif: Auch ein Vertrag ohne Geldzahlung ist ein Verbrauchervertrag über digitale Produkte, wenn du dafür personenbezogene Daten bereitstellst (§ 312 Abs. 1a BGB). Im kostenlosen Tarif fällt kein Entgelt an; ein Widerruf hat dort deshalb keine Zahlungsfolgen, und Wertersatz schuldest du ebenfalls nicht. Unabhängig vom Widerruf kannst du die Nutzung jederzeit beenden und dein Konto löschen.</p>
       <h3>4.1 Widerrufsbelehrung</h3>
@@ -199,7 +199,7 @@ function EnglishBody({ withdrawalUrl }: { withdrawalUrl: string }) {
     <>
       <h1>Terms of Service</h1>
       <EnglishNotice contractual />
-      <p>Last updated: 14 August 2026</p>
+      <p>Last updated: 27 August 2026</p>
       <h2>1. Provider and scope</h2>
       <p>These Terms govern use of the ShortlistBuddy photo-selection service provided by AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Germany (“AJ GmbH”, “we”).</p>
       <p>ShortlistBuddy is intended exclusively for personal, private or family purposes. Professional, commercial or institutional use is not permitted.</p>
@@ -214,10 +214,10 @@ function EnglishBody({ withdrawalUrl }: { withdrawalUrl: string }) {
       <p><strong>Which plans are currently bookable is shown on the pricing page. At present only the free plan is enabled.</strong></p>
       <h2>3. Contract formation, payment and invoicing</h2>
       <p>You can access and save these Terms before every contract is formed.</p>
-      <p>In the free plan, a contract for the individual analysis job is formed when you accept these Terms and start the analysis. The free plan also requires an account with a confirmed email address: without an address we could not send you the confirmation of the contract in text form.</p>
+      <p>In the free plan, a contract for the individual analysis job is formed when you accept these Terms and start the analysis. No account is required for this. To download your result as a ZIP file you do need an account with a confirmed email address.</p>
       <p>In a paid plan, displaying the plans does not yet constitute a binding offer by us. You make a binding offer by pressing the button labelled “order with obligation to pay” in the order dialogue. Above that button we show you the selected plan, the included photo allowance and the total price. The contract is formed when we confirm it in text form or when the paid job is unlocked, whichever occurs first.</p>
       <p>Payment is processed by Stripe Payments Europe, Ltd. You enter your payment details directly with Stripe; complete card or account details do not reach us. The amount is due immediately upon formation of the contract.</p>
-      <p>In every plan we send the confirmation of the contract in text form to the email address held in your account; in paid plans we also send the invoice. Every contract therefore requires an account with a confirmed email address.</p>
+      <p>We send the confirmation of the contract in text form to the email address held in your account; in paid plans we also send the invoice.</p>
       <h2>4. Right of withdrawal for consumers</h2>
       <p>Consumers have the following statutory right of withdrawal. It applies to paid contracts and equally to the free plan: a contract without payment of money is also a consumer contract for digital products where you provide personal data in return (section 312(1a) of the German Civil Code). No fee is charged in the free plan, so a withdrawal there has no payment consequences and you owe no compensation for value either. Independently of withdrawal, you can stop using the service and delete your account at any time.</p>
       <h3>4.1 Withdrawal notice</h3>

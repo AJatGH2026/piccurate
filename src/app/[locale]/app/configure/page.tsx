@@ -103,6 +103,12 @@ export default function ConfigurePage() {
   // A2: reference-photo collective confirmation before persons are transmitted.
   const [ageAccepted, setAgeAccepted] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  // Whether this session belongs to a permanent account with an address we can
+  // actually mail. Drives both the consent pre-fill below and the § 312f
+  // notice further down — the latter promised an email unconditionally, which
+  // has been untrue for anonymous visitors since the account gate moved to the
+  // ZIP download on 2026-08-27.
+  const [hasAccount, setHasAccount] = useState(false);
   // No separate person confirmation any more — see the note further down where
   // the checkbox used to be. Analysis is gated on age + terms only.
   const canAnalyze = ageAccepted && termsAccepted;
@@ -157,6 +163,7 @@ export default function ConfigurePage() {
           data: { user },
         } = await supabase.auth.getUser();
         if (cancelled || !user || user.is_anonymous) return;
+        setHasAccount(true);
         if (localStorage.getItem('sb-age-ok') === '1') setAgeAccepted(true);
         if (localStorage.getItem('sb-terms-ok') === '1') setTermsAccepted(true);
       } catch {
@@ -763,11 +770,22 @@ export default function ConfigurePage() {
         {/* The § 312f confirmation goes out the moment the analysis starts. Say
             so before the click, not least because the sending domain is new
             enough that providers still file it as spam — a confirmation nobody
-            knows to look for is one nobody finds. */}
-        <p className="mt-2 flex items-start gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-          <span aria-hidden="true">✉️</span>
-          <span>{t('contractMailNotice')}</span>
-        </p>
+            knows to look for is one nobody finds.
+
+            Shown only to a signed-in account, because only there is it true:
+            /api/jobs mails the confirmation to profiles.email, and an anonymous
+            visitor has none, so the send is skipped with a log line. Promising
+            that mail to everyone — right above the button that concludes the
+            contract — was a statement the product stopped honouring when the
+            account gate moved to the ZIP download. The anonymous case gets its
+            own durable-medium confirmation in the follow-up change; until then
+            this says nothing rather than something untrue. */}
+        {hasAccount && (
+          <p className="mt-2 flex items-start gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+            <span aria-hidden="true">✉️</span>
+            <span>{t('contractMailNotice')}</span>
+          </p>
+        )}
 
         {/* A3: two separate declarations, neither preselected. Kept apart so a
             later change to one threshold does not silently restate the other. */}
