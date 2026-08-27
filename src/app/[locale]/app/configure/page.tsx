@@ -131,19 +131,41 @@ export default function ConfigurePage() {
   // Age/terms acceptance is remembered (localStorage) — confirm once, not again
   // when changing criteria or re-running. (The reference-photo confirmation A2
   // stays per analysis, as the legal text requires it before each transfer.)
+  //
+  // Reported 2026-08-27: pre-filled for a brand-new visitor too, because the
+  // storage is keyed to the BROWSER, not the person — anyone who ever ticked
+  // it on this device (a previous anonymous run, a different person on a
+  // shared device) had it silently carried over. So the pre-fill now only
+  // applies once we know who is asking: a known, logged-in (non-anonymous)
+  // account. A new/anonymous visitor always gets a blank checkbox and has to
+  // click it themselves, however this browser's storage looks.
   useEffect(() => {
-    try {
-      // The old single checkbox bundled both statements ("18+ AND terms"), so a
-      // stored yes covers both of the new ones — 18 implies 16. Migrated once,
-      // then the old key is dropped.
-      if (localStorage.getItem('piccurate-age-ok') === '1') {
-        localStorage.setItem('sb-age-ok', '1');
-        localStorage.setItem('sb-terms-ok', '1');
-        localStorage.removeItem('piccurate-age-ok');
+    let cancelled = false;
+    (async () => {
+      try {
+        // The old single checkbox bundled both statements ("18+ AND terms"),
+        // so a stored yes covers both of the new ones — 18 implies 16.
+        // Migrated once, then the old key is dropped. Pure storage plumbing,
+        // not a consent decision, so it runs regardless of account status.
+        if (localStorage.getItem('piccurate-age-ok') === '1') {
+          localStorage.setItem('sb-age-ok', '1');
+          localStorage.setItem('sb-terms-ok', '1');
+          localStorage.removeItem('piccurate-age-ok');
+        }
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (cancelled || !user || user.is_anonymous) return;
+        if (localStorage.getItem('sb-age-ok') === '1') setAgeAccepted(true);
+        if (localStorage.getItem('sb-terms-ok') === '1') setTermsAccepted(true);
+      } catch {
+        /* ignore — worst case, a returning known user re-clicks once */
       }
-      if (localStorage.getItem('sb-age-ok') === '1') setAgeAccepted(true);
-      if (localStorage.getItem('sb-terms-ok') === '1') setTermsAccepted(true);
-    } catch { /* ignore */ }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   /**
