@@ -14,6 +14,16 @@ import { safeNextPath } from '@/lib/auth/next-path';
  *
  * On failure Supabase appends `?error=…&error_code=…` (e.g. otp_expired) to the
  * redirect — we forward that as a flag so login can show a helpful message.
+ *
+ * **Exception: the download gate's anon-conversion link.** `DownloadAccountGate`
+ * tags its `emailRedirectTo` with `?source=download-gate`. That confirmation
+ * does not need a login at all — the tab that started the download is already
+ * polling `getUser()` and will pick up the confirmed account and start the
+ * download itself within seconds. Sending that click through the login page
+ * instead asked the visitor to authenticate a SECOND time, in a tab that has
+ * no job to resume, and made the still-live download tab (which by then could
+ * already unlock on its own) look broken. So this branch skips login and lands
+ * on a plain "you're confirmed, go back to your download tab" page instead.
  */
 export async function GET(
   request: NextRequest,
@@ -22,6 +32,11 @@ export async function GET(
   const { locale } = await params;
   const { searchParams } = new URL(request.url);
   const hasError = searchParams.get('error') || searchParams.get('error_code');
+
+  if (searchParams.get('source') === 'download-gate') {
+    const target = hasError ? `/${locale}/auth/confirmed?error=1` : `/${locale}/auth/confirmed`;
+    return NextResponse.redirect(new URL(target, request.url));
+  }
 
   // Hand the return path on to the login page. Only a same-site absolute path
   // is forwarded — this value came back from an email round-trip, so it must be

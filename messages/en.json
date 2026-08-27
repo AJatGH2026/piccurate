@@ -321,7 +321,12 @@
     "resetInvalidTitle": "This link no longer works",
     "resetInvalidDesc": "It has expired, has already been used, or you opened it in a different browser from the one you requested it in. Just request a new one and open it in this browser.",
     "resetRequestNew": "Request a new link",
-    "passwordResetBanner": "Your password has been changed — log in with the new one."
+    "passwordResetBanner": "Your password has been changed — log in with the new one.",
+    "downloadConfirmedTitle": "Confirmed!",
+    "downloadConfirmedBody": "You can close this window now and go back to the tab where you started your download — it will carry on there automatically, usually within a few seconds.",
+    "downloadConfirmedFallback": "Is that tab no longer open? Just upload your photos again — your account is ready now, no need to sign up again:",
+    "downloadConfirmErrorTitle": "This link is invalid or has expired",
+    "downloadConfirmErrorBody": "Go back to the tab where you started your download and click \"Resend email\" there."
   },
   "common": {
     "loading": "Loading...",

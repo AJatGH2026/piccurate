@@ -321,7 +321,12 @@
     "resetInvalidTitle": "Dieser Link funktioniert nicht mehr",
     "resetInvalidDesc": "Er ist abgelaufen, wurde schon benutzt, oder du hast ihn in einem anderen Browser geöffnet als dem, in dem du ihn angefordert hast. Fordere einfach einen neuen an und öffne ihn dann in diesem Browser.",
     "resetRequestNew": "Neuen Link anfordern",
-    "passwordResetBanner": "Dein Passwort ist geändert — melde dich jetzt mit dem neuen an."
+    "passwordResetBanner": "Dein Passwort ist geändert — melde dich jetzt mit dem neuen an.",
+    "downloadConfirmedTitle": "Bestätigt!",
+    "downloadConfirmedBody": "Du kannst dieses Fenster jetzt schließen und zu dem Tab zurückkehren, in dem du deinen Download gestartet hast — er läuft dort automatisch weiter, meist innerhalb weniger Sekunden.",
+    "downloadConfirmedFallback": "Ist dieser Tab nicht mehr offen? Dann lade deine Fotos einfach erneut hoch — dein Konto ist jetzt bereit, eine erneute Registrierung brauchst du nicht mehr:",
+    "downloadConfirmErrorTitle": "Link ungültig oder abgelaufen",
+    "downloadConfirmErrorBody": "Geh zurück zu dem Tab, in dem du deinen Download gestartet hast, und klick dort auf „Mail erneut senden“."
   },
   "common": {
     "loading": "Wird geladen...",

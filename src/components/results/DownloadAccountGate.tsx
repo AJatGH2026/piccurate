@@ -120,9 +120,11 @@ export function DownloadAccountGate({
         },
         // Without this, GoTrue falls back to the bare Site URL — the visitor
         // lands on the home page after clicking the confirmation link with no
-        // indication anything happened, instead of the login page's
-        // "confirmed" banner (same route the rest of the app's auth mails use).
-        { emailRedirectTo: `${clientConfig.appUrl}/${locale}/auth/callback` }
+        // indication anything happened, instead of a page that reflects what
+        // it actually did. `source=download-gate` tells /auth/callback this
+        // confirmation came from here, not from the ordinary signup form — see
+        // that route's comment for why it skips the login page for this one.
+        { emailRedirectTo: `${clientConfig.appUrl}/${locale}/auth/callback?source=download-gate` }
       );
       if (err) throw new Error(err.message);
       // Address accepted and mail sent — not unlocked yet, see the file doc comment above.
