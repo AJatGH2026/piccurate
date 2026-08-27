@@ -155,7 +155,16 @@ export function DownloadAccountGate({
     setCheckMessage(null);
     try {
       const supabase = createClient();
-      const { error: err } = await supabase.auth.resend({ type: 'signup', email: pendingEmail });
+      // `email_change`, not `signup`: converting the anonymous user with
+      // `updateUser({ email })` runs GoTrue's EMAIL CHANGE flow — the account
+      // already exists, it is gaining an address, and that is also why the mail
+      // comes from the "Change Email Address" template rather than "Confirm
+      // signup". Resending as `signup` asks GoTrue to repeat a registration
+      // that never happened. Falls back to `signup` for the case where the
+      // account came from the ordinary register form and is merely being
+      // confirmed from here.
+      let { error: err } = await supabase.auth.resend({ type: 'email_change', email: pendingEmail });
+      if (err) ({ error: err } = await supabase.auth.resend({ type: 'signup', email: pendingEmail }));
       if (err) throw err;
       setCheckMessage(t('downloadGateResendSent'));
       setResendCooldown(RESEND_COOLDOWN_S);

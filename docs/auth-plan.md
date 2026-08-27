@@ -167,6 +167,28 @@ cover a slow poll or a mail that didn't arrive. See
 `src/components/results/DownloadAccountGate.tsx` for the implementation and
 its file doc comment for the full rationale.
 
+## The download gate uses the EMAIL CHANGE flow, not signup — 2026-08-27
+
+Non-obvious and it cost a test round: converting the anonymous user with
+`updateUser({ email, password })` is, to GoTrue, an **email change** on an
+account that already exists — not a signup. Consequences, all of them
+observable:
+
+- The mail is rendered from the **Change Email Address** template, *not*
+  Confirm signup. That template was never localised, which is why the
+  confirmation link arrived in English for a German user while the reset-password
+  mail (bilingual, see above) did not. Fix is the same as for reset: one
+  bilingual DE/EN template, since a template cannot switch on language.
+- Resending must be `resend({ type: 'email_change' })`. `type: 'signup'` asks
+  GoTrue to repeat a registration that never happened. `DownloadAccountGate`
+  tries `email_change` first and falls back to `signup`.
+- **Secure email change** (Auth → Providers → Email) sends a confirmation to the
+  OLD address as well. An anonymous user has none, so leave it off for this flow
+  — with it on, a conversion can require a click that nobody can ever make.
+- The per-user min-interval (60s) and the hourly cap apply here too, and a
+  throttled mail is silent on both sides. Repeated testing with the same address
+  is the first thing to rule out when "the mail did not arrive".
+
 ---
 
 ## Original plan (below) — for reference
