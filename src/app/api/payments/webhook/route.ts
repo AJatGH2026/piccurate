@@ -107,6 +107,14 @@ export async function POST(request: NextRequest) {
             });
             if (!ok) {
               console.error(`[Webhook] Job ${jobId}: order confirmation FAILED to send to ${to}`);
+            } else if (jobId) {
+              // Discharges the obligation for this job, so the download gate's
+              // later trigger cannot mail a second confirmation — one that
+              // would have to state a price it does not know.
+              await db
+                .from('jobs')
+                .update({ confirmation_sent_at: new Date().toISOString() })
+                .eq('id', jobId);
             }
           }
         } catch (mailErr) {

@@ -12,6 +12,7 @@ import { trackEvent, trackAdsConversion } from '@/lib/analytics';
 import { trackEv, mark, msSince } from '@/lib/events-client';
 import { classifyUserAgent } from '@/lib/userAgent';
 import { DownloadAccountGate } from '@/components/results/DownloadAccountGate';
+import { ContractConfirmation } from '@/components/legal/ContractConfirmation';
 import { logBeta } from '@/lib/beta-client';
 import { EmailCapture } from '@/components/beta/EmailCapture';
 import { ResultsFeedback } from '@/components/beta/ResultsFeedback';
@@ -139,6 +140,7 @@ export default function ResultsPage() {
   const cloudProviders = enabledCloudProviders();
 
   const photos = usePhotoStore((s) => s.photos);
+  const contract = usePhotoStore((s) => s.contract);
   const selectedPhotos = photos.filter((p) => p.selected);
   const selectedCount = selectedPhotos.length;
   const totalCount = photos.length;
@@ -814,6 +816,20 @@ export default function ResultsPage() {
           </div>
         </div>
 
+        {/* The same confirmation offered on /configure when the contract was
+            formed, repeated here because that page is long gone by now and a
+            copy the visitor can only save in the seconds before they click on
+            would be a poor durable medium. */}
+        {contract && (
+          <ContractConfirmation
+            jobId={contract.jobId}
+            tier={contract.tier}
+            photoLimit={contract.photoLimit}
+            placedAt={contract.placedAt}
+            locale={locale}
+          />
+        )}
+
         {/* Start over */}
         <div className="mt-8 text-center">
           <Link
@@ -837,6 +853,19 @@ export default function ResultsPage() {
             accountJustCreatedRef.current = true;
             setUser({ email: undefined });
             setShowDownloadGate(false);
+            // We finally have an address for a contract that was concluded
+            // anonymously, so the § 312f confirmation can go out by mail as
+            // well. Idempotent server-side (jobs.confirmation_sent_at), and
+            // deliberately not awaited: the download must not wait on our
+            // mailer, and a failure here is retried the next time this runs.
+            if (contract?.jobId) {
+              void fetch(
+                `/api/jobs/${encodeURIComponent(contract.jobId)}/confirmation?locale=${encodeURIComponent(locale)}`,
+                { method: 'POST' }
+              ).catch(() => {
+                /* the on-screen copy above already discharged the obligation */
+              });
+            }
             void handleDownload();
           }}
         />

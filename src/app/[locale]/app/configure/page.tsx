@@ -19,6 +19,7 @@ import { trackEv, mark, msSince, nextRunIndex, sealAttribution } from '@/lib/eve
 import { createClient } from '@/lib/supabase/client';
 import { getTierForPhotoCount, MAX_TIER_PHOTOS } from '@/types/pricing';
 import { estimateRemainingMs, formatEtaDuration } from '@/utils/eta';
+import { ContractConfirmation } from '@/components/legal/ContractConfirmation';
 
 const BATCH_SIZE = 20;
 
@@ -73,6 +74,8 @@ export default function ConfigurePage() {
   const photos = usePhotoStore((s) => s.photos);
   const activeJobId = usePhotoStore((s) => s.activeJobId);
   const setActiveJobId = usePhotoStore((s) => s.setActiveJobId);
+  const contract = usePhotoStore((s) => s.contract);
+  const setContract = usePhotoStore((s) => s.setContract);
   const applyAnalysisResults = usePhotoStore((s) => s.applyAnalysisResults);
   const rerunSelection = usePhotoStore((s) => s.rerunSelection);
   const analyzedCustomTerms = usePhotoStore((s) => s.analyzedCustomTerms);
@@ -103,12 +106,6 @@ export default function ConfigurePage() {
   // A2: reference-photo collective confirmation before persons are transmitted.
   const [ageAccepted, setAgeAccepted] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
-  // Whether this session belongs to a permanent account with an address we can
-  // actually mail. Drives both the consent pre-fill below and the § 312f
-  // notice further down — the latter promised an email unconditionally, which
-  // has been untrue for anonymous visitors since the account gate moved to the
-  // ZIP download on 2026-08-27.
-  const [hasAccount, setHasAccount] = useState(false);
   // No separate person confirmation any more — see the note further down where
   // the checkbox used to be. Analysis is gated on age + terms only.
   const canAnalyze = ageAccepted && termsAccepted;
@@ -163,7 +160,6 @@ export default function ConfigurePage() {
           data: { user },
         } = await supabase.auth.getUser();
         if (cancelled || !user || user.is_anonymous) return;
-        setHasAccount(true);
         if (localStorage.getItem('sb-age-ok') === '1') setAgeAccepted(true);
         if (localStorage.getItem('sb-terms-ok') === '1') setTermsAccepted(true);
       } catch {
@@ -231,6 +227,15 @@ export default function ConfigurePage() {
     if (!res.ok || !json?.data?.jobId) {
       throw new Error(json?.error || t('jobCreateFailed'));
     }
+    // This response is the moment the contract exists (terms § 3), so it is
+    // also the moment the § 312f confirmation becomes due. Record what it has
+    // to state; the panel below renders it and offers it for saving.
+    setContract({
+      jobId: json.data.jobId as string,
+      tier: String(json.data.tier ?? tier),
+      photoLimit: Number(json.data.photoLimit ?? 0),
+      placedAt: new Date().toISOString(),
+    });
     return json.data.jobId as string;
   };
 
@@ -772,20 +777,17 @@ export default function ConfigurePage() {
             enough that providers still file it as spam — a confirmation nobody
             knows to look for is one nobody finds.
 
-            Shown only to a signed-in account, because only there is it true:
-            /api/jobs mails the confirmation to profiles.email, and an anonymous
-            visitor has none, so the send is skipped with a log line. Promising
-            that mail to everyone — right above the button that concludes the
-            contract — was a statement the product stopped honouring when the
-            account gate moved to the ZIP download. The anonymous case gets its
-            own durable-medium confirmation in the follow-up change; until then
-            this says nothing rather than something untrue. */}
-        {hasAccount && (
-          <p className="mt-2 flex items-start gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-            <span aria-hidden="true">✉️</span>
-            <span>{t('contractMailNotice')}</span>
-          </p>
-        )}
+            Shown to everyone again, and true for everyone again: the panel that
+            appears below the button carries the confirmation on screen for the
+            anonymous visitor we have no address for, and the mail follows for
+            anyone who has an account or later registers at the download gate.
+            Between 2026-08-27 morning and this change it was hidden from
+            anonymous visitors, because until the panel existed it promised them
+            a mail that was never sent. */}
+        <p className="mt-2 flex items-start gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+          <span aria-hidden="true">✉️</span>
+          <span>{t('contractMailNotice')}</span>
+        </p>
 
         {/* A3: two separate declarations, neither preselected. Kept apart so a
             later change to one threshold does not silently restate the other. */}
@@ -1105,6 +1107,20 @@ export default function ConfigurePage() {
             {' — '}
             {t('analysisEtaDependencyNote')}
           </p>
+        )}
+
+        {/* Appears the moment the job exists, i.e. the moment the contract is
+            formed and the analysis starts — which is what § 312f Abs. 2 asks
+            for ("before performance begins"), and earlier than any mail we
+            could send an anonymous visitor we have no address for. */}
+        {contract && (
+          <ContractConfirmation
+            jobId={contract.jobId}
+            tier={contract.tier}
+            photoLimit={contract.photoLimit}
+            placedAt={contract.placedAt}
+            locale={locale}
+          />
         )}
       </main>
     </div>

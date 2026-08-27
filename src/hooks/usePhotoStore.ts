@@ -69,6 +69,17 @@ interface PhotoStore {
    */
   activeJobId: string | null;
   setActiveJobId: (jobId: string | null) => void;
+  /**
+   * What the § 312f BGB confirmation needs to state about this contract, kept
+   * next to the job it belongs to and cleared with it.
+   *
+   * Held here rather than on /configure so the confirmation stays reachable
+   * after the user moves on to /review and /results — a durable-medium
+   * confirmation the visitor can only save during the seconds before they
+   * click "Weiter" would not be much of one.
+   */
+  contract: { jobId: string; tier: string; photoLimit: number; placedAt: string } | null;
+  setContract: (c: { jobId: string; tier: string; photoLimit: number; placedAt: string } | null) => void;
   /** Custom terms present at the last analysis (to detect when re-analysis is needed). */
   analyzedCustomTerms: string[];
   /**
@@ -605,6 +616,8 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
   photos: [],
   activeJobId: null,
   setActiveJobId: (jobId) => set({ activeJobId: jobId }),
+  contract: null,
+  setContract: (c) => set({ contract: c }),
   analyzedCustomTerms: [],
   persons: [],
   analyzedPersons: [],
@@ -692,6 +705,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       // sized and, once paid tiers are live, paid for a different set of
       // photos, so it must not be reused for this one.
       activeJobId: null,
+      contract: null,
     }));
   },
 
@@ -860,6 +874,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
     set({
       photos: [],
       activeJobId: null,
+      contract: null,
       persons: [],
       analyzedCustomTerms: [],
       analyzedPersons: [],

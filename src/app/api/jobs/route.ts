@@ -3,10 +3,9 @@ import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/se
 import { JobManager } from '@/services/job-manager';
 import type { CreateJobRequest, CreateJobResponse, ApiResponse } from '@/types/api';
 import type { Tier } from '@/types/job';
-import { getPlan } from '@/types/pricing';
 import { analysisRequiresAccount, remainingPhotoBudget, ACCESS_ERRORS } from '@/lib/access';
 import { clientIp } from '@/lib/rate-limit';
-import { emailConfigured, sendOrderConfirmation } from '@/lib/email';
+import { sendContractConfirmationOnce } from '@/lib/send-contract-confirmation';
 
 const VALID_TIERS: Tier[] = ['free', 'small', 'medium', 'large'];
 
@@ -110,50 +109,26 @@ export async function POST(request: NextRequest) {
 
     const jobManager = new JobManager(supabase);
     const job = await jobManager.createJob(user.id, body.tier);
-    const plan = getPlan(body.tier);
 
     // § 312f BGB for the FREE tier. The paid tiers get their confirmation from
     // the Stripe webhook; a free contract has no payment and therefore no
-    // webhook, so this is its only trigger. It belongs here because this is
+    // webhook, so this is its first trigger. It belongs here because this is
     // where the contract is formed — terms § 3: accepting the terms and
     // starting the analysis — and § 312f Abs. 2 wants the confirmation before
     // performance begins, which is the analysis that follows this call.
     //
+    // It is no longer the ONLY trigger. Since the account gate moved to the ZIP
+    // download, most visitors are anonymous at this point and there is no
+    // address to mail; the send is skipped and the job stays eligible, so
+    // registering at the download gate discharges it later. What those visitors
+    // get at *this* moment instead is the same text on screen, with a save
+    // button — email was never the only durable medium (§ 126b), see
+    // lib/contract-confirmation.ts.
+    //
     // Never fail the request on a mail error: the contract exists either way,
-    // and refusing the job would punish the user for our outage. Loud in the
-    // log instead, exactly as the webhook treats the same failure.
+    // and refusing the job would punish the user for our outage.
     if (body.tier === 'free') {
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('email, locale')
-          .eq('id', user.id)
-          .maybeSingle();
-        const to = profile?.email || user.email || '';
-        // The UI locale wins over the stored preference: the confirmation must
-        // be in the language the contract was actually concluded in. Falls back
-        // to the profile, then English.
-        const locale = contractLocale ?? (profile?.locale === 'de' ? 'de' : 'en');
-        if (!to) {
-          console.error(`[jobs] ${job.id}: no address for the free-tier contract confirmation`);
-        } else if (!emailConfigured()) {
-          console.error(`[jobs] ${job.id}: RESEND_API_KEY unset, confirmation NOT sent`);
-        } else {
-          const ok = await sendOrderConfirmation({
-            to,
-            free: true,
-            // Not plan.tier: that renders as "Tarif free" in a German mail.
-            tierLabel: locale === 'de' ? 'Gratis' : 'Free',
-            photoLimit: job.photoLimit,
-            orderRef: job.id,
-            placedAt: new Date(),
-            locale,
-          });
-          if (!ok) console.error(`[jobs] ${job.id}: free-tier contract confirmation failed to send`);
-        }
-      } catch (mailErr) {
-        console.error(`[jobs] ${job.id}: confirmation error:`, mailErr);
-      }
+      await sendContractConfirmationOnce(job.id, contractLocale ?? undefined);
     }
 
     const response: CreateJobResponse = {

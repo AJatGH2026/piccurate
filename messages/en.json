@@ -161,7 +161,7 @@
     "tooManyForAnyTier": "More than {max} photos cannot be processed in one run yet. Drop us a line at {email} — at these volumes we will find a way.",
     "accountRequired": "You need an account to run an analysis — including on the free plan. Please log in or sign up; you can carry on here afterwards.",
     "jobCreateFailed": "The analysis could not be started — that is on us, not on your photos. Please try again in a moment. If it keeps happening, drop us a line and we will check the logs.",
-    "contractMailNotice": "When the analysis starts we email you the confirmation of your contract. If it does not arrive, please check your spam folder — our sending address is still new, so some mail providers file it there at first.",
+    "contractMailNotice": "Starting the analysis forms the contract for the free photo selection. We show you the confirmation the law requires right here — and email it to you as well once an address is held in your account.",
     "analysisPartial": "{done} of {total} photos were analysed. The rest could not be processed: {error} You'll see the analysed ones now — the others can follow later.",
     "budgetExceeded": "You can analyse about {remaining} more photos today, but {requested} are selected. Reduce the selection or try again tomorrow.",
     "ageConfirm18": "I am at least 18 years old.",
@@ -380,6 +380,14 @@
     "accept": "Accept",
     "decline": "Decline",
     "privacy": "Privacy"
+  },
+  "legal": {
+    "confirmationTitle": "Confirmation of your contract",
+    "confirmationBody": "The law requires a confirmation in text form for online transactions (section 312f of the German Civil Code). Here it is — save it if you would like to keep it. If you create an account later, we email you the same text as well.",
+    "confirmationSave": "Save confirmation",
+    "confirmationSaved": "Save again",
+    "confirmationShow": "Show the text",
+    "confirmationHide": "Hide the text"
   },
   "withdrawal": {
     "title": "Withdraw from contract",

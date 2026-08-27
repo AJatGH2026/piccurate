@@ -161,7 +161,7 @@
     "tooManyForAnyTier": "Mehr als {max} Fotos lassen sich derzeit nicht in einem Durchgang verarbeiten. Schreib uns kurz an {email} — bei solchen Mengen finden wir eine Lösung für dich.",
     "accountRequired": "Für die Analyse brauchst du ein Konto — auch im kostenlosen Tarif. Bitte melde dich an oder registriere dich; danach kannst du hier weitermachen.",
     "jobCreateFailed": "Die Analyse konnte nicht gestartet werden — das liegt an uns, nicht an deinen Fotos. Bitte versuch es in einem Moment noch einmal. Bleibt es dabei, schreib uns kurz; wir sehen dann im Protokoll nach.",
-    "contractMailNotice": "Mit dem Start der Analyse senden wir dir die Bestätigung deines Vertrags per E-Mail. Falls sie nicht ankommt, schau bitte im Spam-Ordner nach — unsere Absenderadresse ist noch jung, deshalb sortieren manche Mailanbieter sie zunächst dorthin.",
+    "contractMailNotice": "Mit dem Start der Analyse kommt der Vertrag über die kostenlose Fotoauswahl zustande. Die gesetzlich vorgeschriebene Bestätigung dazu zeigen wir dir direkt hier an — und schicken sie dir zusätzlich per E-Mail, sobald zu deinem Konto eine Adresse hinterlegt ist.",
     "analysisPartial": "{done} von {total} Fotos wurden analysiert. Der Rest konnte nicht mehr verarbeitet werden: {error} Die bereits analysierten Fotos siehst du gleich — die übrigen kannst du später nachholen.",
     "budgetExceeded": "Für heute kannst du noch etwa {remaining} Fotos analysieren, ausgewählt sind {requested}. Reduziere die Auswahl oder versuch es morgen noch einmal.",
     "ageConfirm18": "Ich bin mindestens 18 Jahre alt.",
@@ -380,6 +380,14 @@
     "accept": "Akzeptieren",
     "decline": "Ablehnen",
     "privacy": "Datenschutz"
+  },
+  "legal": {
+    "confirmationTitle": "Bestätigung deines Vertrags",
+    "confirmationBody": "Das Gesetz schreibt für Geschäfte im Internet eine Bestätigung in Textform vor (§ 312f BGB). Hier ist sie — speichere sie dir, wenn du sie behalten möchtest. Legst du später ein Konto an, schicken wir dir denselben Text zusätzlich per E-Mail.",
+    "confirmationSave": "Bestätigung speichern",
+    "confirmationSaved": "Erneut speichern",
+    "confirmationShow": "Text anzeigen",
+    "confirmationHide": "Text ausblenden"
   },
   "withdrawal": {
     "title": "Vertrag widerrufen",
