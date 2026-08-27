@@ -11,6 +11,7 @@ import { dominantPlace, placeFolder } from '@/utils/geo';
 import { trackEvent, trackAdsConversion } from '@/lib/analytics';
 import { trackEv, mark, msSince } from '@/lib/events-client';
 import { classifyUserAgent } from '@/lib/userAgent';
+import { DownloadAccountGate } from '@/components/results/DownloadAccountGate';
 import { logBeta } from '@/lib/beta-client';
 import { EmailCapture } from '@/components/beta/EmailCapture';
 import { ResultsFeedback } from '@/components/beta/ResultsFeedback';
@@ -103,6 +104,16 @@ export default function ResultsPage() {
   // Client-side check because this page is a client component — and it stays
   // silent when Supabase isn't configured, so the demo flow never breaks.
   const [user, setUser] = useState<{ email?: string } | null>(null);
+  // Whether the auth answer has arrived. Without it a click on Download in the
+  // first moments after load would see `user === null` and wrongly demand an
+  // account from someone who has one.
+  const [authChecked, setAuthChecked] = useState(false);
+  const [showDownloadGate, setShowDownloadGate] = useState(false);
+  // Set the moment the gate is passed. A ref, not state: onUnlocked starts the
+  // download in the same tick, and a setUser() there would not be visible yet
+  // — downloadNeedsAccount() would still see "no account" and reopen the
+  // dialog it just closed, forever.
+  const accountJustCreatedRef = useRef(false);
   useEffect(() => {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
     let cancelled = false;
@@ -112,10 +123,14 @@ export default function ResultsPage() {
         // Anonymous sign-in means demo users now have a session too — but there
         // is nothing for them to sign out of, and offering it would suggest they
         // had an account. Only real accounts get the button.
-        if (!cancelled) setUser(data.user && !data.user.is_anonymous ? data.user : null);
+        if (!cancelled) {
+          setUser(data.user && !data.user.is_anonymous ? data.user : null);
+          setAuthChecked(true);
+        }
       })
       .catch(() => {
         /* not signed in, or auth unreachable — leave the button hidden */
+        if (!cancelled) setAuthChecked(true);
       });
     return () => {
       cancelled = true;
@@ -170,7 +185,33 @@ export default function ResultsPage() {
       ? names.join(', ')
       : `${names.slice(0, 5).join(', ')} ${t('moreFiles', { count: names.length - 5 })}`;
 
+  /**
+   * True when the ZIP download must ask for an account first (2026-08-27).
+   * Deliberately fails OPEN when Supabase is not configured — a local or demo
+   * run has no accounts at all, and a gate nobody can pass is a broken page,
+   * not a strict one. `authChecked` guards the moment before the auth answer
+   * arrives, so a fast click is never mistaken for "not signed in".
+   */
+  const downloadNeedsAccount = () => {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return false;
+    if (!authChecked) return false;
+    if (accountJustCreatedRef.current) return false;
+    return !user;
+  };
+
   const handleDownload = async () => {
+    // The account gate, before anything else happens — in particular before
+    // the WebKit window below is opened, which would otherwise leave a blank
+    // tab sitting behind the dialog.
+    if (downloadNeedsAccount()) {
+      setShowDownloadGate(true);
+      // This is where an account is actually demanded now, so this is where
+      // the event belongs. It used to fire on the upload page; counting it in
+      // both places would double the same visitor.
+      trackEv('account_gate_shown', locale);
+      return;
+    }
+
     // Open the download's destination tab SYNCHRONOUSLY, in the same tick as
     // the click — before any `await` below. Reported 2026-08-15: on iPhone
     // Safari the download silently did nothing (no sound, no error) once the
@@ -783,6 +824,23 @@ export default function ResultsPage() {
           </Link>
         </div>
       </main>
+
+      {showDownloadGate && (
+        <DownloadAccountGate
+          locale={locale}
+          onClose={() => setShowDownloadGate(false)}
+          onUnlocked={() => {
+            // The session is now a permanent account. Reflect that locally so
+            // the gate does not reappear, then start the download the user
+            // asked for in the first place — they should not have to find the
+            // button again.
+            accountJustCreatedRef.current = true;
+            setUser({ email: undefined });
+            setShowDownloadGate(false);
+            void handleDownload();
+          }}
+        />
+      )}
     </div>
   );
 }

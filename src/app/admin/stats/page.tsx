@@ -255,6 +255,24 @@ export default async function AdminStatsPage({
               <div className="mt-5 border-t border-zinc-100 dark:border-zinc-800 pt-4 space-y-3">
                 <div>
                   <p className="text-sm">
+                    analysis_started / demo_start:{' '}
+                    <span className="font-medium">
+                      {events.ratios.analysisStartedPerDemoStart != null
+                        ? `${Math.round(events.ratios.analysisStartedPerDemoStart * 100)}%`
+                        : '—'}
+                    </span>
+                  </p>
+                  <Hint>
+                    <b>Die Conversion.</b> Seit dem 27.08.2026 ist <code>analysis_started</code> das
+                    letzte Event, das eine Kampagne trägt — es ist der Klick, mit dem der kostenlose
+                    Vertrag zustande kommt, und danach wird bewusst nicht mehr zugeordnet
+                    (§ 312 Abs. 1a Satz 2 BGB). Alles tiefer im Trichter wird weiter gezählt, aber
+                    lässt sich keinem Kanal mehr zuschreiben. Diese Quote ist damit die tiefste
+                    Stelle, an der ein Kanal überhaupt noch bewertbar ist.
+                  </Hint>
+                </div>
+                <div>
+                  <p className="text-sm">
                     account_gate_shown / demo_start:{' '}
                     <span className="font-medium">
                       {events.ratios.accountGatePerDemoStart != null
@@ -263,11 +281,12 @@ export default async function AdminStatsPage({
                     </span>
                   </p>
                   <Hint>
-                    Anteil der Upload-Seiten-Besucher, denen statt der Drop-Zone die
-                    Registrierungswand gezeigt wurde. Die beiden Quotienten darunter immer
-                    zusammen mit diesem lesen: sie beschreiben nur die Besucher, die an der Wand
-                    vorbeikamen. Nahe 100 % heißt, dass ausschließlich eingeloggte Konten
-                    gemessen werden — im Beta-Betrieb also wir selbst.
+                    Anteil der Upload-Seiten-Besucher, die bis zum ZIP-Download kamen und dort
+                    nach einem Konto gefragt wurden. <b>Seit 27.08.2026 steht die Wand vor dem
+                    Download, nicht mehr vor dem Upload</b> — Werte über diesen Stichtag hinweg
+                    sind nicht vergleichbar. Vorher maß die Zahl, wie viele gar nicht erst
+                    hochladen durften; jetzt misst sie, wie viele weit genug kamen, dass sich
+                    die Frage überhaupt stellt.
                   </Hint>
                 </div>
                 <div>
@@ -279,7 +298,12 @@ export default async function AdminStatsPage({
                         : '—'}
                     </span>
                   </p>
-                  <Hint>Abbruchkriterium §9: unter 40 % → Einstiegshürde reparieren, bevor irgendetwas anderes messbar wird.</Hint>
+                  <Hint>
+                    Abbruchkriterium §9: unter 40 % → Einstiegshürde reparieren, bevor irgendetwas
+                    anderes messbar wird. <b>Erst seit dem 27.08.2026 aussagekräftig für fremde
+                    Besucher</b> — davor kam niemand ohne Konto bis zur Fotoauswahl, die Quote
+                    beschrieb also ausschließlich unsere eigene Nutzung.
+                  </Hint>
                 </div>
                 <div>
                   <p className="text-sm">
@@ -326,7 +350,9 @@ export default async function AdminStatsPage({
                           <tr key={key} className="border-b border-zinc-100 dark:border-zinc-800 last:border-0">
                             <td className="py-1 text-zinc-500">{key}</td>
                             <td className="py-1 text-right tabular-nums">{fmt(v.landing_view)}</td>
-                            <td className="py-1 text-right tabular-nums text-xs text-zinc-400">({fmt(v.demo_start)} demo_start)</td>
+                            <td className="py-1 text-right tabular-nums text-xs text-zinc-400">
+                              ({fmt(v.demo_start)} demo_start · <b>{fmt(v.analysis_started)} analysis_started</b>)
+                            </td>
                           </tr>
                         ))}
                     </tbody>
@@ -349,7 +375,7 @@ export default async function AdminStatsPage({
                             <td className="py-1 text-zinc-500">{key}</td>
                             <td className="py-1 text-right tabular-nums">{fmt(v.landing_view)}</td>
                             <td className="py-1 text-right tabular-nums text-xs text-zinc-400">
-                              ({fmt(v.demo_start)} demo_start
+                              ({fmt(v.demo_start)} demo_start · <b>{fmt(v.analysis_started)} analysis_started</b>
                               {v.landing_view > 0 ? ` · ${Math.round((v.demo_start / v.landing_view) * 100)}%` : ''})
                             </td>
                           </tr>

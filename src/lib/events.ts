@@ -50,12 +50,11 @@ export const ALLOWED_EVENTS = new Set([
   // Stufe 1
   'landing_view',
   'demo_start',
-  // Fires instead of the drop zone when BETA_OPEN_ACCESS is off and the
-  // visitor has no permanent account. Added 2026-08-24: `demo_start` fires on
-  // upload-page mount and says nothing about what the visitor then saw, so
-  // "reached the upload page" and "was asked to register first" were
-  // indistinguishable — and every campaign visitor lands on the second one.
-  // This is the number that says what the account requirement costs in reach.
+  // Fires where an account is actually demanded. Until 2026-08-27 that was
+  // the upload page, in front of the drop zone; since the gate moved it is
+  // the ZIP download on the results page. Same question either way — what
+  // does the account requirement cost — but now asked of people who have
+  // already seen what they would be signing up for.
   'account_gate_shown',
   'files_selected',
   'file_transfer_ready',
@@ -140,18 +139,24 @@ export interface EventSignals {
   ratios: {
     filesSelectedPerDemoStart: number | null;
     downloadCompletedPerResultsShown: number | null;
-    // Share of upload-page visitors who were shown the registration wall
-    // instead of the drop zone. The other two ratios only describe people who
-    // got past it, so without this one the dashboard silently reports on
-    // registered users alone — which, during the beta, is nobody but us.
+    // Share of demo_starts that got all the way to the ZIP download and were
+    // asked for an account there. Before 2026-08-27 this measured the wall in
+    // front of the upload instead; the number is not comparable across that
+    // date.
     accountGatePerDemoStart: number | null;
+    // The conversion, since 2026-08-27: `analysis_started` is the last event
+    // that may carry campaign attribution, because it is the click that
+    // concludes the free contract. Everything below it in the funnel is
+    // counted but no longer attributable, so this is the deepest point at
+    // which a channel can still be judged.
+    analysisStartedPerDemoStart: number | null;
   };
   byDeviceClass: Record<string, { demo_start: number; files_selected: number }>;
   // Keyed by `traffic_source > campaign` (e.g. "google > beta26_su_kern"),
   // "(none)" when a UTM param was absent — the only way to answer "is any
   // recorded session actually attributed to a paid campaign" without a raw
   // Redis read, which the campaign owner's own tooling can't do directly.
-  byCampaign: Record<string, { landing_view: number; demo_start: number }>;
+  byCampaign: Record<string, { landing_view: number; demo_start: number; analysis_started: number }>;
   // One level deeper than byCampaign: `campaign > ad_group > keyword`, i.e.
   // utm_campaign/utm_content/utm_term. On Meta that separates one creative
   // from another (utm_term=motiv_verwandlung vs motiv_texthook); on Google it
@@ -159,7 +164,7 @@ export interface EventSignals {
   // run that our own funnel could not have told apart — leaving Meta's own
   // numbers as the only verdict, which is exactly what this dashboard exists
   // not to rely on.
-  byCreative: Record<string, { landing_view: number; demo_start: number }>;
+  byCreative: Record<string, { landing_view: number; demo_start: number; analysis_started: number }>;
   daysRead: number;
 }
 
@@ -180,6 +185,7 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
       filesSelectedPerDemoStart: null,
       downloadCompletedPerResultsShown: null,
       accountGatePerDemoStart: null,
+      analysisStartedPerDemoStart: null,
     },
     byDeviceClass: {},
     byCampaign: {},
@@ -208,8 +214,10 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
 
     const counts = new Map<string, number>();
     const byDevice: Record<string, { demo_start: number; files_selected: number }> = {};
-    const byCampaign: Record<string, { landing_view: number; demo_start: number }> = {};
-    const byCreative: Record<string, { landing_view: number; demo_start: number }> = {};
+    type Attributed = { landing_view: number; demo_start: number; analysis_started: number };
+    const blank = (): Attributed => ({ landing_view: 0, demo_start: 0, analysis_started: 0 });
+    const byCampaign: Record<string, Attributed> = {};
+    const byCreative: Record<string, Attributed> = {};
     for (const e of events) {
       counts.set(e.name, (counts.get(e.name) || 0) + 1);
       if (e.name === 'demo_start' || e.name === 'files_selected') {
@@ -217,16 +225,16 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
         byDevice[dc] ??= { demo_start: 0, files_selected: 0 };
         byDevice[dc][e.name]++;
       }
-      if (e.name === 'landing_view' || e.name === 'demo_start') {
+      if (e.name === 'landing_view' || e.name === 'demo_start' || e.name === 'analysis_started') {
         const key = e.traffic_source ? `${e.traffic_source} > ${e.campaign || '(kein campaign-Wert)'}` : '(none)';
-        byCampaign[key] ??= { landing_view: 0, demo_start: 0 };
+        byCampaign[key] ??= blank();
         byCampaign[key][e.name]++;
         // Only tagged traffic: an untagged visit has nothing to break down,
         // and lumping them together would put organic noise next to the
         // creative being judged.
         if (e.ad_group || e.keyword) {
           const deep = `${e.campaign || '(kein campaign-Wert)'} > ${e.ad_group || '—'} > ${e.keyword || '—'}`;
-          byCreative[deep] ??= { landing_view: 0, demo_start: 0 };
+          byCreative[deep] ??= blank();
           byCreative[deep][e.name]++;
         }
       }
@@ -238,6 +246,7 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
     const resultsShown = counts.get('results_shown') || 0;
     const downloadCompleted = counts.get('download_completed') || 0;
     const accountGate = counts.get('account_gate_shown') || 0;
+    const analysisStarted = counts.get('analysis_started') || 0;
 
     return {
       configured: true,
@@ -246,6 +255,7 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
         filesSelectedPerDemoStart: demoStart > 0 ? filesSelected / demoStart : null,
         downloadCompletedPerResultsShown: resultsShown > 0 ? downloadCompleted / resultsShown : null,
         accountGatePerDemoStart: demoStart > 0 ? accountGate / demoStart : null,
+        analysisStartedPerDemoStart: demoStart > 0 ? analysisStarted / demoStart : null,
       },
       byDeviceClass: byDevice,
       byCampaign,

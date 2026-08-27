@@ -39,12 +39,22 @@ export default function UploadPage() {
   // there. Read from the account's beta grant; falls back to free while the
   // lookup is in flight or when there is none.
   const [currentTier, setCurrentTier] = useState<Tier>(DEFAULT_TIER);
-  // When BETA_OPEN_ACCESS is off, a permanent account is required. The server
-  // enforces that in /api/jobs and /api/analyze-demo — but both are only reached
-  // when the user presses Analyse, i.e. AFTER uploading up to 250 photos. On a
-  // slower machine that is ten minutes of work ending in an error. So ask the
-  // server for the policy up front and gate the drop zone instead.
+  // Two different things since 2026-08-27, and they must not be confused:
+  //
+  // `needsAccount` is the hard rule — a permanent account required before ANY
+  // analysis runs. It is off by default now (ANALYSIS_REQUIRES_ACCOUNT), but
+  // the gate stays in the code because turning it back on must not need a
+  // rewrite. When it is on, gating the drop zone is still right: the server
+  // only refuses at /api/jobs, i.e. after up to 250 photos have been
+  // processed, which on a slow machine is ten minutes of work ending in an
+  // error.
+  //
+  // `downloadNeedsAccount` is the normal case: analysing and seeing the result
+  // are free and need nobody's address (terms § 3), the ZIP download needs an
+  // account. That is a notice here, not a barrier — but it has to appear
+  // BEFORE the work, not as a surprise on the results page.
   const [needsAccount, setNeedsAccount] = useState(false);
+  const [downloadNeedsAccount, setDownloadNeedsAccount] = useState(false);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -61,12 +71,13 @@ export default function UploadPage() {
         // so the worst case is the old behaviour, not an unguarded upload.
         if (!cancelled && policy?.accountRequired === true && !registered) {
           setNeedsAccount(true);
-          // The counterpart to `demo_start`, which fires on mount and cannot
-          // know yet what the visitor ends up seeing. Without this the funnel
-          // could not tell "left the upload page" from "was asked to register
-          // and left" — the difference that decides whether the account
-          // requirement is what campaign traffic is dying on.
-          trackEv('account_gate_shown', locale);
+          // `account_gate_shown` is NOT fired here any more. It now marks the
+          // place where an account is actually demanded — the ZIP download on
+          // the results page. Firing it here as well would double-count the
+          // same visitor and make the ratio unreadable.
+        } else if (!cancelled && !registered) {
+          // Analysis is open; only the download will ask. Say so up front.
+          setDownloadNeedsAccount(true);
         }
         if (!registered) return;
         const { data: profile } = await supabase
@@ -208,6 +219,18 @@ export default function UploadPage() {
                 disabled={isProcessing && totalCount >= maxPhotos}
               />
             </div>
+
+            {/* Said here, before any work is done — a download that turns out
+                to need an account only once the result is on screen is exactly
+                the surprise this notice exists to prevent. Deliberately a
+                notice and not a barrier: analysing and seeing the result are
+                the free service in full. */}
+            {downloadNeedsAccount && (
+              <p className="mt-3 flex items-start gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                <span aria-hidden="true">💾</span>
+                <span>{t('downloadNeedsAccountNote')}</span>
+              </p>
+            )}
           </>
         )}
 

@@ -105,7 +105,8 @@
     "cloudSourceICloud": "iCloud",
     "cloudIntentComingSoon": "in Arbeit — sag uns Bescheid, wenn du das brauchst",
     "cloudIntentThanks": "Danke, notiert! Wir melden uns, sobald es verfügbar ist.",
-    "etaDependencyNote": "Die Upload-Dauer hängt von deiner Internetverbindung, deinem Gerät und dem Dateiformat deiner Fotos ab (HEIC dauert länger als JPEG)."
+    "etaDependencyNote": "Die Upload-Dauer hängt von deiner Internetverbindung, deinem Gerät und dem Dateiformat deiner Fotos ab (HEIC dauert länger als JPEG).",
+    "downloadNeedsAccountNote": "Analysieren und das Ergebnis ansehen kannst du ohne Konto. Für den Download als ZIP brauchst du ein kostenloses Konto — das legst du direkt auf der Ergebnisseite an, ohne deine Auswahl zu verlieren."
   },
   "criteria": {
     "title": "Auswahlkriterien konfigurieren",
@@ -270,7 +271,13 @@
     "microSurveyFastAlle": "Fast alle",
     "microSurveyEtwaHaelfte": "Etwa die Hälfte",
     "microSurveyWenige": "Nur wenige",
-    "microSurveyThanks": "Danke für dein Feedback!"
+    "microSurveyThanks": "Danke für dein Feedback!",
+    "downloadGateTitle": "Auswahl herunterladen",
+    "downloadGateBody": "Für den Download als ZIP brauchst du ein kostenloses Konto. E-Mail-Adresse und Passwort genügen — du kannst sofort weiterladen.",
+    "downloadGateKeepsResult": "Deine Analyse bleibt dabei erhalten. Du bleibst auf dieser Seite.",
+    "downloadGateSubmit": "Konto anlegen und herunterladen",
+    "downloadGateBusy": "Einen Moment…",
+    "downloadGateCancel": "Später"
   },
   "auth": {
     "login": "Anmelden",
