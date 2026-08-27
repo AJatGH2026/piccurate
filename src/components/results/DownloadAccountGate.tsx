@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
+import { clientConfig } from '@/lib/config';
 import { Honeypot, useBotSignals } from '@/components/forms/Honeypot';
 
 const POLL_INTERVAL_MS = 4_000;
@@ -111,11 +112,18 @@ export function DownloadAccountGate({
       // this result belongs to. Same filter, applied in place.
       const { website: hp, elapsedMs } = signals();
       if (hp.trim() || elapsedMs < 2500) throw new Error(ta('registerFailed'));
-      const { error: err } = await supabase.auth.updateUser({
-        email,
-        password,
-        data: { locale, gdpr_consent_at: new Date().toISOString() },
-      });
+      const { error: err } = await supabase.auth.updateUser(
+        {
+          email,
+          password,
+          data: { locale, gdpr_consent_at: new Date().toISOString() },
+        },
+        // Without this, GoTrue falls back to the bare Site URL — the visitor
+        // lands on the home page after clicking the confirmation link with no
+        // indication anything happened, instead of the login page's
+        // "confirmed" banner (same route the rest of the app's auth mails use).
+        { emailRedirectTo: `${clientConfig.appUrl}/${locale}/auth/callback` }
+      );
       if (err) throw new Error(err.message);
       // Address accepted and mail sent — not unlocked yet, see the file doc comment above.
       setPendingEmail(email);
@@ -259,7 +267,7 @@ export function DownloadAccountGate({
             disabled={busy}
             className="w-full rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60 transition-colors"
           >
-            {busy ? t('downloadGateBusy') : t('downloadGateSubmit')}
+            {busy ? t('downloadGateBusy') : mode === 'login' ? ta('loginCta') : t('downloadGateSubmit')}
           </button>
         </form>
 
