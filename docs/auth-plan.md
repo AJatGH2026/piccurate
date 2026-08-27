@@ -145,6 +145,30 @@ fails invisibly.
 
 ---
 
+## Download gate now waits for confirmation — 2026-08-27
+
+`DownloadAccountGate` (the ZIP-download dialog on the results page, added
+2026-08-27 when the account requirement moved off the upload page) originally
+unlocked the download the moment `updateUser({ email, password })` returned
+without error. That call only validates that the address is syntactically
+well-formed and not already claimed — it is not proof anyone can receive mail
+there, so any fake-but-valid address (`asdf@asdf.com`) unlocked the download
+with nobody ever having to open an inbox.
+
+Fixed same day: the dialog now shows a "check your mail" screen after
+`updateUser` succeeds and polls `supabase.auth.getUser()` for `is_anonymous`
+to flip to `false`. That flag is GoTrue's own, and it only flips once the
+confirmation link has actually been opened at Supabase's `/auth/v1/verify` —
+the same server-side event `/auth/callback` relies on. The poll picks up the
+flip within a few seconds of the click, in this tab, and starts the download
+automatically — still no redirect away from the result. A manual "already
+confirmed — check now" button and a resend button (30s client-side cooldown)
+cover a slow poll or a mail that didn't arrive. See
+`src/components/results/DownloadAccountGate.tsx` for the implementation and
+its file doc comment for the full rationale.
+
+---
+
 ## Original plan (below) — for reference
 
 ## Current state — scaffolding exists, it's a WIRING job (not from scratch)

@@ -273,11 +273,19 @@
     "microSurveyWenige": "Nur wenige",
     "microSurveyThanks": "Danke für dein Feedback!",
     "downloadGateTitle": "Auswahl herunterladen",
-    "downloadGateBody": "Für den Download als ZIP brauchst du ein kostenloses Konto. E-Mail-Adresse und Passwort genügen — du kannst sofort weiterladen.",
+    "downloadGateBody": "Für den Download als ZIP brauchst du ein kostenloses Konto. E-Mail-Adresse und Passwort genügen — bestätige danach kurz den Link in der Mail, dann geht's direkt weiter.",
     "downloadGateKeepsResult": "Deine Analyse bleibt dabei erhalten. Du bleibst auf dieser Seite.",
     "downloadGateSubmit": "Konto anlegen und herunterladen",
     "downloadGateBusy": "Einen Moment…",
-    "downloadGateCancel": "Später"
+    "downloadGateCancel": "Später",
+    "downloadGateAwaitingTitle": "Fast geschafft",
+    "downloadGateAwaitingBody": "Wir haben dir eine Bestätigungsmail an {email} geschickt. Klick den Link darin — der Download startet danach automatisch, sobald wir das hier bemerken. Dieses Fenster kannst du offen lassen.",
+    "downloadGateNotYetConfirmed": "Noch nicht bestätigt. Schau in dein Postfach (auch den Spam-Ordner) und klick den Link in der Mail.",
+    "downloadGateCheckNow": "Schon bestätigt — jetzt prüfen",
+    "downloadGateResend": "Mail erneut senden",
+    "downloadGateResendCooldown": "Erneut senden ({seconds}s)",
+    "downloadGateResendSent": "Mail erneut geschickt — bitte auch im Spam-Ordner nachsehen.",
+    "downloadGateResendFailed": "Das Senden hat nicht geklappt. Bitte versuch es gleich noch einmal."
   },
   "auth": {
     "login": "Anmelden",

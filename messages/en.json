@@ -273,11 +273,19 @@
     "microSurveyWenige": "Just a few",
     "microSurveyThanks": "Thanks for the feedback!",
     "downloadGateTitle": "Download your selection",
-    "downloadGateBody": "A free account is needed to download the ZIP. An email address and a password are enough — you can carry straight on.",
+    "downloadGateBody": "A free account is needed to download the ZIP. An email address and a password are enough — just confirm the link in the mail afterwards and you're straight on.",
     "downloadGateKeepsResult": "Your analysis is kept. You stay on this page.",
     "downloadGateSubmit": "Create account and download",
     "downloadGateBusy": "One moment…",
-    "downloadGateCancel": "Later"
+    "downloadGateCancel": "Later",
+    "downloadGateAwaitingTitle": "Almost there",
+    "downloadGateAwaitingBody": "We've sent a confirmation email to {email}. Click the link in it — the download starts automatically once we notice, right here. You can leave this window open.",
+    "downloadGateNotYetConfirmed": "Not confirmed yet. Check your inbox (and spam folder) and click the link in the email.",
+    "downloadGateCheckNow": "Already confirmed — check now",
+    "downloadGateResend": "Resend email",
+    "downloadGateResendCooldown": "Resend ({seconds}s)",
+    "downloadGateResendSent": "Email sent again — please check your spam folder too.",
+    "downloadGateResendFailed": "Sending failed. Please try again in a moment."
   },
   "auth": {
     "login": "Log in",

@@ -1,9 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 import { Honeypot, useBotSignals } from '@/components/forms/Honeypot';
+
+const POLL_INTERVAL_MS = 4_000;
+const RESEND_COOLDOWN_S = 30;
 
 /**
  * The account gate in front of the ZIP download.
@@ -16,19 +19,24 @@ import { Honeypot, useBotSignals } from '@/components/forms/Honeypot';
  * **Everything happens in this tab, on purpose.** `usePhotoStore` is plain
  * in-memory Zustand with no persistence, so sending someone to /auth/register
  * would destroy the very result they are trying to download. So: no
- * navigation, no redirect, no email round-trip in between.
+ * navigation, no redirect away from this page.
  *
  * Registering converts the ANONYMOUS auth user that already exists (created
  * when the analysis started) into a permanent one via `updateUser`. That keeps
- * the same `user.id`, so the job stays attached without any claim mechanism —
- * and the confirmation link never has to establish a session, which is what
- * /auth/callback deliberately refuses to do because corporate mail scanners
- * click it.
+ * the same `user.id`, so the job stays attached without any claim mechanism.
  *
- * The download is released as soon as an address has been given. Waiting for
- * the confirmation click would mean a trip to another tab and back, and a
- * confirmed address is not what makes this lawful — the address serves to
- * operate the account, and that is true the moment it is entered.
+ * **The download waits for the confirmation click (changed 2026-08-27).**
+ * `updateUser` succeeding only means the address was well-formed and free to
+ * claim — it is not proof anyone can receive mail there, and unlocking the
+ * download at that point let any syntactically valid, unowned address in.
+ * So this dialog now shows a "check your mail" screen and polls
+ * `supabase.auth.getUser()` for `is_anonymous` to flip to `false` — the flag
+ * GoTrue itself only flips once the link has actually been opened at
+ * Supabase's `/auth/v1/verify` (see `/auth/callback`'s comment on why this
+ * app never exchanges that code for a session itself). The moment that
+ * happens, in this tab or any other, the poll here notices and starts the
+ * download automatically — no extra click, and still no redirect away from
+ * the result.
  */
 export function DownloadAccountGate({
   locale,
@@ -48,6 +56,44 @@ export function DownloadAccountGate({
   const [error, setError] = useState<string | null>(null);
   const { website, setWebsite, signals } = useBotSignals();
 
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [checkMessage, setCheckMessage] = useState<string | null>(null);
+  const [resendBusy, setResendBusy] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Read fresh inside the poll below without re-arming the interval on every
+  // parent render — the parent passes a new `onUnlocked` closure each time.
+  const onUnlockedRef = useRef(onUnlocked);
+  useEffect(() => {
+    onUnlockedRef.current = onUnlocked;
+  });
+
+  const checkConfirmed = async () => {
+    const supabase = createClient();
+    const { data } = await supabase.auth.getUser();
+    if (data.user && !data.user.is_anonymous) {
+      onUnlockedRef.current();
+      return true;
+    }
+    return false;
+  };
+
+  useEffect(() => {
+    if (!awaitingConfirmation) return;
+    const id = setInterval(() => {
+      checkConfirmed().catch(() => false);
+    }, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [awaitingConfirmation]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const id = setTimeout(() => setResendCooldown((s) => Math.max(0, s - 1)), 1000);
+    return () => clearTimeout(id);
+  }, [resendCooldown]);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
@@ -57,25 +103,114 @@ export function DownloadAccountGate({
       if (mode === 'login') {
         const { error: err } = await supabase.auth.signInWithPassword({ email, password });
         if (err) throw new Error(err.message);
-      } else {
-        // Bot signals are checked here rather than posted to /api/auth/register:
-        // that route creates a NEW user, which would orphan the anonymous one
-        // this result belongs to. Same filter, applied in place.
-        const { website: hp, elapsedMs } = signals();
-        if (hp.trim() || elapsedMs < 2500) throw new Error(ta('registerFailed'));
-        const { error: err } = await supabase.auth.updateUser({
-          email,
-          password,
-          data: { locale, gdpr_consent_at: new Date().toISOString() },
-        });
-        if (err) throw new Error(err.message);
+        onUnlocked();
+        return;
       }
-      onUnlocked();
+      // Bot signals are checked here rather than posted to /api/auth/register:
+      // that route creates a NEW user, which would orphan the anonymous one
+      // this result belongs to. Same filter, applied in place.
+      const { website: hp, elapsedMs } = signals();
+      if (hp.trim() || elapsedMs < 2500) throw new Error(ta('registerFailed'));
+      const { error: err } = await supabase.auth.updateUser({
+        email,
+        password,
+        data: { locale, gdpr_consent_at: new Date().toISOString() },
+      });
+      if (err) throw new Error(err.message);
+      // Address accepted and mail sent — not unlocked yet, see the file doc comment above.
+      setPendingEmail(email);
+      setAwaitingConfirmation(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : ta('registerFailed'));
+    } finally {
       setBusy(false);
     }
   };
+
+  const handleCheckNow = async () => {
+    setChecking(true);
+    setCheckMessage(null);
+    try {
+      const ok = await checkConfirmed();
+      if (!ok) setCheckMessage(t('downloadGateNotYetConfirmed'));
+    } catch {
+      setCheckMessage(t('downloadGateNotYetConfirmed'));
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setResendBusy(true);
+    setCheckMessage(null);
+    try {
+      const supabase = createClient();
+      const { error: err } = await supabase.auth.resend({ type: 'signup', email: pendingEmail });
+      if (err) throw err;
+      setCheckMessage(t('downloadGateResendSent'));
+      setResendCooldown(RESEND_COOLDOWN_S);
+    } catch {
+      setCheckMessage(t('downloadGateResendFailed'));
+    } finally {
+      setResendBusy(false);
+    }
+  };
+
+  if (awaitingConfirmation) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-xl text-center">
+          <div className="text-4xl mb-2">📬</div>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            {t('downloadGateAwaitingTitle')}
+          </h2>
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+            {t('downloadGateAwaitingBody', { email: pendingEmail })}
+          </p>
+          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t('downloadGateKeepsResult')}</p>
+
+          {checkMessage && (
+            <div className="mt-4 p-3 rounded-lg bg-zinc-50 text-zinc-600 text-sm dark:bg-zinc-800 dark:text-zinc-300">
+              {checkMessage}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleCheckNow}
+            disabled={checking}
+            className="mt-4 w-full rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+          >
+            {checking ? t('downloadGateBusy') : t('downloadGateCheckNow')}
+          </button>
+
+          <div className="mt-4 flex items-center justify-between text-sm">
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resendBusy || resendCooldown > 0}
+              className="text-indigo-600 hover:text-indigo-700 font-medium disabled:opacity-50"
+            >
+              {resendCooldown > 0
+                ? t('downloadGateResendCooldown', { seconds: resendCooldown })
+                : t('downloadGateResend')}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+            >
+              {t('downloadGateCancel')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
