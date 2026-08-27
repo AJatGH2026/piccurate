@@ -228,7 +228,13 @@ export default function UploadPage() {
             {downloadNeedsAccount && (
               <p className="mt-3 flex items-start gap-2 text-xs text-zinc-500 dark:text-zinc-400">
                 <span aria-hidden="true">💾</span>
-                <span>{t('downloadNeedsAccountNote')}</span>
+                <span>
+                  {t.rich('downloadNeedsAccountNote', {
+                    strong: (chunks) => (
+                      <strong className="font-semibold text-zinc-700 dark:text-zinc-200">{chunks}</strong>
+                    ),
+                  })}
+                </span>
               </p>
             )}
           </>

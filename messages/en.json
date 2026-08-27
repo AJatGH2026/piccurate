@@ -106,7 +106,7 @@
     "cloudIntentComingSoon": "coming soon — let us know if you need this",
     "cloudIntentThanks": "Thanks, noted! We'll let you know once it's available.",
     "etaDependencyNote": "Upload time depends on your internet connection, your device, and your photos' file format (HEIC takes longer than JPEG).",
-    "downloadNeedsAccountNote": "Analysing your photos and viewing the result needs no account. Downloading the selection as a ZIP needs a free account — you create it right on the results page, without losing your selection."
+    "downloadNeedsAccountNote": "Analysing your photos and viewing the result needs no account. <strong>Downloading the selection as a ZIP needs a free account — you create it right on the results page, without losing your selection.</strong>"
   },
   "criteria": {
     "title": "Configure selection criteria",
