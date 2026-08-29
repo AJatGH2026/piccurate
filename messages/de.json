@@ -81,6 +81,8 @@
     "accountGateBody": "Für die Analyse brauchst du ein Konto mit bestätigter E-Mail-Adresse — auch im kostenlosen Tarif. Nach der Registrierung schicken wir dir einen Bestätigungslink. Klicke ihn an und melde dich einmal an — danach geht es hier weiter.",
     "processing": "Verarbeite {current} von {total}...",
     "ready": "{count} Fotos bereit",
+    "finalizingDuplicates": "Duplikate werden erkannt …",
+    "finalizingDuplicatesNote": "Fast fertig — wir vergleichen die Fotos noch, damit ähnliche Aufnahmen zuverlässig zusammengefasst werden.",
     "continue": "Weiter zu den Kriterien",
     "tooMany": "Du hast {count} Fotos ausgewählt — das überschreitet das Limit von {limit} für den {tier}-Tarif.",
     "upgradePrompt": "Upgrade für mehr Fotos",

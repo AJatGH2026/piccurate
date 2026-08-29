@@ -81,6 +81,8 @@
     "accountGateBody": "You need an account with a confirmed email address to run an analysis — including on the free plan. After you sign up we send you a confirmation link. Click it and log in once — then you can carry on right here.",
     "processing": "Processing {current} of {total}...",
     "ready": "{count} photos ready",
+    "finalizingDuplicates": "Detecting duplicates…",
+    "finalizingDuplicatesNote": "Almost done — we're still comparing the photos so similar shots get grouped reliably.",
     "continue": "Continue to criteria",
     "tooMany": "You selected {count} photos, which exceeds the {limit} limit for the {tier} tier.",
     "upgradePrompt": "Upgrade to process more photos",
