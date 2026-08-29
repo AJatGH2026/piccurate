@@ -62,6 +62,38 @@ function clampCoord(v: unknown, limit: number): number | null {
 const RL_LIMIT = 120; // requests
 const RL_WINDOW_MS = 60_000; // per minute
 
+// How much total submission a job may accumulate, as a multiple of its photo
+// limit. Since 2026-08-29 the allowance is charged per DISTINCT photo, so a
+// retry of an interrupted run costs nothing — but distinct-only counting would
+// let a caller re-use the same photo ids for different images and analyse
+// without limit. This bounds the real work per job while leaving generous room
+// for honest retries (a run interrupted twice still fits).
+const SUBMISSION_ALLOWANCE_FACTOR = 3;
+
+/**
+ * The client-side photo ids for this batch, or null when they are unusable.
+ *
+ * Null means "charge every file", so every rejection here is the strict
+ * direction — a caller cannot widen its allowance by sending malformed ids.
+ * The count must match the thumbnails exactly: a shorter list would otherwise
+ * let 50 photos ride in on 1 id.
+ */
+function parsePhotoIds(raw: FormDataEntryValue | null, expected: number): string[] | null {
+  if (typeof raw !== 'string') return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length !== expected) return null;
+    // Bounded and non-empty: these become primary-key values, and the length
+    // cap keeps a caller from writing arbitrary-size rows.
+    const ids = parsed.filter(
+      (v): v is string => typeof v === 'string' && v.length > 0 && v.length <= 64
+    );
+    return ids.length === expected ? ids : null;
+  } catch {
+    return null;
+  }
+}
+
 // Beta cost/abuse guards (see product-pipeline.md §10). Cost scales with photos
 // (image tokens dominate), so all caps are photo-based.
 // - Per-request cap: ALWAYS on (works without Upstash) — matches the 250-photo
@@ -141,7 +173,9 @@ export async function POST(request: NextRequest) {
 
     const { data: job } = await supabase
       .from('jobs')
-      .select('id, user_id, tier, photo_count, photo_limit, payment_status, expires_at, beta_grant')
+      .select(
+        'id, user_id, tier, photo_count, photo_limit, submitted_count, payment_status, expires_at, beta_grant'
+      )
       .eq('id', jobId)
       .single();
 
@@ -170,15 +204,59 @@ export async function POST(request: NextRequest) {
     // trivially bypassed by splitting. Read-then-write races between concurrent
     // batches can overshoot slightly; this is a budget guard, not a security
     // boundary, and the per-IP/day caps below bound the damage.
-    if (job.photo_count + files.length > job.photo_limit) {
+    //
+    // Charged per DISTINCT photo since 2026-08-29 (migration 007). Before that
+    // this reserved photo_count += files.length before calling Gemini, so an
+    // interrupted run left its quota spent on photos whose results never
+    // reached the browser, and the retry it explicitly invites ("you can catch
+    // up on the rest later") could not fit. Photos this job was already charged
+    // for are now free to resend.
+    const photoRefs = parsePhotoIds(formData.get('photoIds'), files.length);
+    let newRefs: string[] = [];
+    let charge = files.length;
+    if (photoRefs) {
+      const { data: charged } = await supabase
+        .from('job_photos')
+        .select('photo_ref')
+        .eq('job_id', job.id)
+        .in('photo_ref', photoRefs);
+      const already = new Set((charged ?? []).map((r) => r.photo_ref as string));
+      newRefs = [...new Set(photoRefs)].filter((ref) => !already.has(ref));
+      charge = newRefs.length;
+    }
+    // No usable ids (an older client, or a direct caller) falls back to
+    // charging every file — the conservative direction, so omitting them can
+    // never buy a bigger allowance than sending them.
+    if (job.photo_count + charge > job.photo_limit) {
       return NextResponse.json(
         { error: ACCESS_ERRORS.jobExhausted, limit: job.photo_limit },
         { status: 402 }
       );
     }
+    // Ceiling on total work regardless of how the ids repeat — see
+    // SUBMISSION_ALLOWANCE_FACTOR.
+    const submitted = job.submitted_count ?? job.photo_count;
+    if (submitted + files.length > job.photo_limit * SUBMISSION_ALLOWANCE_FACTOR) {
+      return NextResponse.json(
+        { error: ACCESS_ERRORS.jobExhausted, limit: job.photo_limit },
+        { status: 402 }
+      );
+    }
+    if (newRefs.length) {
+      // Written before the analysis, like the counter it replaces: the cost is
+      // incurred by calling Gemini, so it must not be possible to run the batch
+      // without recording it.
+      await supabase
+        .from('job_photos')
+        .insert(newRefs.map((photo_ref) => ({ job_id: job.id, photo_ref })));
+    }
     await supabase
       .from('jobs')
-      .update({ photo_count: job.photo_count + files.length, status: 'analyzing' })
+      .update({
+        photo_count: job.photo_count + charge,
+        submitted_count: submitted + files.length,
+        status: 'analyzing',
+      })
       .eq('id', job.id);
 
     // Beta cost/abuse guards (§10). Per-request cap first (cheap, always on).

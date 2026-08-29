@@ -972,6 +972,13 @@ export default function ConfigurePage() {
                       }))
                     )
                   );
+                  // The allowance is charged per DISTINCT photo, so the server
+                  // needs to recognise a photo it has already charged for.
+                  // These are the client-side uuids from useUpload — random,
+                  // carrying nothing about the image — and sending them is what
+                  // makes retrying an interrupted run free instead of buying
+                  // the same photos a second time (migration 007).
+                  formData.append('photoIds', JSON.stringify(batch.map((p) => p.id)));
                   if (customTerms.length) {
                     formData.append('customTerms', JSON.stringify(customTerms));
                   }
