@@ -458,6 +458,7 @@ export default async function AdminStatsPage({
                 <thead>
                   <tr className="text-left text-zinc-500">
                     <th className="py-1 pr-3 font-medium">Zeit</th>
+                    <th className="py-1 pr-3 font-medium">Gerät</th>
                     <th className="py-1 pr-3 font-medium">Fotos</th>
                     <th className="py-1 pr-3 font-medium">Person</th>
                     <th className="py-1 pr-3 font-medium">ms/Foto</th>
@@ -472,6 +473,9 @@ export default async function AdminStatsPage({
                       <td className="py-1 pr-3 whitespace-nowrap text-zinc-500">
                         {run.ts.slice(5, 16).replace('T', ' ')}
                         {run.partial && <span title="abgebrochen"> P</span>}
+                      </td>
+                      <td className="py-1 pr-3 whitespace-nowrap text-zinc-500">
+                        {run.deviceClass || '–'}
                       </td>
                       <td className="py-1 pr-3">{run.photoCount}</td>
                       <td className="py-1 pr-3">{run.faceSearch ? 'ja' : '–'}</td>
