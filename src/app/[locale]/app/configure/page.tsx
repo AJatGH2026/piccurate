@@ -1141,6 +1141,11 @@ export default function ConfigurePage() {
             photoLimit={contract.photoLimit}
             placedAt={contract.placedAt}
             locale={locale}
+            // This panel appears the moment the job exists, i.e. right as the
+            // analysis it documents starts running — so saving from here is on
+            // the normal path, and on iOS it aborted the run (see the prop's
+            // own note). Deferred until the run ends, not withheld.
+            saveBlocked={analyzing}
           />
         )}
       </main>

@@ -35,12 +35,28 @@ export function ContractConfirmation({
   photoLimit,
   placedAt,
   locale,
+  saveBlocked = false,
 }: {
   jobId: string;
   tier: string;
   photoLimit: number;
   placedAt: string;
   locale: string;
+  /**
+   * Suppress the save button while a running analysis would be destroyed by it.
+   *
+   * Reported 2026-08-29: saving during the analysis on iOS killed the run after
+   * 100 of 249 photos with "Load failed" — Safari treats the download of a blob
+   * URL as leaving the page, which aborts every in-flight analyze-demo fetch.
+   * The panel appears the moment the job exists, i.e. exactly while the analysis
+   * it belongs to is running, so the trap is on the normal path, not an edge.
+   *
+   * The confirmation itself is NOT withheld: the text stays on screen and
+   * readable via "show text", and the save returns as soon as the run ends
+   * (and again on /results, plus by email once an address exists). Only the
+   * click that would destroy the user's own run is deferred.
+   */
+  saveBlocked?: boolean;
 }) {
   const t = useTranslations('legal');
   const [open, setOpen] = useState(false);
@@ -62,6 +78,10 @@ export function ContractConfirmation({
   }, [jobId, tier, photoLimit, placedAt, locale]);
 
   const save = () => {
+    // Guarded here as well as via the disabled button: this is the call that
+    // tears down the page on iOS, so it must not be reachable while an
+    // analysis is running, whatever the button state says.
+    if (saveBlocked) return;
     // A Blob URL rather than a data: URI — Safari refuses to download the
     // latter from a link with a filename, which is the same trap the ZIP
     // download hit on iOS (see the popup note in the results page).
@@ -90,7 +110,13 @@ export function ContractConfirmation({
             <button
               type="button"
               onClick={save}
-              className="rounded-full bg-indigo-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 transition-colors"
+              disabled={saveBlocked}
+              title={saveBlocked ? t('confirmationSaveBusy') : undefined}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
+                saveBlocked
+                  ? 'bg-zinc-200 text-zinc-500 cursor-not-allowed dark:bg-zinc-700 dark:text-zinc-400'
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
+              }`}
             >
               {saved ? t('confirmationSaved') : t('confirmationSave')}
             </button>
@@ -102,6 +128,14 @@ export function ContractConfirmation({
               {open ? t('confirmationHide') : t('confirmationShow')}
             </button>
           </div>
+
+          {/* Says why the button is greyed out, and that the text itself is
+              still right here — the confirmation is not being withheld. */}
+          {saveBlocked && (
+            <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+              {t('confirmationSaveBusy')}
+            </p>
+          )}
 
           {open && (
             <pre className="mt-3 max-h-72 overflow-auto rounded-lg bg-zinc-50 dark:bg-zinc-800 p-3 text-[11px] leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap break-words">
