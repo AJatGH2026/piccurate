@@ -166,13 +166,28 @@ const VERCEL_BODY_LIMIT = Math.max(0, HEIC_SERVER_MAX_MB) * 1024 * 1024;
  * and the browser (heic-to / libheif) both output already-upright pixels, so no
  * caller needs to pass or apply an EXIF orientation.
  */
+/**
+ * Set once the server has shown it cannot convert AT ALL (its encoder is
+ * missing, or it is unreachable) — as opposed to failing on one file.
+ *
+ * Without this, a server in that state costs a full HEIC upload per photo to
+ * receive the same failure every time, and the browser then does the work
+ * anyway: on a 250-photo album that is 250 pointless uploads on the user's
+ * connection. Observed 2026-08-29, when sharp stopped loading on Vercel and
+ * every /api/convert call 500ed while uploads still "worked", only slowly.
+ *
+ * Deliberately per page load, not persisted: a redeploy fixes the server, and
+ * nothing should keep sending the fast path to the browser after that.
+ */
+let serverConvertUnavailable = false;
+
 export async function convertHEICtoJPEG(
   file: File,
   thumbnail = true,
   opts?: { face?: boolean }
 ): Promise<Blob> {
   // Big HEICs go straight to the browser fallback — no wasted server round trip.
-  if (file.size > VERCEL_BODY_LIMIT) {
+  if (file.size > VERCEL_BODY_LIMIT || serverConvertUnavailable) {
     return convertHEICInBrowser(file, thumbnail, opts);
   }
 
@@ -195,13 +210,26 @@ export async function convertHEICtoJPEG(
       body: file,
     });
   } catch {
+    // Unreachable, not "this file failed" — every following photo would hit the
+    // same wall, so stop paying the upload for it.
+    serverConvertUnavailable = true;
     return convertHEICInBrowser(file, thumbnail, opts);
   }
 
   if (!response.ok) {
-    console.warn(
-      `[HEIC] server conversion failed (${response.status}) — decoding in the browser instead.`
-    );
+    // 5xx means the server itself cannot convert (503: it says so outright).
+    // 413 and 429 are about THIS file or this moment — a smaller file or a
+    // later one can still take the fast path, so those must not latch.
+    if (response.status >= 500) {
+      serverConvertUnavailable = true;
+      console.warn(
+        `[HEIC] server conversion unavailable (${response.status}) — decoding in the browser for the rest of this session.`
+      );
+    } else {
+      console.warn(
+        `[HEIC] server conversion failed (${response.status}) — decoding in the browser instead.`
+      );
+    }
     return convertHEICInBrowser(file, thumbnail, opts);
   }
 

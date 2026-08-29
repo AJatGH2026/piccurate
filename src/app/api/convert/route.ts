@@ -47,6 +47,34 @@ const VIPS_EXE = process.env.VIPSTHUMBNAIL_PATH
 // Cache binary availability across requests: null = unknown, true/false = resolved.
 let vipsAvailable: boolean | null = null;
 
+// Same caching for sharp's native module. undefined = not tried yet, null = it
+// cannot be loaded in this runtime.
+//
+// Reported by Vercel 2026-08-29 11:45 UTC: every /api/convert request 500ing on
+// "sharp native module failed to load". The require() used to sit OUTSIDE the
+// try/catch that guards sharp's *use*, so a module-load failure escaped to the
+// outer handler and became a 500 — the one failure mode this route cannot
+// decode its way around was also the one it reported as an internal error.
+// Resolved once per process instead of per request, and answered with 503 so
+// the client can tell "this server cannot convert at all" from "this file
+// failed" and stop paying for the round trip (see utils/image.ts).
+let sharpModule: unknown | undefined;
+
+function loadSharp(): unknown {
+  if (sharpModule !== undefined) return sharpModule;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    sharpModule = require('sharp');
+  } catch (err) {
+    console.error(
+      '[Convert] sharp native module failed to load — server-side conversion unavailable for this runtime:',
+      err
+    );
+    sharpModule = null;
+  }
+  return sharpModule;
+}
+
 /**
  * Try native HEIC → JPEG thumbnail via `vips thumbnail` (libvips CLI).
  * Returns the JPEG buffer, or null if vips is unavailable / this file failed
@@ -188,8 +216,17 @@ export async function POST(request: NextRequest) {
     }
 
     if (!jpegBuffer) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const sharp = require('sharp');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sharp = loadSharp() as any;
+      if (!sharp) {
+        // Not an internal error: this runtime simply has no encoder, and it
+        // will not have one on the next request either. 503 tells the client to
+        // stop asking and decode in the browser, which it can always do.
+        return NextResponse.json(
+          { error: 'Server-side conversion unavailable' },
+          { status: 503, headers: { 'X-Convert-Unavailable': '1' } }
+        );
+      }
 
       // Path 2: native sharp HEIF decode (usually unavailable on npm builds)
       try {
