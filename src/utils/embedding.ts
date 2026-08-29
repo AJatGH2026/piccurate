@@ -44,7 +44,7 @@ async function getExtractor(): Promise<Extractor | null> {
 
 /** Compute a unit-normalised CLIP embedding for an image blob (or null on failure). */
 export function computeEmbedding(blob: Blob): Promise<number[] | null> {
-  return serializeInference(() => computeNow(blob));
+  return serializeInference(() => computeNow(blob), 'clip');
 }
 
 async function computeNow(blob: Blob): Promise<number[] | null> {

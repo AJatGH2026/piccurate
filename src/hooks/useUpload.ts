@@ -11,6 +11,7 @@ import { detectFaces, preloadFaceDetector } from '@/utils/faceDetection';
 import { computeFaceEmbedding, preloadFaceEmbedder } from '@/utils/faceEmbedding';
 import { usePhotoStore } from '@/hooks/usePhotoStore';
 import { trackEv, mark, msSince, photoCountBucket } from '@/lib/events-client';
+import { timePhase, takeTimingSummary } from '@/utils/upload-timing';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'image/webp'];
 const MAX_CONCURRENT = 4;
@@ -87,10 +88,18 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
   const wasProcessing = useRef(false);
   useEffect(() => {
     if (wasProcessing.current && !isProcessing && totalCount > 0) {
+      // Per-phase timings ride along (utils/upload-timing.ts) so a slow run can
+      // be attributed instead of guessed at. face_search is the axis that
+      // matters: with it the pipeline runs three models per photo through one
+      // serialized queue instead of one, and at half the concurrency.
+      const timings = takeTimingSummary();
       trackEv('file_transfer_ready', locale, {
         photo_count: totalCount,
         duration_since_files_selected_ms: msSince('files_selected'),
+        face_search: wantFaceSearch(),
+        ...(timings ?? {}),
       });
+      if (timings) console.info('[upload] phase timings (ms)', timings);
     }
     wasProcessing.current = isProcessing;
   }, [isProcessing, totalCount, locale]);
@@ -111,7 +120,7 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
     try {
       // Step 1: Extract EXIF from original (works for HEIC too)
       updatePhoto(photo.id, { status: 'extracting' });
-      const exif = await extractEXIF(photo.file);
+      const exif = await timePhase('exif', () => extractEXIF(photo.file));
 
       // Is the local person search active for this run? Read once per photo:
       // the reference persons are chosen BEFORE the upload starts (GATE 1,
@@ -132,18 +141,27 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
           // square: the square is centre-cropped, so anyone at the edge of the
           // frame is gone and background faces are 15-40 px. The thumbnail is
           // then derived locally from that same decode.
-          const faceJpeg = await convertHEICtoJPEG(photo.file, false, { face: true });
-          const decoded = await decodePhoto(faceJpeg, { keepBitmap: true });
+          // Measured separately from the no-face path: this asks for the 1600px
+          // uncropped frame (~250-400 KB) instead of the 512 square (~30 KB),
+          // and adds a browser decode the plain path does not have.
+          const faceJpeg = await timePhase('convert_face', () =>
+            convertHEICtoJPEG(photo.file, false, { face: true })
+          );
+          const decoded = await timePhase('decode', () =>
+            decodePhoto(faceJpeg, { keepBitmap: true })
+          );
           thumbnailBlob = decoded.thumbnail;
           faceBitmap = decoded.bitmap;
         } else {
-          thumbnailBlob = await convertHEICtoJPEG(photo.file, true);
+          thumbnailBlob = await timePhase('convert', () => convertHEICtoJPEG(photo.file, true));
         }
       } else {
         // JPEG/PNG/WebP: thumbnail client-side; createImageBitmap 'from-image'
         // applies EXIF orientation. No manual rotation (it double-applied).
         updatePhoto(photo.id, { status: 'generating', exif });
-        const decoded = await decodePhoto(photo.file, { keepBitmap: faceSearchActive });
+        const decoded = await timePhase('decode', () =>
+          decodePhoto(photo.file, { keepBitmap: faceSearchActive })
+        );
         thumbnailBlob = decoded.thumbnail;
         faceBitmap = decoded.bitmap;
       }
@@ -151,7 +169,7 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
       const thumbnailUrl = URL.createObjectURL(thumbnailBlob);
 
       // Perceptual hash for near-duplicate / series detection
-      const phash = await computePHash(thumbnailBlob);
+      const phash = await timePhase('phash', () => computePHash(thumbnailBlob));
 
       // Mark ready (grid fills fast). The CLIP embedding is heavier, so compute
       // it in the background and attach when done — series detection uses it for

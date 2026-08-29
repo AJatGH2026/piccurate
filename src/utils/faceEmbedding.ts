@@ -68,7 +68,7 @@ export async function preloadFaceEmbedder(): Promise<boolean> {
  * Returns null on failure — callers treat that as "no match information".
  */
 export function computeFaceEmbedding(bitmap: ImageBitmap, box: FaceBox): Promise<number[] | null> {
-  return serializeInference(() => embedNow(bitmap, box));
+  return serializeInference(() => embedNow(bitmap, box), 'facenet');
 }
 
 async function embedNow(bitmap: ImageBitmap, box: FaceBox): Promise<number[] | null> {

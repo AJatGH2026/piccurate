@@ -15,6 +15,8 @@
 // onnxruntime-web WASM runtime; it is not safe for two of its sessions to run
 // truly concurrently, regardless of which JS-level session object issued the
 // call. One shared chain instead of three independent ones is the fix.
+import { recordPhase } from './upload-timing';
+
 let chain: Promise<unknown> = Promise.resolve();
 
 // Give the browser one frame between two consecutive inferences. Every call
@@ -40,8 +42,23 @@ function yieldToMain(): Promise<void> {
  * unblocking the queue — same as before, callers still see their own
  * rejection via the returned promise.
  */
-export function serializeInference<T>(fn: () => Promise<T>): Promise<T> {
-  const result = chain.then(fn, fn);
+export function serializeInference<T>(fn: () => Promise<T>, label?: string): Promise<T> {
+  // Split into WAIT (queued behind other models) and RUN (this model actually
+  // computing) — the two call for opposite fixes, and telling them apart is the
+  // whole point of the measurement. See utils/upload-timing.ts.
+  const queuedAt = label ? Date.now() : 0;
+  const timed = label
+    ? async () => {
+        recordPhase(`${label}_wait`, Date.now() - queuedAt);
+        const startedAt = Date.now();
+        try {
+          return await fn();
+        } finally {
+          recordPhase(`${label}_run`, Date.now() - startedAt);
+        }
+      }
+    : fn;
+  const result = chain.then(timed, timed);
   chain = result.then(
     () => yieldToMain(),
     () => yieldToMain()

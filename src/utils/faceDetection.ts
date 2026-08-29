@@ -109,7 +109,7 @@ export function detectFaces(
   bitmap: ImageBitmap,
   opts?: { scoreThreshold?: number; nmsThreshold?: number }
 ): Promise<FaceBox[]> {
-  return serializeInference(() => detectNow(bitmap, opts));
+  return serializeInference(() => detectNow(bitmap, opts), 'yunet');
 }
 
 async function detectNow(
