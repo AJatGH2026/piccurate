@@ -108,16 +108,17 @@ export default function UploadPage() {
   // has to remember to flip separately.
   const personSearchAvailable = currentTier !== 'free' || !salesAreLive();
 
-  const { photos, isProcessing, processedCount, totalCount, pendingEmbeddings, addFiles, removePhoto, retryFailed, failedCount, clearAll, error } =
+  const { photos, isProcessing, processedCount, totalCount, addFiles, removePhoto, retryFailed, failedCount, clearAll, error } =
     useUpload({ maxPhotos, locale });
+  // Only for the background notice below — this does NOT gate "Weiter". The
+  // embeddings survive the navigation (they write back through the store) and
+  // only have to be complete before the analysis runs, so the wait sits on
+  // "Analysieren" in /configure instead, where choosing criteria and waiting
+  // for Gemini has already absorbed most of it.
+  const embeddingsPending = usePhotoStore((s) => s.embeddingsPending);
 
   const readyCount = photos.filter((p) => p.status === 'ready').length;
-  // Also wait for pendingEmbeddings: usePhotoStore.setPhotosFromUpload takes a
-  // one-time snapshot of each photo's CLIP embedding when this fires, and
-  // whatever hasn't landed yet is gone for good — see the comment on
-  // pendingEmbeddings in useUpload.ts. Holding the button here is what keeps
-  // cross-camera duplicate detection from silently losing photos.
-  const canContinue = readyCount > 0 && !isProcessing && pendingEmbeddings === 0;
+  const canContinue = readyCount > 0 && !isProcessing;
 
   const goToConfigure = () => {
     setPhotosFromUpload(photos);
@@ -292,7 +293,7 @@ export default function UploadPage() {
           processedCount={processedCount}
           totalCount={totalCount}
           isProcessing={isProcessing}
-          pendingEmbeddings={pendingEmbeddings}
+          pendingEmbeddings={embeddingsPending}
         />
 
         {/* Failed-conversion notice + retry (only the failed ones) */}

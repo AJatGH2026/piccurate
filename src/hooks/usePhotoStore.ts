@@ -57,6 +57,27 @@ export interface ProcessedPhoto {
 interface PhotoStore {
   photos: ProcessedPhoto[];
   /**
+   * CLIP embeddings still being computed by the upload pipeline.
+   *
+   * Lives HERE rather than in useUpload, because that hook unmounts the moment
+   * the user leaves /upload while its embedding queue is still draining — and
+   * that queue is exactly what must survive. The embeddings only have to be
+   * complete by the time dedup actually runs (applyAnalysisResults below), not
+   * when the user leaves the upload page, so the wait belongs on "Analysieren",
+   * where the time spent choosing criteria and waiting for Gemini has already
+   * paid most of it off.
+   */
+  embeddingsPending: number;
+  /** Called by the upload pipeline when it queues one photo's CLIP embedding. */
+  noteEmbeddingStarted: () => void;
+  /**
+   * Called when one embedding settles. Patches the photo by id, which is what
+   * makes a LATE embedding (computed after setPhotosFromUpload already
+   * snapshotted the set) still land instead of being silently dropped.
+   * A null embedding just decrements — the photo keeps falling back to pHash.
+   */
+  noteEmbeddingSettled: (photoId: string, embedding: number[] | null) => void;
+  /**
    * The analysis job currently in progress for this photo set, if any —
    * reused across a retry (partial batch failure, a later "catch up on the
    * rest" visit to /configure) instead of creating and — once paid tiers are
@@ -614,6 +635,17 @@ function runSelection(
 
 export const usePhotoStore = create<PhotoStore>((set, get) => ({
   photos: [],
+  embeddingsPending: 0,
+  noteEmbeddingStarted: () => set((state) => ({ embeddingsPending: state.embeddingsPending + 1 })),
+  noteEmbeddingSettled: (photoId, embedding) =>
+    set((state) => ({
+      // max(0) because clear() resets the counter while embeddings for the
+      // discarded photos are still in flight and will settle afterwards.
+      embeddingsPending: Math.max(0, state.embeddingsPending - 1),
+      photos: embedding
+        ? state.photos.map((p) => (p.id === photoId ? { ...p, embedding } : p))
+        : state.photos,
+    })),
   activeJobId: null,
   setActiveJobId: (jobId) => set({ activeJobId: jobId }),
   contract: null,
@@ -873,6 +905,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
     for (const p of persons) URL.revokeObjectURL(p.thumbnailUrl);
     set({
       photos: [],
+      embeddingsPending: 0,
       activeJobId: null,
       contract: null,
       persons: [],

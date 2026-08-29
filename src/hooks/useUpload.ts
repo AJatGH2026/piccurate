@@ -52,13 +52,6 @@ interface UseUploadReturn {
   isProcessing: boolean;
   processedCount: number;
   totalCount: number;
-  /**
-   * CLIP embeddings still being computed in the background (one photo's
-   * worth each). Separate from `isProcessing` on purpose — see the field's
-   * own comment below — callers that need to know "is cross-camera dedup
-   * data still incomplete" should check this, not `isProcessing`.
-   */
-  pendingEmbeddings: number;
   addFiles: (files: FileList | File[]) => void;
   removePhoto: (id: string) => void;
   retryFailed: () => void;
@@ -75,19 +68,6 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
   // Photos accepted so far, kept in a ref so the tier limit is checked against
   // the real total even when several imports land within one render.
   const acceptedCount = useRef(0);
-  // CLIP embeddings in flight. Deliberately NOT folded into `isProcessing`:
-  // a photo is marked 'ready' (and isProcessing can go false) before its
-  // embedding lands — that's what keeps the grid filling fast. But
-  // usePhotoStore.setPhotosFromUpload takes a one-time snapshot of
-  // `photo.embedding` the moment the user continues; an embedding that is
-  // still in flight at that instant is never written back (the component
-  // that owns it is gone) and cross-camera dedup silently loses that photo
-  // forever. Reported 2026-08-29 as "Duplikaterkennung wieder schlecht" on a
-  // 249-photo run — CLIP is serialised one-at-a-time (inferenceSerializer.ts)
-  // across the whole batch, so for a set that size it is routinely still
-  // running well after every photo already shows 'ready'. Tracked here so
-  // the caller can hold the user on this page until it truly reaches zero.
-  const [pendingEmbeddings, setPendingEmbeddings] = useState(0);
 
   const processedCount = photos.filter(
     (p) => p.status === 'ready' || p.status === 'uploading' || p.status === 'uploaded'
@@ -183,13 +163,19 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
         thumbnailUrl,
         phash,
       });
-      setPendingEmbeddings((n) => n + 1);
+      // Tracked in the store, not here: this promise deliberately outlives the
+      // upload page (see embeddingsPending in usePhotoStore.ts). updatePhoto
+      // covers the photo still being in this hook's state — i.e. the embedding
+      // landed before "Weiter" — and noteEmbeddingSettled covers the case where
+      // the set has already been snapshotted into the store, where writing to
+      // local state alone would be a no-op on an unmounted component.
+      usePhotoStore.getState().noteEmbeddingStarted();
       void computeEmbedding(thumbnailBlob)
         .then((embedding) => {
           if (embedding) updatePhoto(photo.id, { embedding });
+          usePhotoStore.getState().noteEmbeddingSettled(photo.id, embedding);
         })
-        .catch(() => {})
-        .finally(() => setPendingEmbeddings((n) => Math.max(0, n - 1)));
+        .catch(() => usePhotoStore.getState().noteEmbeddingSettled(photo.id, null));
 
       // Face pass. Runs AFTER the photo is marked ready (so the grid keeps
       // filling at the same pace) but still INSIDE processNext, deliberately:
@@ -372,11 +358,6 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
     setPhotos([]);
     processingQueue.current = [];
     acceptedCount.current = 0;
-    // Any embedding still in flight for the cleared photos is now moot — its
-    // .finally() will decrement into this same counter later regardless, but
-    // resetting now keeps a fresh batch from reading as "still finalising"
-    // because of a stale count.
-    setPendingEmbeddings(0);
     setError(null);
   }, [photos]);
 
@@ -385,7 +366,6 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
     isProcessing,
     processedCount,
     totalCount,
-    pendingEmbeddings,
     addFiles,
     removePhoto,
     retryFailed,

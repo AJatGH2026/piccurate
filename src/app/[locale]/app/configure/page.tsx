@@ -108,7 +108,14 @@ export default function ConfigurePage() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   // No separate person confirmation any more — see the note further down where
   // the checkbox used to be. Analysis is gated on age + terms only.
-  const canAnalyze = ageAccepted && termsAccepted;
+  // Dedup (detectSeries rule 3) reads photo.embedding, and applyAnalysisResults
+  // below is the first thing that runs it — so this is the last moment the CLIP
+  // pass has to be complete, and the right place to wait for it. By now most of
+  // it is usually done: it kept running across the navigation from /upload and
+  // through the time spent on the criteria here. Waiting on /upload instead
+  // (which is what shipped this morning) just spent that time idle.
+  const embeddingsPending = usePhotoStore((s) => s.embeddingsPending);
+  const canAnalyze = ageAccepted && termsAccepted && embeddingsPending === 0;
   useEffect(() => { logBeta('configure'); }, []);
   // Event-Spezifikation §4: `analysis_abandoned` — page left mid-analysis.
   // pagehide covers a hard navigation/tab close; the effect cleanup covers a
@@ -1088,7 +1095,13 @@ export default function ConfigurePage() {
               }
             }}
             disabled={analyzing || !canAnalyze}
-            title={!canAnalyze ? t('confirmRequired') : undefined}
+            title={
+              !canAnalyze
+                ? embeddingsPending > 0 && ageAccepted && termsAccepted
+                  ? t('waitingForDuplicateScan')
+                  : t('confirmRequired')
+                : undefined
+            }
             className={`rounded-full px-8 py-3 text-sm font-semibold transition-colors ${
               analyzing || !canAnalyze
                 ? 'bg-zinc-300 text-zinc-500 cursor-not-allowed dark:bg-zinc-700'
@@ -1098,6 +1111,14 @@ export default function ConfigurePage() {
             {analyzing ? t('analyzing') : t('analyze')}
           </button>
         </div>
+        {/* Only while the button is otherwise ready to go: saying "waiting for
+            the duplicate scan" next to an unticked consent box would name the
+            wrong blocker. */}
+        {!analyzing && embeddingsPending > 0 && ageAccepted && termsAccepted && (
+          <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400 text-right animate-pulse">
+            {t('waitingForDuplicateScan')}
+          </p>
+        )}
         {progress && (
           <p className="mt-3 text-sm text-indigo-600 text-right animate-pulse">{progress}</p>
         )}
