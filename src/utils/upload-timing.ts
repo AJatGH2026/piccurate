@@ -45,6 +45,35 @@ export async function timePhase<T>(phase: string, fn: () => Promise<T>): Promise
 }
 
 /**
+ * Log the running totals WITHOUT resetting them.
+ *
+ * The completion event is not enough on its own: a run slow enough to be worth
+ * measuring is exactly the run the tester gives up on, and an abandoned run
+ * used to emit nothing at all. Reported 2026-08-29 — 30 photos with a
+ * reference photo, abandoned at 5:30, no measurement. Progress beats a perfect
+ * record that never arrives.
+ */
+export function logTimingProgress(done: number): void {
+  if (phases.size === 0) return;
+  console.info(`[upload] phase timings after ${done} photos (ms)`, summarize());
+}
+
+function summarize(): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [phase, a] of phases) {
+    out[`${phase}_n`] = a.n;
+    out[`${phase}_avg_ms`] = Math.round(a.totalMs / a.n);
+    out[`${phase}_max_ms`] = a.maxMs;
+  }
+  return out;
+}
+
+/** Everything recorded so far, without resetting — for an abandoned run. */
+export function peekTimingSummary(): Record<string, number> | null {
+  return phases.size === 0 ? null : summarize();
+}
+
+/**
  * Flat, event-friendly summary of everything recorded so far, then reset.
  *
  * Averages rather than totals: the run length already says how many photos

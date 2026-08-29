@@ -11,7 +11,12 @@ import { detectFaces, preloadFaceDetector } from '@/utils/faceDetection';
 import { computeFaceEmbedding, preloadFaceEmbedder } from '@/utils/faceEmbedding';
 import { usePhotoStore } from '@/hooks/usePhotoStore';
 import { trackEv, mark, msSince, photoCountBucket } from '@/lib/events-client';
-import { timePhase, takeTimingSummary } from '@/utils/upload-timing';
+import {
+  timePhase,
+  takeTimingSummary,
+  logTimingProgress,
+  peekTimingSummary,
+} from '@/utils/upload-timing';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'image/webp'];
 const MAX_CONCURRENT = 4;
@@ -69,6 +74,8 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
   // Photos accepted so far, kept in a ref so the tier limit is checked against
   // the real total even when several imports land within one render.
   const acceptedCount = useRef(0);
+  // Photos finished (either way) — drives the periodic timing log only.
+  const completedCount = useRef(0);
 
   const processedCount = photos.filter(
     (p) => p.status === 'ready' || p.status === 'uploading' || p.status === 'uploaded'
@@ -103,6 +110,29 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
     }
     wasProcessing.current = isProcessing;
   }, [isProcessing, totalCount, locale]);
+
+  // An abandoned run is the one worth measuring, and it never reaches the edge
+  // above — so send what was recorded when the page goes away instead. pagehide
+  // covers a real navigation/tab close; the cleanup covers an SPA navigation,
+  // which fires neither pagehide nor beforeunload. Marked partial so a
+  // half-finished run is never read as a completed one.
+  useEffect(() => {
+    const flush = () => {
+      const timings = peekTimingSummary();
+      if (!timings) return;
+      trackEv('file_transfer_ready', locale, {
+        partial: true,
+        photo_count: completedCount.current,
+        face_search: wantFaceSearch(),
+        ...timings,
+      });
+    };
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      flush();
+    };
+  }, [locale]);
 
   const updatePhoto = useCallback((id: string, updates: Partial<ClientPhoto>) => {
     setPhotos((prev) =>
@@ -238,6 +268,11 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
       });
     } finally {
       activeCount.current--;
+      // Report as we go, so a run someone abandons half way through still says
+      // where its time went — see logTimingProgress. Every 5th photo keeps the
+      // console readable on a 250-photo run.
+      completedCount.current++;
+      if (completedCount.current % 5 === 0) logTimingProgress(completedCount.current);
       // Process next in queue
       processNext();
     }
