@@ -17,6 +17,23 @@
 // call. One shared chain instead of three independent ones is the fix.
 let chain: Promise<unknown> = Promise.resolve();
 
+// Give the browser one frame between two consecutive inferences. Every call
+// in this chain (CLIP, YuNet, FaceNet) is a WASM session.run() with no
+// worker/proxy — see the device-selection notes in embedding.ts and
+// faceDetection.ts — so it blocks the main thread for its own duration.
+// Reported 2026-08-29: on a 249-photo mobile upload, back-to-back-to-back
+// calls with no gap between them starve React's render queue for the whole
+// run, so the grid/progress bar appear frozen and then jump once the batch
+// finally drains, rather than filling in as photos actually finish. This
+// does not shorten total inference time — it only lets the UI (and touch
+// input) catch up between calls, which is what "frozen, then jumps" needs.
+function yieldToMain(): Promise<void> {
+  if (typeof requestAnimationFrame === 'function') {
+    return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+  }
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 /**
  * Run `fn` only after every previously queued inference call (from ANY of the
  * three models) has settled. Errors are swallowed for the purpose of
@@ -25,6 +42,9 @@ let chain: Promise<unknown> = Promise.resolve();
  */
 export function serializeInference<T>(fn: () => Promise<T>): Promise<T> {
   const result = chain.then(fn, fn);
-  chain = result.catch(() => {});
+  chain = result.then(
+    () => yieldToMain(),
+    () => yieldToMain()
+  );
   return result;
 }

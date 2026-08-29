@@ -8,6 +8,8 @@ interface UploadProgressProps {
   processedCount: number;
   totalCount: number;
   isProcessing: boolean;
+  /** CLIP embeddings still finishing in the background — see useUpload.ts. */
+  pendingEmbeddings: number;
 }
 
 // Below this many finished photos, or this little elapsed time, the measured
@@ -26,10 +28,17 @@ export function UploadProgress({
   processedCount,
   totalCount,
   isProcessing,
+  pendingEmbeddings,
 }: UploadProgressProps) {
   const t = useTranslations('upload');
   const tc = useTranslations('common');
   const percentage = totalCount > 0 ? Math.round((processedCount / totalCount) * 100) : 0;
+  // The decode/thumbnail pipeline (isProcessing) can finish before every
+  // photo's CLIP embedding has — that gap is still real work, and showing
+  // "ready" during it is exactly the "looks stuck" the whole thing is meant
+  // to avoid, just at the other end of the run.
+  const finalizing = !isProcessing && pendingEmbeddings > 0;
+  const busy = isProcessing || finalizing;
 
   // Rate is the cumulative average since the run started (not a one-shot
   // calibration, and not a sliding window) — an early lucky burst of fast
@@ -79,14 +88,16 @@ export function UploadProgress({
         <span className="text-zinc-600 dark:text-zinc-400">
           {isProcessing
             ? t('processing', { current: processedCount, total: totalCount })
-            : t('ready', { count: processedCount })}
+            : finalizing
+              ? t('finalizingDuplicates')
+              : t('ready', { count: processedCount })}
         </span>
         <span className="font-medium text-zinc-900 dark:text-zinc-100">{percentage}%</span>
       </div>
       <div className="w-full bg-zinc-200 rounded-full h-2 dark:bg-zinc-700">
         <div
           className={`h-2 rounded-full transition-all duration-300 ${
-            isProcessing ? 'bg-indigo-500 animate-pulse' : 'bg-green-500'
+            busy ? 'bg-indigo-500 animate-pulse' : 'bg-green-500'
           }`}
           style={{ width: `${percentage}%` }}
         />
@@ -96,6 +107,11 @@ export function UploadProgress({
           {etaText ? tc('etaTotal', { time: etaText }) : tc('etaCalculating')}
           {' — '}
           {t('etaDependencyNote')}
+        </p>
+      )}
+      {finalizing && (
+        <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+          {t('finalizingDuplicatesNote')}
         </p>
       )}
     </div>

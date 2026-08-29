@@ -108,11 +108,16 @@ export default function UploadPage() {
   // has to remember to flip separately.
   const personSearchAvailable = currentTier !== 'free' || !salesAreLive();
 
-  const { photos, isProcessing, processedCount, totalCount, addFiles, removePhoto, retryFailed, failedCount, clearAll, error } =
+  const { photos, isProcessing, processedCount, totalCount, pendingEmbeddings, addFiles, removePhoto, retryFailed, failedCount, clearAll, error } =
     useUpload({ maxPhotos, locale });
 
   const readyCount = photos.filter((p) => p.status === 'ready').length;
-  const canContinue = readyCount > 0 && !isProcessing;
+  // Also wait for pendingEmbeddings: usePhotoStore.setPhotosFromUpload takes a
+  // one-time snapshot of each photo's CLIP embedding when this fires, and
+  // whatever hasn't landed yet is gone for good — see the comment on
+  // pendingEmbeddings in useUpload.ts. Holding the button here is what keeps
+  // cross-camera duplicate detection from silently losing photos.
+  const canContinue = readyCount > 0 && !isProcessing && pendingEmbeddings === 0;
 
   const goToConfigure = () => {
     setPhotosFromUpload(photos);
@@ -287,6 +292,7 @@ export default function UploadPage() {
           processedCount={processedCount}
           totalCount={totalCount}
           isProcessing={isProcessing}
+          pendingEmbeddings={pendingEmbeddings}
         />
 
         {/* Failed-conversion notice + retry (only the failed ones) */}
