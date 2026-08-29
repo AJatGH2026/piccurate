@@ -4,6 +4,27 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  // Ship sharp's native library with /api/convert.
+  //
+  // 2026-08-29 11:45 UTC every /api/convert call started failing with
+  // "ERR_DLOPEN_FAILED: libvips-cpp.so.8.18.3: cannot open shared object file".
+  // sharp itself loaded (it is on Next's built-in server-external list, so it
+  // goes through externalRequire rather than being bundled) — what was missing
+  // at runtime was the shared library it dlopen()s, which lives in a SEPARATE
+  // package (@img/sharp-libvips-linux-x64) that file tracing did not pull into
+  // the function. Nothing in this repo changed: package-lock.json has been
+  // untouched since 2026-08-15 and pins both packages, so this moved
+  // underneath us on the build/runtime side.
+  //
+  // The route degrades rather than breaking — the browser decodes HEIC itself
+  // (utils/image.ts) — but that path costs seconds per photo instead of
+  // ~0.1-0.3s, which is most of why a HEIC upload on a slow machine crawls.
+  outputFileTracingIncludes: {
+    '/api/convert': [
+      './node_modules/@img/sharp-linux-x64/**/*',
+      './node_modules/@img/sharp-libvips-linux-x64/**/*',
+    ],
+  },
   // Allow image thumbnails from local storage in dev
   images: {
     remotePatterns: [
