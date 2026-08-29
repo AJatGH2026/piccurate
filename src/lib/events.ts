@@ -267,3 +267,81 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
     return { ...empty, configured: true };
   }
 }
+
+/** One measured upload run, newest first. */
+export interface UploadTimingRun {
+  ts: string;
+  deviceClass: string;
+  photoCount: number;
+  faceSearch: boolean;
+  /** True when the run was abandoned — the numbers cover only what it got through. */
+  partial: boolean;
+  totalMs: number | null;
+  /** Phase name → { n, avgMs, maxMs }, from utils/upload-timing.ts. */
+  phases: Record<string, { n: number; avgMs: number; maxMs: number }>;
+}
+
+/**
+ * The most recent measured upload runs, for the /admin/stats panel.
+ *
+ * The phase timings ride on `file_transfer_ready` props, which
+ * readEventSignals aggregates away — it answers funnel questions, not "where
+ * did this run's time go". Added 2026-08-29, when person search turned out to
+ * cost ~2.8x per photo (measured: 22 photos in 24 s without a reference photo,
+ * 1:07 with one) and the numbers that would explain it were being written to
+ * the console of the slow machine and nowhere else.
+ */
+export async function readUploadTimings(limit = 12, days = 3): Promise<UploadTimingRun[]> {
+  const r = getClient();
+  if (!r) return [];
+  try {
+    const dayKeys = Array.from({ length: days }, (_, i) => {
+      const d = new Date();
+      d.setUTCDate(d.getUTCDate() - i);
+      return `ev:log:${d.toISOString().slice(0, 10)}`;
+    });
+    const lists = await Promise.all(dayKeys.map((k) => r.lrange(k, 0, -1) as Promise<unknown[]>));
+    const runs: UploadTimingRun[] = [];
+    for (const raw of lists.flat()) {
+      let e: EventRecord;
+      try {
+        e = typeof raw === 'string' ? (JSON.parse(raw) as EventRecord) : (raw as EventRecord);
+      } catch {
+        continue;
+      }
+      if (e?.name !== 'file_transfer_ready') continue;
+      const props = e.props || {};
+      // Reassemble the flat <phase>_{n,avg_ms,max_ms} triples the client sends.
+      const phases: UploadTimingRun['phases'] = {};
+      for (const [k, v] of Object.entries(props)) {
+        const m = /^(.+)_avg_ms$/.exec(k);
+        if (!m || typeof v !== 'number') continue;
+        phases[m[1]] = {
+          n: Number(props[`${m[1]}_n`] ?? 0),
+          avgMs: v,
+          maxMs: Number(props[`${m[1]}_max_ms`] ?? 0),
+        };
+      }
+      // Only runs that actually carry timings — events from before the
+      // instrumentation shipped would otherwise show as empty rows.
+      if (Object.keys(phases).length === 0) continue;
+      runs.push({
+        ts: e.ts,
+        deviceClass: e.device_class,
+        photoCount: Number(props.photo_count ?? 0),
+        faceSearch: props.face_search === true,
+        partial: props.partial === true,
+        totalMs:
+          typeof props.duration_since_files_selected_ms === 'number'
+            ? props.duration_since_files_selected_ms
+            : null,
+        phases,
+      });
+    }
+    runs.sort((a, b) => (a.ts < b.ts ? 1 : -1));
+    return runs.slice(0, limit);
+  } catch (err) {
+    console.warn('[events] readUploadTimings failed:', err instanceof Error ? err.message : err);
+    return [];
+  }
+}

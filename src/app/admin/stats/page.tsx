@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { notFound } from 'next/navigation';
 import { readStats } from '@/lib/stats';
 import { readBetaSignals } from '@/lib/beta';
-import { readEventSignals } from '@/lib/events';
+import { readEventSignals, readUploadTimings } from '@/lib/events';
 import { readFeedbackFromDb } from '@/lib/feedback';
 
 // Admin usage dashboard at /admin/stats (locale-free). Protected by its OWN
@@ -66,12 +66,27 @@ export default async function AdminStatsPage({
     notFound();
   }
 
-  const [stats, beta, events, db] = await Promise.all([
+  const [stats, beta, events, db, uploadRuns] = await Promise.all([
     readStats(7),
     readBetaSignals(),
     readEventSignals(7),
     readFeedbackFromDb(20),
+    readUploadTimings(12),
   ]);
+
+  // Columns come from the data, not a fixed list: the phases differ between a
+  // run with person search (yunet/facenet) and one without, and a hardcoded
+  // list would silently drop a phase added later. Ordered pipeline-first, then
+  // the model wait/run pairs.
+  const PHASE_ORDER = [
+    'exif', 'convert', 'convert_face', 'decode', 'phash',
+    'clip_wait', 'clip_run', 'yunet_wait', 'yunet_run', 'facenet_wait', 'facenet_run',
+  ];
+  const seenPhases = new Set(uploadRuns.flatMap((r) => Object.keys(r.phases)));
+  const uploadPhaseCols = [
+    ...PHASE_ORDER.filter((p) => seenPhases.has(p)),
+    ...[...seenPhases].filter((p) => !PHASE_ORDER.includes(p)).sort(),
+  ];
 
   // Feedback lives in Supabase since migration 003; everything submitted before
   // that is in the Upstash list and nowhere else. MERGE both — showing only the
@@ -417,6 +432,65 @@ export default async function AdminStatsPage({
           >
             Zum Vercel-Analytics-Dashboard →
           </a>
+        </div>
+
+        {/* Upload-Phasen — wohin die Zeit eines Uploads geht. Eigene Karte, weil
+            readEventSignals genau diese Props wegaggregiert. */}
+        <div className="mt-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="font-semibold">
+            Upload-Phasen{' '}
+            <span className="font-normal text-zinc-400 text-sm">(neueste {uploadRuns.length} Läufe)</span>
+          </h2>
+          <Hint>
+            Millisekunden pro Foto, gemittelt über den Lauf. Bei den drei Modellen ist
+            <b> wait</b> die Wartezeit in der gemeinsamen Warteschlange und <b>run</b> die echte
+            Rechenzeit — großes wait bei kleinem run heißt: die Warteschlange ist der Engpass,
+            mehr Parallelität beim Dekodieren würde nichts bringen. „P“ markiert einen
+            abgebrochenen Lauf (Zahlen decken nur den geschafften Teil ab).
+          </Hint>
+          {uploadRuns.length === 0 ? (
+            <p className="mt-2 text-sm text-zinc-500">
+              Noch keine gemessenen Läufe (erscheint nach dem nächsten Upload).
+            </p>
+          ) : (
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="text-left text-zinc-500">
+                    <th className="py-1 pr-3 font-medium">Zeit</th>
+                    <th className="py-1 pr-3 font-medium">Fotos</th>
+                    <th className="py-1 pr-3 font-medium">Person</th>
+                    <th className="py-1 pr-3 font-medium">ms/Foto</th>
+                    {uploadPhaseCols.map((p) => (
+                      <th key={p} className="py-1 pr-3 font-medium whitespace-nowrap">{p}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {uploadRuns.map((run, i) => (
+                    <tr key={i} className="border-t border-zinc-100 dark:border-zinc-800">
+                      <td className="py-1 pr-3 whitespace-nowrap text-zinc-500">
+                        {run.ts.slice(5, 16).replace('T', ' ')}
+                        {run.partial && <span title="abgebrochen"> P</span>}
+                      </td>
+                      <td className="py-1 pr-3">{run.photoCount}</td>
+                      <td className="py-1 pr-3">{run.faceSearch ? 'ja' : '–'}</td>
+                      <td className="py-1 pr-3 font-medium">
+                        {run.totalMs && run.photoCount
+                          ? fmt(Math.round(run.totalMs / run.photoCount))
+                          : '–'}
+                      </td>
+                      {uploadPhaseCols.map((p) => (
+                        <td key={p} className="py-1 pr-3 text-zinc-600 dark:text-zinc-300">
+                          {run.phases[p] ? fmt(run.phases[p].avgMs) : '·'}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Feedback — own card, independent of Upstash: it is stored in
