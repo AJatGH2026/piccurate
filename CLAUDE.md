@@ -86,6 +86,7 @@ of the intent.
 ## Key documents
 
 - [HANDOVER.md](HANDOVER.md) — resume/backup guide (what to save, how to resume, cloud options)
+- [docs/review-notes.md](docs/review-notes.md) — **read before touching analytics, cookies, third-party scripts or dependencies.** Open items and the review rules behind them: which explicit *negative* promises the privacy policy makes, what retention limits allow an export to contain, and why upload performance gets measured rather than reasoned about.
 - [docs/auth-plan.md](docs/auth-plan.md) — Supabase auth (login/register/confirm): status DONE, design, Resend SMTP + corporate-scanner learnings
 - [docs/domain-setup.md](docs/domain-setup.md) — live domains, DNS (web + email/Resend), Vercel/code redirect split + learnings (read before touching domains)
 - `docs/product-pipeline.md` — full project history & rationale (German, dated changelog). **Local only**, gitignored: it holds pricing, margins and strategy and must not be published. Same for `docs/legal/` (commented legal drafts) and `.eval/reference.json` (hand-labelled ground truth). All archived under `Documents\2_11_ShortlistBuddy\IT\Code ShortlistBuddy-backup\`.
