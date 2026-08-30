@@ -345,3 +345,54 @@ export async function readUploadTimings(limit = 12, days = 3): Promise<UploadTim
     return [];
   }
 }
+
+/** One day's aggregate counts, keyed by event name. */
+export interface DailyEventCounts {
+  date: string;
+  counts: Record<string, number>;
+}
+
+/**
+ * Per-day totals per event name, for the archive export.
+ *
+ * Reads the `ev:count:<name>:<day>` counters rather than the raw log: those are
+ * plain integers with no session id, user hash, campaign or device attached.
+ * That distinction is the whole point — privacy policy § 11 allows the raw,
+ * individual-level events to be kept for 90 days and requires anything beyond
+ * that to be aggregated with no session or account reference. An export meant
+ * to outlive the retention window therefore has to be built from counters, not
+ * from the log; exporting the log would move the same individual-level data
+ * into a file where the 90-day limit no longer reaches it.
+ *
+ * Note the counters carry their own 30-day TTL, so days beyond that come back
+ * as zeros rather than as history — which is the reason to export regularly.
+ */
+export async function readDailyEventCounts(days = 30): Promise<DailyEventCounts[]> {
+  const r = getClient();
+  if (!r) return [];
+  const names = [...ALLOWED_EVENTS];
+  const dayKeys = Array.from({ length: days }, (_, i) => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - i);
+    return d.toISOString().slice(0, 10);
+  });
+  try {
+    const out: DailyEventCounts[] = [];
+    // Chunked: names × days is a few thousand keys, more than one mget should
+    // carry in a single REST request.
+    for (const date of dayKeys) {
+      const keys = names.map((n) => `ev:count:${n}:${date}`);
+      const values = (await r.mget(...keys)) as (string | number | null)[];
+      const counts: Record<string, number> = {};
+      names.forEach((n, i) => {
+        const v = values[i];
+        if (v != null && Number(v) > 0) counts[n] = Number(v);
+      });
+      if (Object.keys(counts).length) out.push({ date, counts });
+    }
+    return out;
+  } catch (err) {
+    console.warn('[events] readDailyEventCounts failed:', err instanceof Error ? err.message : err);
+    return [];
+  }
+}

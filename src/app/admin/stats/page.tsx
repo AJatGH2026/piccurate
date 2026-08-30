@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
-import crypto from 'crypto';
 import { notFound } from 'next/navigation';
+import { adminTokenOk, parseDays } from '@/lib/admin-auth';
 import { readStats } from '@/lib/stats';
 import { readBetaSignals } from '@/lib/beta';
 import { readEventSignals, readUploadTimings } from '@/lib/events';
@@ -19,15 +19,6 @@ export const metadata = {
   title: 'Admin — Usage',
   robots: { index: false, follow: false },
 };
-
-/** Constant-time token check over SHA-256 digests (avoids length leaks). */
-function adminTokenOk(provided: string | undefined): boolean {
-  const expected = process.env.ADMIN_TOKEN;
-  if (!expected || !provided) return false;
-  const a = crypto.createHash('sha256').update(provided).digest();
-  const b = crypto.createHash('sha256').update(expected).digest();
-  return crypto.timingSafeEqual(a, b);
-}
 
 function fmt(n: number): string {
   return n.toLocaleString('de-DE');
@@ -59,17 +50,22 @@ const FUNNEL_HINTS: Record<string, string> = {
 export default async function AdminStatsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ key?: string }>;
+  searchParams: Promise<{ key?: string; days?: string }>;
 }) {
-  const { key } = await searchParams;
+  const { key, days: daysRaw } = await searchParams;
   if (!adminTokenOk(key)) {
     notFound();
   }
 
+  // The stores keep 30 days of raw events and 90 days of counters; the
+  // dashboard used to read 7 regardless, so three weeks of history — including
+  // whole campaign runs — sat in Upstash unread. Now selectable via ?days=.
+  const days = parseDays(daysRaw, 7);
+
   const [stats, beta, events, db, uploadRuns] = await Promise.all([
-    readStats(7),
+    readStats(days),
     readBetaSignals(),
-    readEventSignals(7),
+    readEventSignals(days),
     readFeedbackFromDb(20),
     readUploadTimings(12),
   ]);
@@ -119,6 +115,37 @@ export default async function AdminStatsPage({
           Analysierte Fotos und API-Tokens. Kostenschätzung auf Gemini-2.5-Flash-Preisen (Input $0,30 / Output $2,50 pro 1 M).
         </p>
 
+        {/* Range switcher + archive export. The key is already in this page's
+            URL, so carrying it into these links exposes nothing new — but it is
+            the reason they are plain links and not something shareable. */}
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-zinc-500">Zeitraum:</span>
+          {[7, 14, 30, 90].map((d) => (
+            <a
+              key={d}
+              href={`/admin/stats?key=${encodeURIComponent(key ?? '')}&days=${d}`}
+              className={`rounded-full px-3 py-1 ${
+                d === days
+                  ? 'bg-indigo-600 text-white'
+                  : 'border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+              }`}
+            >
+              {d} Tage
+            </a>
+          ))}
+          <a
+            href={`/admin/stats/export?key=${encodeURIComponent(key ?? '')}&days=90`}
+            className="ml-auto rounded-full border border-zinc-300 dark:border-zinc-700 px-3 py-1 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          >
+            CSV-Archiv (90 Tage)
+          </a>
+        </div>
+        <Hint>
+          Roh-Ereignisse werden 30 Tage vorgehalten, die Tageszähler 90 (Datenschutzerklärung § 11). Der CSV-Export
+          enthält bewusst nur Tagesaggregate — keine Sitzungs- oder Kontokennung, keine Kampagnen- oder
+          Gerätezuordnung, kein Feedback-Text. Nur so darf er über die 90 Tage hinaus aufbewahrt werden.
+        </Hint>
+
         {!stats.configured && (
           <div className="mt-6 rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-4 text-sm">
             <p className="font-medium text-amber-800 dark:text-amber-200">Persistenter Speicher noch nicht konfiguriert.</p>
@@ -139,7 +166,7 @@ export default async function AdminStatsPage({
 
         {/* Per-day breakdown */}
         <div className="mt-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="font-semibold">Letzte 7 Tage</h2>
+          <h2 className="font-semibold">Letzte {days} Tage</h2>
           <Hint>
             Tageswerte der obigen Zähler, um Trends und Ausreißer zu erkennen. Idealerweise eine wachsende oder
             zumindest stabile Kurve; einzelne Tages-Spitzen ohne erkennbaren Anlass sind eher Bot-Traffic als
