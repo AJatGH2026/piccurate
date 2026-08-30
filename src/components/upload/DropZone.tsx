@@ -26,13 +26,20 @@ const PICKER_PENDING_TIMEOUT_MS = 90_000;
 //
 // Only meaningful on a phone. Picking files from a laptop's disk is close to
 // instant, so the same warning there would predict minutes for something that
-// takes a second — which is why the notice is gated on a coarse pointer below
+// takes a second — which is why the notice is gated on the phone check below
 // rather than shown to everyone.
 const PICKER_HANDOFF_MS_PER_PHOTO = 110;
 
-/** Media-query subscription for the coarse-pointer check below. */
-function subscribeToCoarsePointer(onChange: () => void): () => void {
-  const mq = window.matchMedia?.('(pointer: coarse)');
+// A coarse pointer alone is not enough: a touchscreen laptop reports one while
+// still picking files from a local disk in about a second. Requiring `hover:
+// none` as well narrows it to devices with no mouse at all — phones and
+// tablets, which is where the OS handoff is actually slow. Reported
+// 2026-08-29: the notice showed on a Dell Latitude.
+const PHONE_LIKE_QUERY = '(pointer: coarse) and (hover: none)';
+
+/** Media-query subscription for the phone check below. */
+function subscribeToPhoneLike(onChange: () => void): () => void {
+  const mq = window.matchMedia?.(PHONE_LIKE_QUERY);
   if (!mq) return () => {};
   mq.addEventListener('change', onChange);
   return () => mq.removeEventListener('change', onChange);
@@ -51,9 +58,9 @@ export function DropZone({ onFiles, maxPhotos, disabled = false }: DropZoneProps
   // useSyncExternalStore so the server snapshot is a plain `false` — the notice
   // simply is not rendered server-side — instead of setting state from an
   // effect and re-rendering.
-  const isTouchDevice = useSyncExternalStore(
-    subscribeToCoarsePointer,
-    () => window.matchMedia?.('(pointer: coarse)').matches ?? false,
+  const isPhoneLike = useSyncExternalStore(
+    subscribeToPhoneLike,
+    () => window.matchMedia?.(PHONE_LIKE_QUERY).matches ?? false,
     () => false
   );
 
@@ -159,7 +166,11 @@ export function DropZone({ onFiles, maxPhotos, disabled = false }: DropZoneProps
           <p className="text-lg font-medium text-zinc-700 dark:text-zinc-300">
             {t('dropzonePending')}
           </p>
-          <p className="mt-2 text-sm text-zinc-500">{t('dropzonePendingHint')}</p>
+          {/* Names iCloud and a half-minute wait — true on a phone, wrong on a
+              laptop, where this state lasts a moment. Same gate as the notice. */}
+          {isPhoneLike && (
+            <p className="mt-2 text-sm text-zinc-500">{t('dropzonePendingHint')}</p>
+          )}
         </>
       ) : (
         <>
@@ -184,7 +195,7 @@ export function DropZone({ onFiles, maxPhotos, disabled = false }: DropZoneProps
               half a minute, but 1,000 is two minutes and 5,000 is nine, and
               quoting the small number to someone on a large tier would set them
               up for exactly the surprise this is meant to prevent. */}
-          {isTouchDevice && (
+          {isPhoneLike && (
             <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">
               {t('pickerHandoffNotice', {
                 photos: maxPhotos.toLocaleString(locale),
