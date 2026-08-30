@@ -71,6 +71,18 @@ export function msSince(name: string): number | null {
   const t = marks.get(name);
   return t == null ? null : Date.now() - t;
 }
+/**
+ * msSince, but consumes the mark — for a one-shot span that must not be read
+ * twice. `picker_opened` is one: it is set when the native file picker opens,
+ * and a later drop or cloud import (which never opens one) would otherwise
+ * measure against the stale mark and report a handoff that never happened.
+ */
+export function takeMark(name: string): number | null {
+  const t = marks.get(name);
+  if (t == null) return null;
+  marks.delete(name);
+  return Date.now() - t;
+}
 
 export type PhotoCountBucket = '0-250' | '251-1000' | '1001-2500' | '2500+';
 export function photoCountBucket(n: number): PhotoCountBucket {

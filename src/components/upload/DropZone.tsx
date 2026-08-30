@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
+import { mark } from '@/lib/events-client';
 
 interface DropZoneProps {
   onFiles: (files: FileList | File[]) => void;
@@ -50,6 +51,14 @@ export function DropZone({ onFiles, maxPhotos, disabled = false }: DropZoneProps
   const handleClick = useCallback(() => {
     if (disabled) return;
     setPickerPending(true);
+    // Start of the OS handoff — the gap between confirming a selection and the
+    // browser receiving it. Measured 2026-08-29 on iPhone: 11 s for 100 photos,
+    // 28 s for 250, i.e. ~110 ms per photo and linear, all of it inside iOS
+    // before any of our code runs. useUpload reads this back on the
+    // files_selected event so the gap is visible in /admin/stats rather than
+    // only in a stopwatch — it is the part of the wait users are most likely to
+    // abandon, and the one we cannot shorten.
+    mark('picker_opened');
     inputRef.current?.click();
   }, [disabled]);
 
@@ -132,6 +141,17 @@ export function DropZone({ onFiles, maxPhotos, disabled = false }: DropZoneProps
                 toLocaleString formats differently on server and client and breaks
                 hydration for the whole page. */}
             {t('supported', { limit: maxPhotos.toLocaleString(locale) })}
+          </p>
+          {/* Said BEFORE the tap, not after it. Measured 2026-08-29 on iPhone:
+              ~110 ms per photo between confirming the selection and the browser
+              receiving it (11 s for 100 photos, 28 s for 250, and ~2 min for a
+              1,000-photo tier) — all of it inside the OS, with our page not yet
+              running and the picker still on screen. The existing pending
+              indicator cannot help there: nobody is looking at this page during
+              that gap. Warning first is the only thing that reaches the user
+              before they conclude it hung and back out. */}
+          <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">
+            {t('pickerHandoffNotice')}
           </p>
         </>
       )}

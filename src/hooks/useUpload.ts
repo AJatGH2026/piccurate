@@ -10,7 +10,7 @@ import { computeEmbedding } from '@/utils/embedding';
 import { detectFaces, preloadFaceDetector } from '@/utils/faceDetection';
 import { computeFaceEmbedding, preloadFaceEmbedder } from '@/utils/faceEmbedding';
 import { usePhotoStore } from '@/hooks/usePhotoStore';
-import { trackEv, mark, msSince, photoCountBucket } from '@/lib/events-client';
+import { trackEv, mark, msSince, takeMark, photoCountBucket } from '@/lib/events-client';
 import {
   timePhase,
   takeTimingSummary,
@@ -352,6 +352,10 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
           photo_count: filesToAdd.length,
           total_mb: Math.round(totalMb * 10) / 10,
           duration_since_demo_start_ms: msSince('demo_start'),
+          // How long the OS took to hand the selection over — see the mark in
+          // DropZone. Null for a drop or a cloud import, which never open a
+          // native picker.
+          picker_handoff_ms: takeMark('picker_opened'),
         },
         photoCountBucket(acceptedCount.current)
       );

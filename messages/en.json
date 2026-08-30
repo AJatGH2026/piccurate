@@ -75,6 +75,7 @@
     "dropzoneActive": "Drop photos here...",
     "dropzonePending": "Loading your photos…",
     "dropzonePendingHint": "With a large selection (e.g. from iCloud) this can take half a minute or longer.",
+    "pickerHandoffNotice": "With a large selection it takes a moment after you confirm before your device has handed the photos over — around half a minute for 250 photos. Please wait for this page to come back; it has not frozen.",
     "supported": "Supports JPEG, PNG, HEIC. Up to {limit} photos.",
     "keepFilesNote": "Please leave your photos where they are until the download is finished. If they are moved, renamed, deleted or edited in the meantime, your browser can no longer read them — those photos then end up in the ZIP as small previews only.",
     "accountGateTitle": "You need an account first",

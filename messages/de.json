@@ -75,6 +75,7 @@
     "dropzoneActive": "Fotos hier ablegen...",
     "dropzonePending": "Fotos werden geladen…",
     "dropzonePendingHint": "Bei vielen Fotos (z. B. aus iCloud) kann das eine halbe Minute oder länger dauern.",
+    "pickerHandoffNotice": "Bei vielen Fotos dauert es nach dem Bestätigen der Auswahl einen Moment, bis dein Gerät sie übergeben hat — bei 250 Fotos rund eine halbe Minute. Bitte warte, bis diese Seite wieder erscheint; sie wird nicht hängen.",
     "supported": "Unterstützt JPEG, PNG, HEIC. Bis zu {limit} Fotos.",
     "keepFilesNote": "Lass deine Fotos bitte dort liegen, wo sie sind, bis der Download fertig ist. Wenn du sie zwischendurch verschiebst, umbenennst, löschst oder bearbeitest, kann dein Browser sie nicht mehr lesen — diese Fotos landen dann nur als kleine Vorschau im ZIP.",
     "accountGateTitle": "Zuerst brauchst du ein Konto",
