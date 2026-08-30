@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { brandName } from '@/lib/brand';
 import { routing } from '../../../../i18n/routing';
@@ -9,6 +10,27 @@ type Props = { params: Promise<{ locale: string }> };
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
+}
+
+// Own title and description, not the root layout's. This page is why the
+// problem was noticed: searching the brand on Google returned /withdrawal as
+// the second result under the HOMEPAGE's exact title and description, because
+// it inherited them unchanged. A withdrawal form presented as the product's
+// own landing page is the worst of the set to have shown up that way.
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'withdrawal' });
+  return {
+    title: `${t('title')} — ${brandName(locale)}`,
+    description:
+      locale === 'de'
+        ? 'Widerrufsformular nach § 356a BGB: Vertrag über die Fotoauswahl elektronisch widerrufen, oder formlos per E-Mail oder Brief.'
+        : 'Withdrawal form under Sec. 356a BGB: withdraw from the photo selection contract electronically, or informally by email or letter.',
+    alternates: {
+      canonical: `/${locale}/withdrawal`,
+      languages: { en: '/en/withdrawal', de: '/de/withdrawal', 'x-default': '/en/withdrawal' },
+    },
+  };
 }
 
 /**

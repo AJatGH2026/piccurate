@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import { brandName } from '@/lib/brand';
 import { routing } from '../../../../i18n/routing';
@@ -9,6 +10,26 @@ type Props = { params: Promise<{ locale: string }> };
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
+}
+
+// Own title and description, not the root layout's. Until 2026-08-29 every
+// legal page inherited the site-wide metadata verbatim, so a Google search for
+// the brand returned this page under the HOMEPAGE's title and description —
+// indistinguishable from the homepage, and ranked as a second entry for it.
+// Distinct metadata per page is what separates them again.
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  const de = locale === 'de';
+  return {
+    title: `${de ? 'Impressum' : 'Imprint'} — ${brandName(locale)}`,
+    description: de
+      ? 'Anbieterangaben nach § 5 DDG: Betreiber, Anschrift, Vertretung und Kontakt.'
+      : 'Provider information under Sec. 5 DDG: operator, address, representation and contact.',
+    alternates: {
+      canonical: `/${locale}/imprint`,
+      languages: { en: '/en/imprint', de: '/de/imprint', 'x-default': '/en/imprint' },
+    },
+  };
 }
 
 // Generated from the reviewed B2C legal source (2026-07-26). German is the

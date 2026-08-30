@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import { brandName } from '@/lib/brand';
 import { routing } from '../../../../i18n/routing';
@@ -7,6 +8,26 @@ type Props = { params: Promise<{ locale: string }> };
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
+}
+
+// Own title and description, not the root layout's. Until 2026-08-29 every
+// legal page inherited the site-wide metadata verbatim, so a Google search for
+// the brand returned this page under the HOMEPAGE's title and description —
+// indistinguishable from the homepage, and ranked as a second entry for it.
+// Distinct metadata per page is what separates them again.
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  const de = locale === 'de';
+  return {
+    title: `${de ? 'Hinweise zur Personensuche' : 'Information on the person search'} — ${brandName(locale)}`,
+    description: de
+      ? 'Wie die Personensuche arbeitet: vollständig auf deinem Gerät, ohne dass Referenzfotos oder biometrische Merkmale übertragen werden.'
+      : 'How the person search works: entirely on your device, with no reference photo or biometric feature ever transmitted.',
+    alternates: {
+      canonical: `/${locale}/persons-info`,
+      languages: { en: '/en/persons-info', de: '/de/persons-info', 'x-default': '/en/persons-info' },
+    },
+  };
 }
 
 // Rewritten 2026-08-14 for the cutover to a fully local person search (see

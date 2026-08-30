@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import { brandName } from '@/lib/brand';
 import { routing } from '../../../../i18n/routing';
@@ -10,6 +11,26 @@ type Props = { params: Promise<{ locale: string }> };
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
+}
+
+// Own title and description, not the root layout's. Until 2026-08-29 every
+// legal page inherited the site-wide metadata verbatim, so a Google search for
+// the brand returned this page under the HOMEPAGE's title and description —
+// indistinguishable from the homepage, and ranked as a second entry for it.
+// Distinct metadata per page is what separates them again.
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  const de = locale === 'de';
+  return {
+    title: `${de ? 'Nutzungsbedingungen' : 'Terms of Service'} — ${brandName(locale)}`,
+    description: de
+      ? 'Leistungsumfang, Vertragsschluss, Preise, Widerruf und Pflichten beider Seiten.'
+      : 'Scope of service, conclusion of contract, prices, withdrawal and the obligations on both sides.',
+    alternates: {
+      canonical: `/${locale}/terms`,
+      languages: { en: '/en/terms', de: '/de/terms', 'x-default': '/en/terms' },
+    },
+  };
 }
 
 /** Framed block for the statutory withdrawal notice and the model form. */

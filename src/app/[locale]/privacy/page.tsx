@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import { brandName } from '@/lib/brand';
 import { routing } from '../../../../i18n/routing';
@@ -9,6 +10,26 @@ type Props = { params: Promise<{ locale: string }> };
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
+}
+
+// Own title and description, not the root layout's. Until 2026-08-29 every
+// legal page inherited the site-wide metadata verbatim, so a Google search for
+// the brand returned this page under the HOMEPAGE's title and description —
+// indistinguishable from the homepage, and ranked as a second entry for it.
+// Distinct metadata per page is what separates them again.
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  const de = locale === 'de';
+  return {
+    title: `${de ? 'Datenschutzerklärung' : 'Privacy Policy'} — ${brandName(locale)}`,
+    description: de
+      ? 'Wie mit deinen Fotos und Daten umgegangen wird: Verarbeitung, Speicherdauer, eingesetzte Dienste und deine Rechte.'
+      : 'How your photos and data are handled: processing, retention, the services involved and your rights.',
+    alternates: {
+      canonical: `/${locale}/privacy`,
+      languages: { en: '/en/privacy', de: '/de/privacy', 'x-default': '/en/privacy' },
+    },
+  };
 }
 
 // Generated from the reviewed B2C legal source (2026-07-26). German is the
