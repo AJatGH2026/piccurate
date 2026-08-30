@@ -8,7 +8,25 @@
 
 export const GA4_ID = process.env.NEXT_PUBLIC_GA4_ID || '';
 export const ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || '';
+/** Label for the ZIP download — the deep conversion, behind the account gate. */
 export const ADS_CONVERSION_LABEL = process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL || '';
+/**
+ * Label for "analysis started" — the shallow conversion, and the one Smart
+ * Bidding can actually learn from.
+ *
+ * Added 2026-08-29 after the first campaign week: 87 clicks, €99, and zero
+ * recorded conversions. The download was the only conversion, and it sits at
+ * the end of upload → configure → analyse → review → results → create an
+ * account → download. Optimising a campaign on a step that far in, that few
+ * visitors reach, gives the bidding nothing to work with.
+ *
+ * `analysis_started` is the right shallower step, and not an arbitrary one:
+ * lib/events-client.ts already treats it as "the conversion we want to count"
+ * and as the last event that may carry campaign attribution, because it is the
+ * click that concludes the free contract. Counting it here keeps Ads on the
+ * same side of that line.
+ */
+export const ADS_ANALYSIS_LABEL = process.env.NEXT_PUBLIC_GOOGLE_ADS_ANALYSIS_LABEL || '';
 
 /** True when at least one Google tag id is configured — gates everything. */
 export function googleTagEnabled(): boolean {
@@ -54,10 +72,24 @@ export function trackEvent(name: string, params?: Record<string, unknown>): void
   if (g) g('event', name, params || {});
 }
 
-/** Fire the Google Ads conversion (needs both an Ads id and a conversion label). */
-export function trackAdsConversion(): void {
+/**
+ * Fire one Google Ads conversion. Needs an Ads id AND that step's own label —
+ * each conversion action in Ads has its own, so a missing label silently means
+ * "this step is not counted" rather than counting it as the other one.
+ */
+function fireAdsConversion(label: string): void {
   const g = gtag();
-  if (g && ADS_ID && ADS_CONVERSION_LABEL) {
-    g('event', 'conversion', { send_to: `${ADS_ID}/${ADS_CONVERSION_LABEL}` });
+  if (g && ADS_ID && label) {
+    g('event', 'conversion', { send_to: `${ADS_ID}/${label}` });
   }
+}
+
+/** The ZIP download completed — the deep conversion. */
+export function trackAdsConversion(): void {
+  fireAdsConversion(ADS_CONVERSION_LABEL);
+}
+
+/** The analysis was started — see ADS_ANALYSIS_LABEL for why this one exists. */
+export function trackAdsAnalysisStarted(): void {
+  fireAdsConversion(ADS_ANALYSIS_LABEL);
 }

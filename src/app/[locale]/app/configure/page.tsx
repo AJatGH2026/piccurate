@@ -6,7 +6,7 @@ import { useCriteria } from '@/hooks/useCriteria';
 import { usePhotoStore, isNegativeCustom, stripNegativePrefix } from '@/hooks/usePhotoStore';
 import { MAX_PERSONS } from '@/types/criteria';
 import { coarseCoord } from '@/utils/geo';
-import { trackEvent } from '@/lib/analytics';
+import { trackEvent, trackAdsAnalysisStarted } from '@/lib/analytics';
 import Link from 'next/link';
 import { LegalModal } from '@/components/legal/LegalModal';
 import { useParams, useRouter } from 'next/navigation';
@@ -890,6 +890,15 @@ export default function ConfigurePage() {
                 // The conversion we want to count — the last event that may
                 // carry campaign attribution.
                 trackEv('analysis_started', locale, { photo_count: toAnalyze.length });
+                // Same step, reported to Google Ads. Deliberately here and not
+                // at the download: the download is behind the account gate at
+                // the end of the funnel, and optimising bidding on a step that
+                // few visitors reach left the first campaign week with zero
+                // conversions to learn from. This click is also exactly where
+                // the campaign attribution firewall closes, so counting it does
+                // not push attribution any further than the design already
+                // allows. No-op until the Ads env vars are set.
+                trackAdsAnalysisStarted();
                 // …and the moment the free analysis contract is concluded
                 // (terms § 3). From here on nothing this session sends carries
                 // the session identity, the campaign or the A/B assignment —
