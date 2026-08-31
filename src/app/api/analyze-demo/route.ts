@@ -5,6 +5,7 @@ import { parseAnalysisResponse } from '@/lib/anthropic/parser';
 import { checkRateLimit, clientIp } from '@/lib/rate-limit';
 import { trackAnalyze, getTodayPhotos, reserveIpDailyPhotos, estCostEur } from '@/lib/stats';
 import { logEvent } from '@/lib/events';
+import { isQaRequest } from '@/lib/qa-mode';
 import { classifyUserAgent } from '@/lib/userAgent';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
@@ -475,6 +476,7 @@ export async function POST(request: NextRequest) {
       keyword: null,
       photo_count_bucket: null,
       ab_variant: null,
+      internal: isQaRequest(request),
       props: { photo_count: files.length, est_cost_eur: estCostEur(inputTokens, outputTokens), model },
     });
 

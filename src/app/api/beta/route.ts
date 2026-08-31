@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, clientIp } from '@/lib/rate-limit';
 import { detectBot } from '@/lib/bot-filter';
-import { logFunnel, saveFeedback, saveEmail, saveRejectedSubmission } from '@/lib/beta';
+import { logFunnel, saveFeedback, saveEmail, saveRejectedSubmission, logInternalFunnelSkip } from '@/lib/beta';
+import { isQaRequest } from '@/lib/qa-mode';
 import { emailConfigured, sendFeedbackEmail } from '@/lib/email';
 import { saveFeedbackToDb, markFeedbackEmailed } from '@/lib/feedback';
 
@@ -21,6 +22,14 @@ export async function POST(request: NextRequest) {
 
   // Funnel events: cheap, fire-and-forget, no rate limit (whitelisted keys only).
   if (type === 'event') {
+    // Own test traffic (docs/review-notes.md point 2, qa_mode cookie —
+    // lib/qa-mode.ts): this legacy counter has no per-event record to flag,
+    // so the only option is to not increment it at all. Counted separately
+    // so the skip is visible on the dashboard instead of silent.
+    if (isQaRequest(request)) {
+      await logInternalFunnelSkip();
+      return NextResponse.json({ ok: true, internal: true });
+    }
     const step = String(body.step || '');
     await logFunnel(step);
     if (step === 'finalize') {

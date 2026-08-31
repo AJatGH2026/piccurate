@@ -114,6 +114,17 @@ export default async function AdminStatsPage({
         <p className="mt-1 text-sm text-zinc-500">
           Analysierte Fotos und API-Tokens. Kostenschätzung auf Gemini-2.5-Flash-Preisen (Input $0,30 / Output $2,50 pro 1 M).
         </p>
+        <p className="mt-1 text-xs text-zinc-400">
+          Vor einem eigenen Testlauf:{' '}
+          <a className="underline" href={`/api/qa-mode?token=${key}`}>
+            QA-Modus an
+          </a>{' '}
+          auf dem Testgerät öffnen, damit der Lauf nicht in die Zahlen unten einfließt (
+          <a className="underline" href={`/api/qa-mode?token=${key}&off=1`}>
+            aus
+          </a>
+          ). Siehe docs/review-notes.md Punkt 2.
+        </p>
 
         {/* Range switcher + archive export. The key is already in this page's
             URL, so carrying it into these links exposes nothing new — but it is
@@ -201,6 +212,9 @@ export default async function AdminStatsPage({
             Jede Karte zählt Sessions, die diesen Schritt im Ablauf (Upload → Konfiguration → Analyse → Review →
             Ergebnis → Download) erreicht haben. Idealwert: pro Schritt möglichst nah am vorherigen Wert (hohe
             Konversion). Ein großer Sprung zwischen zwei benachbarten Schritten markiert, wo Nutzer aussteigen.
+            {beta.internalSkipped > 0 && (
+              <> Davon <b>{fmt(beta.internalSkipped)}</b> eigene Testereignisse (QA-Modus) ausgeschlossen, seit Einführung.</>
+            )}
           </Hint>
           {!beta.configured ? (
             <p className="mt-2 text-sm text-zinc-500">Erscheint, sobald Upstash Redis konfiguriert ist.</p>
@@ -280,6 +294,9 @@ export default async function AdminStatsPage({
           <Hint>
             Kampagnen- und geräte-attribuierte Rohereignisse aus der Event-Spezifikation —
             noch ohne Stufe 3+ (Bildselektion, Personensuche). Letzte {events.daysRead || 7} Tage.
+            {events.internalExcluded > 0 && (
+              <> Davon <b>{fmt(events.internalExcluded)}</b> eigene Testereignisse (QA-Modus) ausgeschlossen — fließen in keine Zahl auf dieser Karte oder unten ein.</>
+            )}
           </Hint>
           {!events.configured ? (
             <p className="mt-2 text-sm text-zinc-500">Erscheint, sobald Upstash Redis konfiguriert ist.</p>

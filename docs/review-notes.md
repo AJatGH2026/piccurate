@@ -42,16 +42,29 @@ nach dem Login löst er es ein, der Server überträgt und entwertet es.
 > Form „Anmelden übernimmt einen anonym angelegten Job" muss daraufhin geprüft
 > werden, ob sie diese Konstruktion aushöhlt. Das ist keine reine Technikfrage.
 
-### 2. Eigener Verkehr verfälscht die Messung
+### 2. Eigener Verkehr verfälscht die Messung — behoben 2026-08-31
 
-`/admin/stats` kann Test-Sitzungen der Betreiber nicht von echten Besuchern
+`/admin/stats` konnte Test-Sitzungen der Betreiber nicht von echten Besuchern
 trennen. In der Woche bis 2026-08-30 führte das zu Zahlen wie
 `results_shown 20 → download_completed 19` (95 %), was für Kaltverkehr über
 Suchanzeigen unrealistisch ist und sich mit „keine neuen Nutzer in Supabase"
-widerspricht — beides erklärt sich durch eigene Tests.
+widerspricht — beides erklärte sich durch eigene Tests.
 
-Solange das so ist, lässt sich aus dem Trichter **nicht** ablesen, wo echte Nutzer
-aussteigen. Genau das ist aber die Frage, für die er gebaut wurde.
+**Fix:** ein `qa_mode`-Cookie (`src/lib/qa-mode.ts`), gesetzt über
+`/api/qa-mode?token=<ADMIN_TOKEN>` (Link dazu jetzt oben auf `/admin/stats`).
+Vor einem eigenen Testlauf einmal öffnen — httpOnly, ~180 Tage gültig, kein
+erneutes Setzen pro Lauf nötig. Jede event-schreibende Route (`/api/ev`,
+`/api/beta`, `analyze-demo`'s `ai_cost_estimate`) liest das Cookie und markiert
+den Datensatz als `internal`; `readEventSignals()` schließt ihn aus allen
+Trichter-/Kampagnenzahlen aus (Rohereignis bleibt im Log erhalten, nur die
+Aggregate sind bereinigt), das ältere `lib/beta.ts`-Zählersystem überspringt
+das Inkrementieren ganz. Beide Panels zeigen die ausgeschlossene Anzahl an —
+keine stille Filterung.
+
+**Nicht gelöst, bewusst:** rückwirkend nichts — Daten vor Einführung des
+Cookies bleiben ungefiltert in den Zahlen. Und ein Gerät zählt nur dann als
+intern, wenn dort vorher aktiv der Link geöffnet wurde; ein vergessener Toggle
+auf einem neuen Testgerät verfälscht wieder, still, bis es auffällt.
 
 ### 3. Google Ads / Cookies — Grundsatzentscheidung offen
 

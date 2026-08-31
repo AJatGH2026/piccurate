@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { logEvent, ALLOWED_EVENTS } from '@/lib/events';
+import { isQaRequest } from '@/lib/qa-mode';
 import { classifyUserAgent } from '@/lib/userAgent';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
@@ -67,6 +68,7 @@ export async function POST(request: NextRequest) {
     keyword: body.keyword ? String(body.keyword) : null,
     photo_count_bucket: body.photo_count_bucket ? String(body.photo_count_bucket) : null,
     ab_variant: body.ab_variant === 'pricing_a' || body.ab_variant === 'pricing_b' ? body.ab_variant : null,
+    internal: isQaRequest(request),
     props: body.props && typeof body.props === 'object' ? (body.props as Record<string, unknown>) : {},
   });
 

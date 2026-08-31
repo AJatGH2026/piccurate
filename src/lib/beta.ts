@@ -49,6 +49,23 @@ const ALLOWED = new Set<string>([
   'unlock_large',
 ]);
 
+/**
+ * Count one own-test-traffic event that was deliberately NOT added to the
+ * funnel counters (qa_mode cookie, lib/qa-mode.ts — docs/review-notes.md
+ * point 2). This counter has no step dimension: unlike lib/events.ts, this
+ * store keeps no per-event record to tag, so a skipped funnel step is
+ * indistinguishable from another skipped funnel step here.
+ */
+export async function logInternalFunnelSkip(): Promise<void> {
+  const r = getClient();
+  if (!r) return;
+  try {
+    await r.incrby('beta:funnel:internal_skipped:total', 1);
+  } catch (err) {
+    console.warn('[beta] logInternalFunnelSkip failed:', err instanceof Error ? err.message : err);
+  }
+}
+
 /** Increment a funnel/selection counter (total + per-day). Whitelisted keys only. */
 export async function logFunnel(step: string, count = 1): Promise<void> {
   const r = getClient();
@@ -218,6 +235,9 @@ export interface BetaSignals {
   feedbackCount: number;
   emailCount: number;
   recentFeedback: FeedbackEntry[];
+  // All-time count of events skipped because they came from the qa_mode
+  // cookie (docs/review-notes.md point 2) — see logInternalFunnelSkip.
+  internalSkipped: number;
 }
 
 function parseEntry<T>(x: unknown): T | null {
@@ -240,6 +260,7 @@ export async function readBetaSignals(): Promise<BetaSignals> {
     feedbackCount: 0,
     emailCount: 0,
     recentFeedback: [],
+    internalSkipped: 0,
   };
   if (!r) return empty;
   try {
@@ -250,11 +271,12 @@ export async function readBetaSignals(): Promise<BetaSignals> {
     // Historical values may still sit in Redis; they are simply not read back.
     const extraSteps = ['terms_accepted', 'unlock_small', 'unlock_medium', 'unlock_large'];
     const totalKeys = [...FUNNEL_STEPS, 'added', 'removed', ...extraSteps].map((s) => `beta:funnel:${s}:total`);
-    const [funnelVals, fbCount, emCount, recent] = await Promise.all([
+    const [funnelVals, fbCount, emCount, recent, internalSkipped] = await Promise.all([
       r.mget(...totalKeys) as Promise<(number | string | null)[]>,
       r.get('beta:feedback:count') as Promise<number | string | null>,
       r.get('beta:emails:count') as Promise<number | string | null>,
       r.lrange('beta:feedback', 0, 19) as Promise<unknown[]>,
+      r.get('beta:funnel:internal_skipped:total') as Promise<number | string | null>,
     ]);
     const num = (v: number | string | null) => (v == null ? 0 : Number(v));
     const funnel = FUNNEL_STEPS.map((s, i) => ({ step: s, total: num(funnelVals[i]) }));
@@ -278,6 +300,7 @@ export async function readBetaSignals(): Promise<BetaSignals> {
       feedbackCount: num(fbCount),
       emailCount: num(emCount),
       recentFeedback,
+      internalSkipped: num(internalSkipped),
     };
   } catch (err) {
     console.warn('[beta] readBetaSignals failed:', err instanceof Error ? err.message : err);

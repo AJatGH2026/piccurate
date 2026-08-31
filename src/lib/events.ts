@@ -104,6 +104,12 @@ export interface EventRecord {
   // the assignment so a real pricing_b experience can be built later without
   // a second measurement rollout.
   ab_variant: 'pricing_a' | 'pricing_b' | null;
+  // Set from the qa_mode cookie (lib/qa-mode.ts) at the API route, never by
+  // the client. The raw record keeps it — deliberately not dropped — so a
+  // test run stays inspectable; readEventSignals excludes it from every
+  // funnel/campaign number that judges real traffic. See
+  // docs/review-notes.md point 2.
+  internal: boolean;
   props: Record<string, unknown>;
 }
 
@@ -124,9 +130,19 @@ export async function logEvent(e: EventRecord): Promise<void> {
     p.lpush(logKey, JSON.stringify(e));
     p.ltrim(logKey, 0, MAX_PER_DAY - 1);
     p.expire(logKey, DAY_TTL_S);
-    p.incrby(`ev:count:${e.name}:total`, 1);
-    p.incrby(`ev:count:${e.name}:${day}`, 1);
-    p.expire(`ev:count:${e.name}:${day}`, DAY_TTL_S);
+    // Internal (QA-mode) events still get the raw record above — useful when
+    // checking that a test run actually fired — but must not inflate the
+    // counters /admin/stats/export and readDailyEventCounts read as "real
+    // traffic". They go in a separate, unexported bucket instead, purely so
+    // the dashboard can show how many were excluded (no silent drop).
+    if (e.internal) {
+      p.incrby(`ev:count:${e.name}:internal:${day}`, 1);
+      p.expire(`ev:count:${e.name}:internal:${day}`, DAY_TTL_S);
+    } else {
+      p.incrby(`ev:count:${e.name}:total`, 1);
+      p.incrby(`ev:count:${e.name}:${day}`, 1);
+      p.expire(`ev:count:${e.name}:${day}`, DAY_TTL_S);
+    }
     await p.exec();
   } catch (err) {
     console.warn('[events] logEvent failed:', err instanceof Error ? err.message : err);
@@ -166,6 +182,11 @@ export interface EventSignals {
   // not to rely on.
   byCreative: Record<string, { landing_view: number; demo_start: number; analysis_started: number }>;
   daysRead: number;
+  // Count of raw events in the window flagged `internal` (qa_mode cookie) and
+  // therefore excluded from everything above. Surfaced so the exclusion is
+  // visible on the dashboard rather than a silent drop — see
+  // docs/review-notes.md point 2.
+  internalExcluded: number;
 }
 
 /**
@@ -191,6 +212,7 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
     byCampaign: {},
     byCreative: {},
     daysRead: 0,
+    internalExcluded: 0,
   };
   if (!r) return empty;
 
@@ -218,7 +240,15 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
     const blank = (): Attributed => ({ landing_view: 0, demo_start: 0, analysis_started: 0 });
     const byCampaign: Record<string, Attributed> = {};
     const byCreative: Record<string, Attributed> = {};
+    let internalExcluded = 0;
     for (const e of events) {
+      // Own test traffic (docs/review-notes.md point 2): counted separately,
+      // never mixed into the numbers that judge real campaigns or funnel
+      // health. The raw record is still in the log above for inspection.
+      if (e.internal) {
+        internalExcluded++;
+        continue;
+      }
       counts.set(e.name, (counts.get(e.name) || 0) + 1);
       if (e.name === 'demo_start' || e.name === 'files_selected') {
         const dc = e.device_class || 'other';
@@ -261,6 +291,7 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
       byCampaign,
       byCreative,
       daysRead: days,
+      internalExcluded,
     };
   } catch (err) {
     console.warn('[events] readEventSignals failed:', err instanceof Error ? err.message : err);
