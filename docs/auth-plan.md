@@ -179,6 +179,11 @@ observable:
   confirmation link arrived in English for a German user while the reset-password
   mail (bilingual, see above) did not. Fix is the same as for reset: one
   bilingual DE/EN template, since a template cannot switch on language.
+  **Watch for `{{ .Email }}`/`{{ .NewEmail }}` in Supabase's default wording**
+  ("confirm the update of your email from `{{ .Email }}` to …") — for this
+  flow `.Email` is empty (the anonymous user had no prior address), so the
+  default text renders as "from to you@example.com". Use only
+  `{{ .ConfirmationURL }}` in the custom template and drop that sentence.
 - Resending must be `resend({ type: 'email_change' })`. `type: 'signup'` asks
   GoTrue to repeat a registration that never happened. `DownloadAccountGate`
   tries `email_change` first and falls back to `signup`.

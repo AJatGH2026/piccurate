@@ -83,6 +83,88 @@ needs a redeploy **without build cache**. And never leave the key with an empty
 value — `??` only catches `undefined`, so `Number('')` yields `0`, the opposite
 of the intent.
 
+## Verification before claims — added 2026-08-31
+
+Three rules, added after a review of every self-correction across all
+ShortlistBuddy sessions in August 2026 turned up a pattern: most were not new
+mistakes, they were an earlier claim made from memory or from a doc instead of
+from the live thing itself (see `code-over-docs-verification-rule` in memory
+for the doc-vs-code case this generalizes).
+
+### 1. Cause before confession
+
+Before writing anything containing *Fehler*, *Korrektur*, *ich muss
+korrigieren*, or their English equivalents about your own prior turn in this
+session: first establish, in this order, and show your work —
+
+1. **What was actually claimed**, quoted or paraphrased precisely, not
+   reconstructed from a vague memory of "what I probably meant."
+2. **The actual current state**, backed by something checkable: a file
+   path + line, a command and its output, a live check (`vercel env ls`,
+   `curl`, a screenshot). Never re-derive this from `product-pipeline.md`,
+   `HANDOVER.md`, an older conversation, or your own training-data priors —
+   those are exactly the sources that produced the wrong claim in the first
+   place often enough to be the default suspect.
+3. **Where the two diverge**, stated as the actual finding.
+
+Only after that sequence, say whether it's a correction, and of what. If step
+2 shows the original claim was right, say so instead — a "correction" of a
+claim that turns out to have been correct is its own kind of avoidable
+rework and costs exactly as much of the user's time as a real one.
+
+**Before any claim about the state of this repo specifically** (what's
+merged, what's live, "nothing has changed recently"): run `git fetch origin`
+and check `git log <branch>..origin/<branch>` first. A local clone that is
+behind `origin/master` is indistinguishable, from the inside, from a claim
+that's simply wrong — and this project is worked from more than one clone/
+session concurrently (see `parallel-claude-sessions` in memory), so assume
+your local view can be stale rather than assuming it's current.
+
+### 2. Sourced claims for Google/Meta/third-party platform behavior
+
+A recommendation of the form "don't do X on Google Ads / Meta / &lt;platform&gt;"
+needs a source with a date: the platform's own current docs (fetched, not
+recalled), a live measurement against this project's actual account, or a
+specific line of code in this repo. If none of those is available, say the
+recommendation is unverified and from general knowledge, rather than stating
+it with the same confidence as a checked one. Platform UIs and policies change
+between training cutoffs and today; the [.env.example](.env.example) history
+above is itself an example of a lever that moved twice in two weeks.
+
+### 3. Independent verification: the `pruef-agent`
+
+For a claim you (the user) want checked without inheriting whatever framing
+produced it, ask for the `pruef-agent` (`.claude/agents/pruef-agent.md`) —
+it receives only the bare claim, gathers its own evidence, and cannot edit or
+push anything. Good for: "is this actually still true", a suspicious
+recommendation, or re-checking something before it drives a decision or a
+paid campaign change.
+
+### On sessions vs. containers
+
+Two different, non-overlapping surfaces work on this repo, and neither can see
+the other's conversation history or tool state:
+
+- **Claude Code sessions** (this one) — run against `C:\Dev\piccurate` on
+  Andreas's machine, with real Vercel CLI/GitHub credential access, so claims
+  checked here reflect the live account. Transcripts persist locally and are
+  mutually searchable across Claude Code sessions.
+- **Claude mobile-app / Cowork sessions connected to GitHub** — run in a
+  short-lived, egress-restricted cloud container per session (only an
+  allowlisted set of hosts is reachable — GitHub, package registries,
+  Anthropic APIs; **not** `shortlistbuddy.com`, Vercel, or Supabase), with no
+  `.env.local` and no access to this machine's memory files or transcripts.
+  They read this same `CLAUDE.md` and can commit/push to branches, but cannot
+  browser-test the live site or read real secrets — a claim from one of these
+  sessions about live behavior is reasoning from code, not a live
+  observation, unless it says otherwise. `docs/review-notes.md` exists
+  specifically because these sessions start from a fresh clone each time and
+  can't see `docs/product-pipeline.md` (gitignored) or prior chat history —
+  findings meant to survive need to be committed, not just said.
+
+If a claim's origin surface is unclear and it matters (e.g., it drives a
+spend decision), ask which one it came from before acting on it.
+
 ## Key documents
 
 - [HANDOVER.md](HANDOVER.md) — resume/backup guide (what to save, how to resume, cloud options)
