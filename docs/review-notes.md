@@ -66,6 +66,19 @@ Cookies bleiben ungefiltert in den Zahlen. Und ein Gerät zählt nur dann als
 intern, wenn dort vorher aktiv der Link geöffnet wurde; ein vergessener Toggle
 auf einem neuen Testgerät verfälscht wieder, still, bis es auffällt.
 
+**Nachtrag, selbes Datum:** der erste Durchgang deckte nur `lib/events.ts`
+(Kampagnen-Trichter) und `lib/beta.ts` (alter Zähler) ab — die
+„Usage"-Karte oben auf der Seite (`lib/stats.ts`, `stats:jobs:*`/
+`stats:photos:*`, gespeist aus `trackAnalyze()`) blieb unberührt. Ein eigener
+Testlauf mit aktivem QA-Modus erschien dort weiterhin voll mitgezählt — zu
+Recht bemerkt, denn „Punkt 2 umgesetzt" hatte implizit die ganze Seite
+gemeint. Anders als bei den beiden Trichtern **bewusst nicht ausgeschlossen**:
+die Usage-Karte misst tatsächliche Gemini-Kosten, und ein eigener Testlauf
+ist echter, angefallener Spend, keine Verzerrung, die verschwinden sollte.
+Stattdessen zeigt die Karte jetzt zusätzlich, wie viel vom Gesamtbetrag
+eigene Tests waren (`stats:*:internal:*`, addiert zum Gesamtwert, nicht
+subtrahiert).
+
 ### 3. Google Ads / Cookies — Grundsatzentscheidung offen
 
 Der Code kann Ads-Conversions melden (`lib/analytics.ts`,

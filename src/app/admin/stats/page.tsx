@@ -171,8 +171,8 @@ export default async function AdminStatsPage({
 
         {/* Lifetime + today */}
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Card title="Lifetime" stats={stats.lifetime} />
-          <Card title="Heute" stats={stats.today} />
+          <Card title="Lifetime" stats={stats.lifetime} internal={stats.internalLifetime} />
+          <Card title="Heute" stats={stats.today} internal={stats.internalToday} />
         </div>
 
         {/* Per-day breakdown */}
@@ -601,13 +601,23 @@ function Row({
 function Card({
   title,
   stats,
+  internal,
 }: {
   title: string;
   stats: { photos: number; jobs: number; inputTokens: number; outputTokens: number; estCostEur: number };
+  // QA-mode breakdown (docs/review-notes.md point 2) — already included in
+  // `stats` above, not extra. Omitted from the card when zero.
+  internal?: { photos: number; jobs: number };
 }) {
   return (
     <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
       <h2 className="font-semibold">{title}</h2>
+      {internal && internal.jobs > 0 && (
+        <Hint>
+          Davon <b>{fmt(internal.jobs)}</b> eigene Test-Jobs ({fmt(internal.photos)} Fotos, QA-Modus) — im Betrag
+          oben bereits enthalten, kein zusätzlicher Posten.
+        </Hint>
+      )}
       <div className="mt-3 space-y-3">
         <Row
           label="Fotos analysiert"

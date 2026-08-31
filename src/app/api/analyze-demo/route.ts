@@ -446,8 +446,11 @@ export async function POST(request: NextRequest) {
       `[STAT] photos=${files.length} input_tokens=${inputTokens} output_tokens=${outputTokens} model=${model}`
     );
 
-    // Persistent usage tracking — no-op if Upstash isn't configured.
-    void trackAnalyze({ photos: files.length, inputTokens, outputTokens, model });
+    // Persistent usage tracking — no-op if Upstash isn't configured. Own test
+    // runs (qa_mode cookie) still count toward the real total here — this is
+    // actual Gemini spend — but are also tracked separately; see
+    // trackAnalyze's doc comment.
+    void trackAnalyze({ photos: files.length, inputTokens, outputTokens, model }, isQaRequest(request));
 
     // Event-Spezifikation §8: `ai_cost_estimate`, "die eigentliche
     // Geschäftszahl des gesamten Tests". Fires once per batch call rather

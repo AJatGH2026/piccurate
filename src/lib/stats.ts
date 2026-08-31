@@ -40,8 +40,19 @@ export interface AnalyzeEvent {
   model: string;
 }
 
-/** Record one analysis call. Never throws — failures are logged and swallowed. */
-export async function trackAnalyze(e: AnalyzeEvent): Promise<void> {
+/**
+ * Record one analysis call. Never throws — failures are logged and swallowed.
+ *
+ * `internal` (qa_mode cookie, lib/qa-mode.ts — docs/review-notes.md point 2):
+ * unlike the funnel counters in lib/events.ts and lib/beta.ts, this call is
+ * NOT excluded from the primary `stats:*:total`/`stats:*:{day}` counters —
+ * those answer "what did this cost", and an operator's own test run is real
+ * Gemini spend, not noise to filter out. What `internal` adds is a parallel
+ * `stats:*:internal:*` breakdown, so the dashboard can additionally show how
+ * much of the total was the operator's own testing, without hiding it from
+ * the total.
+ */
+export async function trackAnalyze(e: AnalyzeEvent, internal = false): Promise<void> {
   const r = getClient();
   if (!r) return;
   const day = todayKey();
@@ -60,6 +71,20 @@ export async function trackAnalyze(e: AnalyzeEvent): Promise<void> {
     p.expire(`stats:jobs:${day}`, DAY_TTL_S);
     p.expire(`stats:tokens:input:${day}`, DAY_TTL_S);
     p.expire(`stats:tokens:output:${day}`, DAY_TTL_S);
+    if (internal) {
+      p.incrby('stats:photos:internal:total', e.photos);
+      p.incrby('stats:jobs:internal:total', 1);
+      p.incrby('stats:tokens:input:internal:total', e.inputTokens);
+      p.incrby('stats:tokens:output:internal:total', e.outputTokens);
+      p.incrby(`stats:photos:internal:${day}`, e.photos);
+      p.incrby(`stats:jobs:internal:${day}`, 1);
+      p.incrby(`stats:tokens:input:internal:${day}`, e.inputTokens);
+      p.incrby(`stats:tokens:output:internal:${day}`, e.outputTokens);
+      p.expire(`stats:photos:internal:${day}`, DAY_TTL_S);
+      p.expire(`stats:jobs:internal:${day}`, DAY_TTL_S);
+      p.expire(`stats:tokens:input:internal:${day}`, DAY_TTL_S);
+      p.expire(`stats:tokens:output:internal:${day}`, DAY_TTL_S);
+    }
     await p.exec();
   } catch (err) {
     console.warn('[stats] track failed:', err instanceof Error ? err.message : err);
@@ -150,11 +175,18 @@ export async function rateLimitRedis(
   }
 }
 
+type StatsBucket = { photos: number; jobs: number; inputTokens: number; outputTokens: number; estCostEur: number };
+
 export interface StatsSnapshot {
   configured: boolean;
-  lifetime: { photos: number; jobs: number; inputTokens: number; outputTokens: number; estCostEur: number };
-  today: { photos: number; jobs: number; inputTokens: number; outputTokens: number; estCostEur: number };
+  lifetime: StatsBucket;
+  today: StatsBucket;
   byDay: { date: string; photos: number; jobs: number; estCostEur: number }[];
+  // Subset of `lifetime`/`today` that came from qa_mode-flagged runs (own
+  // testing) — already included in the totals above, not extra spend. See
+  // trackAnalyze's doc comment.
+  internalLifetime: StatsBucket;
+  internalToday: StatsBucket;
 }
 
 // Gemini 2.5 Flash pricing (input $0.30 / output $2.50 per 1M) — matches the
@@ -182,12 +214,15 @@ const lastNDays = (n: number) =>
 /** Read a snapshot for the admin dashboard. Returns zeros if not configured. */
 export async function readStats(days = 7): Promise<StatsSnapshot> {
   const r = getClient();
+  const emptyBucket = (): StatsBucket => ({ photos: 0, jobs: 0, inputTokens: 0, outputTokens: 0, estCostEur: 0 });
   if (!r) {
     return {
       configured: false,
-      lifetime: { photos: 0, jobs: 0, inputTokens: 0, outputTokens: 0, estCostEur: 0 },
-      today: { photos: 0, jobs: 0, inputTokens: 0, outputTokens: 0, estCostEur: 0 },
+      lifetime: emptyBucket(),
+      today: emptyBucket(),
       byDay: [],
+      internalLifetime: emptyBucket(),
+      internalToday: emptyBucket(),
     };
   }
 
@@ -200,16 +235,34 @@ export async function readStats(days = 7): Promise<StatsSnapshot> {
     ]),
   ];
 
+  // Internal (QA-mode) breakdown: a separate small mget rather than folding
+  // into the dense positional array above — that array's indices are already
+  // load-bearing for the byDay math below, and a second round-trip here is
+  // negligible at this data volume.
+  const todayDay = dayKeys[0];
+  const internalKeys = [
+    'stats:photos:internal:total', 'stats:jobs:internal:total',
+    'stats:tokens:input:internal:total', 'stats:tokens:output:internal:total',
+    `stats:photos:internal:${todayDay}`, `stats:jobs:internal:${todayDay}`,
+    `stats:tokens:input:internal:${todayDay}`, `stats:tokens:output:internal:${todayDay}`,
+  ];
+
   let values: (string | number | null)[] = [];
+  let internalValues: (string | number | null)[] = [];
   try {
-    values = (await r.mget(...keys)) as (string | number | null)[];
+    [values, internalValues] = await Promise.all([
+      r.mget(...keys) as Promise<(string | number | null)[]>,
+      r.mget(...internalKeys) as Promise<(string | number | null)[]>,
+    ]);
   } catch (err) {
     console.warn('[stats] read failed:', err instanceof Error ? err.message : err);
     return {
       configured: true,
-      lifetime: { photos: 0, jobs: 0, inputTokens: 0, outputTokens: 0, estCostEur: 0 },
-      today: { photos: 0, jobs: 0, inputTokens: 0, outputTokens: 0, estCostEur: 0 },
+      lifetime: emptyBucket(),
+      today: emptyBucket(),
       byDay: [],
+      internalLifetime: emptyBucket(),
+      internalToday: emptyBucket(),
     };
   }
 
@@ -221,6 +274,21 @@ export async function readStats(days = 7): Promise<StatsSnapshot> {
     inputTokens: n(values[2]),
     outputTokens: n(values[3]),
     estCostEur: estCostEur(n(values[2]), n(values[3])),
+  };
+
+  const internalLifetime = {
+    photos: n(internalValues[0]),
+    jobs: n(internalValues[1]),
+    inputTokens: n(internalValues[2]),
+    outputTokens: n(internalValues[3]),
+    estCostEur: estCostEur(n(internalValues[2]), n(internalValues[3])),
+  };
+  const internalToday = {
+    photos: n(internalValues[4]),
+    jobs: n(internalValues[5]),
+    inputTokens: n(internalValues[6]),
+    outputTokens: n(internalValues[7]),
+    estCostEur: estCostEur(n(internalValues[6]), n(internalValues[7])),
   };
 
   const byDay = dayKeys.map((date, i) => {
@@ -245,5 +313,5 @@ export async function readStats(days = 7): Promise<StatsSnapshot> {
       }
     : { photos: 0, jobs: 0, inputTokens: 0, outputTokens: 0, estCostEur: 0 };
 
-  return { configured: true, lifetime, today, byDay };
+  return { configured: true, lifetime, today, byDay, internalLifetime, internalToday };
 }
