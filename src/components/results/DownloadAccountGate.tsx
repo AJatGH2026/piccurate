@@ -26,6 +26,18 @@ const RESEND_COOLDOWN_S = 30;
  * when the analysis started) into a permanent one via `updateUser`. That keeps
  * the same `user.id`, so the job stays attached without any claim mechanism.
  *
+ * **Logging in is different (fixed 2026-09-01, review-notes.md point 1):**
+ * `signInWithPassword` REPLACES the session with a different, existing
+ * account — the job's `user_id` is still the old anonymous one afterwards, so
+ * the § 312f confirmation this dialog triggers on `onUnlocked` used to 404
+ * silently for every returning visitor who chose Login over Register. Fixed
+ * with a short-lived claim token: requested from `/api/jobs/[jobId]/claim-token`
+ * BEFORE `signInWithPassword` (while the anonymous session still demonstrably
+ * owns the job), redeemed at `/api/jobs/[jobId]/claim` right after (now
+ * authenticated as the returning account) — see migration 008. Best-effort:
+ * if `jobId` is absent or either call fails, login still proceeds and the
+ * download still happens, just without the ownership transfer this time.
+ *
  * **The download waits for the confirmation click (changed 2026-08-27).**
  * `updateUser` succeeding only means the address was well-formed and free to
  * claim — it is not proof anyone can receive mail there, and unlocking the
@@ -41,10 +53,14 @@ const RESEND_COOLDOWN_S = 30;
  */
 export function DownloadAccountGate({
   locale,
+  jobId,
   onClose,
   onUnlocked,
 }: {
   locale: string;
+  // Undefined only if the analysis somehow never produced a job — the claim
+  // handshake below is then skipped, not attempted against `undefined`.
+  jobId: string | undefined;
   onClose: () => void;
   onUnlocked: () => void;
 }) {
@@ -102,8 +118,42 @@ export function DownloadAccountGate({
     try {
       const supabase = createClient();
       if (mode === 'login') {
+        // Claimed BEFORE signing in — see the file doc comment. Best-effort:
+        // a request that never gets a token here still logs in and
+        // downloads normally, it just cannot transfer ownership afterwards.
+        let claimToken: string | null = null;
+        if (jobId) {
+          try {
+            const res = await fetch(`/api/jobs/${encodeURIComponent(jobId)}/claim-token`, { method: 'POST' });
+            const json = await res.json();
+            claimToken = typeof json?.data?.token === 'string' ? json.data.token : null;
+          } catch {
+            /* proceed without a token — see redeemClaim below */
+          }
+        }
+
         const { error: err } = await supabase.auth.signInWithPassword({ email, password });
         if (err) throw new Error(err.message);
+
+        if (jobId && claimToken) {
+          // Awaited, unlike the confirmation POST below: onUnlocked() fires
+          // that POST immediately, and its ownership check needs the
+          // transfer to have already landed — a fire-and-forget here would
+          // race it. Errors are swallowed, not surfaced: a failed claim must
+          // not block the download the user is waiting for, and the worst
+          // case is the pre-existing 404 this mechanism exists to avoid, not
+          // a new failure mode.
+          try {
+            await fetch(`/api/jobs/${encodeURIComponent(jobId)}/claim`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token: claimToken }),
+            });
+          } catch (e) {
+            console.warn('[download-gate] claim failed:', e);
+          }
+        }
+
         onUnlocked();
         return;
       }

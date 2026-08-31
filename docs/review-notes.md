@@ -10,10 +10,10 @@ hier steht nur, was für Code-Reviews dauerhaft relevant bleibt.
 
 ## Offene Punkte
 
-### 1. Job-Eigentum geht beim Login am Download-Gate verloren
+### 1. Job-Eigentum geht beim Login am Download-Gate verloren — behoben 2026-09-01
 
-**Symptom:** `POST /api/jobs/<id>/confirmation` antwortet 404, die § 312f-Bestätigung
-wird nie gemailt.
+**Symptom:** `POST /api/jobs/<id>/confirmation` antwortete 404, die § 312f-Bestätigung
+wurde nie gemailt.
 
 **Ursache:** Die Analyse läuft anonym, der Job gehört dem anonymen Supabase-Nutzer.
 `DownloadAccountGate` hat zwei Wege:
@@ -23,24 +23,37 @@ wird nie gemailt.
 - *Anmelden* → `signInWithPassword` ersetzt die Sitzung durch ein **anderes** Konto.
   Die Eigentumsprüfung in `confirmation/route.ts` schlägt fehl.
 
-Der Registrier-Zweig trägt bereits einen Kommentar über genau diese Gefahr
+Der Registrier-Zweig trug bereits einen Kommentar über genau diese Gefahr
 ("would orphan the anonymous one this result belongs to") — für den Login-Zweig
 wurde sie übersehen.
 
-**Wirkung:** Jeder wiederkehrende Nutzer, der sich anmeldet statt zu registrieren,
-bekommt die Bestätigung nicht per Mail. Der Download funktioniert, und der
-Bildschirmtext auf `/results` erfüllt die Pflicht laut eigenem Design bereits —
-die beabsichtigte Zustellung fällt aber still aus.
+**Fix — der damals skizzierte Zwei-Schritt-Handshake, jetzt umgesetzt:**
+`POST /api/jobs/[jobId]/claim-token`, aufgerufen **vor** `signInWithPassword`
+(die Sitzung besitzt den Job zu dem Zeitpunkt nachweislich noch — RLS prüft
+das über den normalen, nutzer-scoped Client), liefert ein einmaliges,
+zehn Minuten gültiges Token. `POST /api/jobs/[jobId]/claim`, aufgerufen
+**nach** dem Login mit diesem Token, überträgt `jobs.user_id` — zwingend über
+den Admin-Client, weil das neue Konto die Zeile noch nicht besitzt und RLS die
+Übertragung sonst selbst verhindern würde. Verbrauch und Prüfung laufen in
+derselben `UPDATE ... WHERE claim_token = $1 AND claim_token_expires_at > now()`-
+Anweisung, also ohne Lücke zwischen Prüfen und Verbrauchen. Migration 008.
 
-**Entwurf (NICHT umgesetzt, bewusst offen):** Zwei-Schritt-Handshake statt
-Eigentumsübertragung beim Login. Noch anonym — also solange die Sitzung den Job
-nachweislich besitzt — holt der Client ein einmaliges, kurzlebiges Claim-Token;
-nach dem Login löst er es ein, der Server überträgt und entwertet es.
+Best-effort auf der ganzen Linie: fehlt `jobId`, schlägt eine der beiden Anfragen
+fehl, oder ist das Token abgelaufen, läuft Login und Download trotzdem normal
+weiter — nur die Eigentumsübertragung unterbleibt, exakt der Zustand von vorher,
+keine neue Fehlerart.
 
-> ⚠️ **Vor der Umsetzung klären:** Die Registrierungs-Barriere wurde am 2026-08-27
-> bewusst ans Ende verschoben (nutzerfreundlich *und* datensparsam). Jede Regel der
-> Form „Anmelden übernimmt einen anonym angelegten Job" muss daraufhin geprüft
-> werden, ob sie diese Konstruktion aushöhlt. Das ist keine reine Technikfrage.
+**Zur Vorbedingung von damals:** Die Registrierungs-Barriere vom 2026-08-27
+bleibt unangetastet — dieser Fix ändert nichts daran, *wann* oder *ob* ein Konto
+verlangt wird, nur was am bereits bestehenden Login-Zweig des bestehenden Gates
+passiert. Keine neue Reibung, keine vorgezogene Kontopflicht.
+
+**Vor dem ersten Test in Produktion nötig:** Migration `008_job_claim_token.sql`
+muss im Supabase SQL-Editor ausgeführt werden (siehe [[supabase-migrations-drift]] —
+nicht annehmen, dass eine Migrationsdatei automatisch angewendet ist). Ohne die
+neuen Spalten (`claim_token`, `claim_token_expires_at`) scheitern beide neuen
+Routen still im Best-Effort-Zweig — der Login-Fall bleibt dann unverändert
+kaputt, ohne sichtbaren Fehler.
 
 ### 2. Eigener Verkehr verfälscht die Messung — behoben 2026-08-31
 

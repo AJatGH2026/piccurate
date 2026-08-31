@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import type { Job, Tier, JobStatus } from '@/types/job';
 import type { CriteriaConfig } from '@/types/criteria';
 import { DEFAULT_CRITERIA } from '@/types/criteria';
@@ -164,6 +165,57 @@ export class JobManager {
       .eq('id', jobId);
 
     if (error) throw new Error(`Failed to update payment: ${error.message}`);
+  }
+
+  /**
+   * Issue a short-lived, single-use token proving the CURRENT session owns
+   * this job — call with a client authenticated as that (still anonymous)
+   * session, before it switches to a different account via
+   * `signInWithPassword`. See migration 008 / review-notes.md point 1 for why
+   * this two-step handshake exists instead of a direct ownership transfer.
+   *
+   * Returns null if the caller does not own the job — relies on the RLS
+   * SELECT/UPDATE policies (`auth.uid() = user_id`) actually holding when
+   * `this.db` is the user-scoped client; do not call this with an admin
+   * client, or the ownership check silently stops applying.
+   */
+  async issueClaimToken(jobId: string, userId: string): Promise<string | null> {
+    const job = await this.getJob(jobId);
+    if (!job || job.userId !== userId) return null;
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min: covers filling in the login form, not much more
+
+    const { error } = await this.db
+      .from('jobs')
+      .update({ claim_token: token, claim_token_expires_at: expiresAt })
+      .eq('id', jobId);
+    if (error) return null;
+    return token;
+  }
+
+  /**
+   * Redeem a claim token, transferring the job to `newUserId`. MUST be called
+   * with an admin (service-role) client: the caller is authenticated as
+   * `newUserId`, who does not own the row yet, so the RLS UPDATE policy would
+   * otherwise block the very transfer this exists to perform.
+   *
+   * Single-use by construction: the token is cleared in the same UPDATE that
+   * checks it, via `.eq('claim_token', token)` — a second redemption attempt
+   * finds zero matching rows and fails, not the same row twice.
+   */
+  async redeemClaimToken(jobId: string, token: string, newUserId: string): Promise<boolean> {
+    if (!token) return false;
+    const { data, error } = await this.db
+      .from('jobs')
+      .update({ user_id: newUserId, claim_token: null, claim_token_expires_at: null })
+      .eq('id', jobId)
+      .eq('claim_token', token)
+      .gt('claim_token_expires_at', new Date().toISOString())
+      .select('id');
+
+    if (error) return false;
+    return (data?.length ?? 0) > 0;
   }
 
   /** Map database row to Job type */

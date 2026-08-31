@@ -11,9 +11,11 @@ shortlistbuddy.com. Full flow works: register → confirmation email (Resend SMT
 → callback → logged in; login; header shows email + logout; `profiles` row has
 `locale` + `gdpr_consent_at` populated (trigger verified end-to-end).
 
-**Later addition:** password reset (2026-08-10) — see [Password reset](#password-reset--added-2026-08-10)
+**Later additions:** password reset (2026-08-10) — see [Password reset](#password-reset--added-2026-08-10)
 below. Read that section before touching `/auth/callback` or the reset pages;
-the two flows differ on purpose.
+the two flows differ on purpose. Also the download gate's job-ownership claim
+handshake (2026-09-01) — see [the section below](#the-download-gates-login-path-needed-its-own-job-ownership-fix--2026-09-01)
+before touching `DownloadAccountGate` or `/api/jobs/[jobId]/claim`.
 
 ### Learnings (email delivery — this ate most of the debugging time)
 - **Resend requires the SMTP *Sender email* to match a verified domain exactly.**
@@ -193,6 +195,40 @@ observable:
 - The per-user min-interval (60s) and the hourly cap apply here too, and a
   throttled mail is silent on both sides. Repeated testing with the same address
   is the first thing to rule out when "the mail did not arrive".
+
+## The download gate's LOGIN path needed its own job-ownership fix — 2026-09-01
+
+The Register branch above keeps the same `user.id` (it converts the existing
+anonymous account), so the job stays attached automatically. **Login does
+not**: `signInWithPassword` swaps the session to a different, already-existing
+account, and the job — created under the anonymous id — does not follow. The
+§ 312f confirmation this dialog triggers on unlock (`POST
+/api/jobs/[jobId]/confirmation`) then 404s, because both the explicit
+ownership check there and the underlying RLS policy see a mismatch.
+
+Fixed with a claim-token handshake rather than a direct transfer, because at
+the point `signInWithPassword` is called there is no other way to learn the
+target account's `user.id` without already having switched to it:
+
+1. `POST /api/jobs/[jobId]/claim-token`, called **before**
+   `signInWithPassword`, while the session still owns the job (checked via the
+   normal RLS-scoped client — same policy every other job read relies on).
+   Returns a random 10-minute token, stored on the row.
+2. `signInWithPassword` runs, session switches.
+3. `POST /api/jobs/[jobId]/claim`, called **after**, with that token. Runs on
+   the **admin client** — the newly-authenticated user does not own the row
+   yet, so the normal RLS UPDATE policy would refuse exactly the write this
+   needs. The token is validated and cleared in one `UPDATE ... WHERE
+   claim_token = $1 AND claim_token_expires_at > now()`, so there is no
+   check-then-use gap to race and no double-redemption.
+
+`supabase/migrations/008_job_claim_token.sql` adds the two columns
+(`claim_token`, `claim_token_expires_at`). **Must be run manually in the
+Supabase SQL editor before this works** — see
+[[supabase-migrations-drift]] in memory; nothing here applies it
+automatically. Until it's run, both new routes fail closed (best-effort on
+the client side, so login/download still work) and the Login path stays
+exactly as broken as before, silently.
 
 ---
 

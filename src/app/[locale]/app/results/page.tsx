@@ -844,6 +844,7 @@ export default function ResultsPage() {
       {showDownloadGate && (
         <DownloadAccountGate
           locale={locale}
+          jobId={contract?.jobId}
           onClose={() => setShowDownloadGate(false)}
           onUnlocked={() => {
             // The session is now a permanent account. Reflect that locally so
