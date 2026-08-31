@@ -43,18 +43,27 @@ export function ContractConfirmation({
   placedAt: string;
   locale: string;
   /**
-   * Suppress the save button while a running analysis would be destroyed by it.
+   * Route the save through a popup window instead of a same-tab download.
    *
    * Reported 2026-08-29: saving during the analysis on iOS killed the run after
    * 100 of 249 photos with "Load failed" — Safari treats the download of a blob
-   * URL as leaving the page, which aborts every in-flight analyze-demo fetch.
-   * The panel appears the moment the job exists, i.e. exactly while the analysis
-   * it belongs to is running, so the trap is on the normal path, not an edge.
+   * URL, triggered in the SAME tab as the one making the request, as leaving
+   * the page, which aborts every in-flight analyze-demo fetch. First fix
+   * (2026-08-29) was disabling the button until the run ended — technically
+   * safe, but § 312f Abs. 2 wants this confirmation available *before*
+   * performance begins, i.e. exactly during the window it was disabled in, and
+   * the page navigates on to /review within moments of the run ending, so
+   * there was no practical window left to use it (flagged 2026-09-01).
    *
-   * The confirmation itself is NOT withheld: the text stays on screen and
-   * readable via "show text", and the save returns as soon as the run ends
-   * (and again on /results, plus by email once an address exists). Only the
-   * click that would destroy the user's own run is deferred.
+   * Fixed properly by not needing the same tab at all: the ZIP download in
+   * results/page.tsx already establishes that a `<a download>` built and
+   * clicked inside a window opened synchronously via `window.open('', '_blank')`
+   * does not unload *that* window, let alone the one it was opened from — so
+   * building the link in the popup's own document, not this tab's, keeps
+   * whatever iOS does to "the tab that downloads" away from the tab actually
+   * running the fetches. No browser-sniffing needed: this path is only taken
+   * while `saveBlocked` is true (i.e. analysis running), and doing it in a
+   * popup costs nothing on browsers that were never affected either.
    */
   saveBlocked?: boolean;
 }) {
@@ -78,22 +87,53 @@ export function ContractConfirmation({
   }, [jobId, tier, photoLimit, placedAt, locale]);
 
   const save = () => {
-    // Guarded here as well as via the disabled button: this is the call that
-    // tears down the page on iOS, so it must not be reachable while an
-    // analysis is running, whatever the button state says.
-    if (saveBlocked) return;
     // A Blob URL rather than a data: URI — Safari refuses to download the
     // latter from a link with a filename, which is the same trap the ZIP
     // download hit on iOS (see the popup note in the results page).
     const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+
+    if (saveBlocked) {
+      // window.open must be the very first thing here — it consumes this
+      // click's user-activation, same requirement as the ZIP download's
+      // popup. Anything opened later (after the URL.createObjectURL above,
+      // which is synchronous, is fine) would risk losing it.
+      const popup = window.open('', '_blank');
+      if (!popup) {
+        // Popup blocked: fall back to the same-tab method. Worse than the
+        // popup (may still interrupt the run, the original bug), but
+        // strictly better than no way to save at all during this window.
+        downloadInThisTab(url);
+      } else {
+        const a = popup.document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        popup.document.body.appendChild(a);
+        a.click();
+        // Painted AFTER the click, same order as the ZIP popup and for the
+        // same reason: a download does not unload the document it happens
+        // in, so this replaces the blank page left behind rather than racing it.
+        popup.document.title = filename;
+        popup.document.body.innerHTML = `<div style="font-family:system-ui,-apple-system,sans-serif;text-align:center;padding:60px 24px;">
+          <div style="font-size:48px;margin-bottom:16px;">📄</div>
+          <p style="font-size:18px;line-height:1.5;color:#3f3f46;margin:0 0 24px;">${t('confirmationPopupReady')}</p>
+          <button onclick="window.close()" style="padding:14px 32px;border-radius:999px;border:none;background:#4f46e5;color:#fff;font-size:16px;font-weight:600;">${t('confirmationPopupClose')}</button>
+        </div>`;
+      }
+    } else {
+      downloadInThisTab(url);
+    }
+
+    setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    setSaved(true);
+  };
+
+  const downloadInThisTab = (url: string) => {
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 30_000);
-    setSaved(true);
   };
 
   return (
@@ -110,13 +150,8 @@ export function ContractConfirmation({
             <button
               type="button"
               onClick={save}
-              disabled={saveBlocked}
-              title={saveBlocked ? t('confirmationSaveBusy') : undefined}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
-                saveBlocked
-                  ? 'bg-zinc-200 text-zinc-500 cursor-not-allowed dark:bg-zinc-700 dark:text-zinc-400'
-                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
-              }`}
+              title={saveBlocked ? t('confirmationSaveNewTab') : undefined}
+              className="rounded-full px-4 py-1.5 text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
             >
               {saved ? t('confirmationSaved') : t('confirmationSave')}
             </button>
@@ -129,11 +164,12 @@ export function ContractConfirmation({
             </button>
           </div>
 
-          {/* Says why the button is greyed out, and that the text itself is
-              still right here — the confirmation is not being withheld. */}
+          {/* The button works during analysis too now — this just explains
+              why it behaves differently (a new tab, not a same-tab download)
+              so the popup doesn't look like a mistake or an ad. */}
           {saveBlocked && (
             <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-              {t('confirmationSaveBusy')}
+              {t('confirmationSaveNewTab')}
             </p>
           )}
 

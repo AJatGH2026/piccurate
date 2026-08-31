@@ -389,7 +389,9 @@
     "confirmationBody": "Das Gesetz schreibt für Geschäfte im Internet eine Bestätigung in Textform vor (§ 312f BGB). Hier ist sie — speichere sie dir, wenn du sie behalten möchtest. Legst du später ein Konto an, schicken wir dir denselben Text zusätzlich per E-Mail.",
     "confirmationSave": "Bestätigung speichern",
     "confirmationSaved": "Erneut speichern",
-    "confirmationSaveBusy": "Speichern ist möglich, sobald die Analyse fertig ist — ein Download würde sie sonst abbrechen. Den Text kannst du dir hier schon ansehen, und auf der Ergebnisseite ist er weiterhin speicherbar.",
+    "confirmationSaveNewTab": "Öffnet sich in einem neuen Tab, damit deine laufende Analyse nicht unterbrochen wird.",
+    "confirmationPopupReady": "Gespeichert. Diesen Tab kannst du jetzt schließen.",
+    "confirmationPopupClose": "Tab schließen",
     "confirmationShow": "Text anzeigen",
     "confirmationHide": "Text ausblenden"
   },

@@ -389,7 +389,9 @@
     "confirmationBody": "The law requires a confirmation in text form for online transactions (section 312f of the German Civil Code). Here it is — save it if you would like to keep it. If you create an account later, we email you the same text as well.",
     "confirmationSave": "Save confirmation",
     "confirmationSaved": "Save again",
-    "confirmationSaveBusy": "Saving becomes available once the analysis has finished — a download would otherwise interrupt it. You can already read the text here, and it stays saveable on the results page.",
+    "confirmationSaveNewTab": "Opens in a new tab, so it doesn't interrupt your running analysis.",
+    "confirmationPopupReady": "Saved. You can close this tab now.",
+    "confirmationPopupClose": "Close tab",
     "confirmationShow": "Show the text",
     "confirmationHide": "Hide the text"
   },

@@ -107,6 +107,32 @@ Fachlicher Hinweis für diese Entscheidung: Smart Bidding braucht Größenordnun
 30 Conversions/Monat, um zu lernen. Bei ~87 Klicks/Woche wäre der Nutzen
 vorerst ohnehin gering.
 
+### 4. Vertragsbestätigung während der Analyse nicht wirklich speicherbar — behoben 2026-09-01
+
+**Symptom:** Der Speichern-Button in `ContractConfirmation` war während der
+Analyse deaktiviert (Fix vom 2026-08-29 gegen einen iOS-Absturz, siehe unten),
+und die Seite navigiert innerhalb von Sekunden nach Analyseende weiter zu
+`/review`. In der Praxis blieb damit kein Zeitfenster, in dem die Bestätigung
+tatsächlich speicherbar war — bemerkt von Andreas beim eigenen Testlauf.
+
+**Warum das mehr als Kosmetik ist:** § 312f Abs. 2 verlangt die Bestätigung
+*vor Beginn der Leistung* — das ist der Moment, in dem `ContractConfirmation`
+auf `/configure` erscheint, nicht erst auf `/results`. Die Wiederholung auf
+`/results` war immer als Zusatz gedacht, nie als Ersatz für dieses Zeitfenster
+(so auch der Code-Kommentar dort). Ein Button, der genau in diesem Fenster
+nicht nutzbar ist, unterläuft den eigentlichen Zweck, auch wenn die Pflicht zur
+*Bereitstellung* rein technisch trotzdem erfüllt sein dürfte.
+
+**Fix:** kein Deaktivieren mehr. Solange die Analyse läuft, öffnet der
+Speichern-Button ein neues, leeres Tab (`window.open` synchron im Klick, wie
+beim ZIP-Download) und baut den Download-Link **in dessen eigenem Dokument**,
+nicht im laufenden Tab. Das vermeidet genau den Absturz vom 29.08. (iOS
+behandelte einen Blob-Download im selben Tab als Seitenverlassen und brach
+laufende `analyze-demo`-Requests ab), ohne das Zeitfenster zu opfern.
+**Nicht auf einem echten iPhone während einer laufenden Analyse getestet** —
+diese Sitzung hat keinen Zugriff auf ein solches Gerät; vor dem Vertrauen in
+den Fix bitte einmal echt durchspielen.
+
 ---
 
 ## Prüfregeln, die aus konkreten Vorfällen stammen
