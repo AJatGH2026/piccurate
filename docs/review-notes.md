@@ -1,7 +1,10 @@
 # Review-Notizen & offene Punkte
 
 Befunde, die eine spätere Entscheidung verändern würden — nicht als Tagebuch,
-sondern als das, was man vor dem nächsten Eingriff wissen will. Stand: 2026-08-30.
+sondern als das, was man vor dem nächsten Eingriff wissen will. Ursprünglich
+Stand 2026-08-30; Punkte 1, 2 und 4 seither bearbeitet und live verifiziert
+(siehe deren Einträge für Datum). **Einzig offen: Punkt 3** (Google Ads/
+Cookies) — wartet auf eine bewusste Entscheidung, keine technische Frage.
 
 Der Arbeitsverlauf steht in `docs/PicCurate-WorkLog.md` (lokal, gitignored);
 hier steht nur, was für Code-Reviews dauerhaft relevant bleibt.
@@ -129,9 +132,11 @@ beim ZIP-Download) und baut den Download-Link **in dessen eigenem Dokument**,
 nicht im laufenden Tab. Das vermeidet genau den Absturz vom 29.08. (iOS
 behandelte einen Blob-Download im selben Tab als Seitenverlassen und brach
 laufende `analyze-demo`-Requests ab), ohne das Zeitfenster zu opfern.
-**Nicht auf einem echten iPhone während einer laufenden Analyse getestet** —
-diese Sitzung hat keinen Zugriff auf ein solches Gerät; vor dem Vertrauen in
-den Fix bitte einmal echt durchspielen.
+
+**Live auf echtem iPhone verifiziert (Andreas, 2026-09-01):** Speichern
+während laufender Analyse funktioniert, neues Tab erscheint, die Analyse im
+Original-Tab läuft ungestört zu Ende — kein Wiederauftreten des Absturzes vom
+29.08.
 
 ---
 

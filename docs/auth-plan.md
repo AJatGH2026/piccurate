@@ -230,6 +230,10 @@ automatically. Until it's run, both new routes fail closed (best-effort on
 the client side, so login/download still work) and the Login path stays
 exactly as broken as before, silently.
 
+**Migration run and flow verified live, 2026-09-01:** Andreas ran the
+migration, then completed an anonymous analysis → download-gate Login (with
+an existing account) → confirmed the § 312f mail arrived for that job.
+
 ---
 
 ## Original plan (below) — for reference
