@@ -3,7 +3,9 @@ import type { Metadata } from 'next';
 import { brandName } from '@/lib/brand';
 import { useTranslations } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { routing } from '../../../i18n/routing';
 import { clientConfig } from '@/lib/config';
 import { PRICING_PLANS, formatPrice } from '@/types/pricing';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
@@ -43,6 +45,16 @@ const img = (file: string) => `/landing/${file}.jpg`;
 // locale layout's generateMetadata; here we add the per-page alternates.
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
+  // Same guard as the locale layout, and for the same reason (see its
+  // comment): this generateMetadata runs independently of the layout's, so
+  // an invalid segment (bot-scanned paths like /ads.txt, /xmlrpc.php get
+  // caught here as locale="ads.txt") reaches this code before the layout's
+  // check ever applies. Confirmed live 2026-09-02/03/04: these paths 404'd
+  // correctly but also logged a RangeError from the page component below
+  // still running and hitting toLocaleString(locale) with the bogus value.
+  if (!routing.locales.includes(locale as 'en' | 'de')) {
+    return {};
+  }
   return {
     alternates: {
       canonical: `/${locale}`,
@@ -81,6 +93,14 @@ async function softwareJsonLd(locale: string) {
 
 export default async function LandingPage({ params }: Props) {
   const { locale } = await params;
+  // Same guard as the locale layout — see the comment on generateMetadata
+  // above for why this page needs its own copy rather than relying on the
+  // layout's. Without it, a bot-scanned path (locale="ads.txt" etc.) reaches
+  // plan.photos.toLocaleString(locale) below and throws RangeError instead
+  // of the clean 404 the layout otherwise produces for the same request.
+  if (!routing.locales.includes(locale as 'en' | 'de')) {
+    notFound();
+  }
   setRequestLocale(locale);
   const jsonLd = await softwareJsonLd(locale);
 
