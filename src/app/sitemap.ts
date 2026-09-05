@@ -9,22 +9,31 @@ import { GUIDES } from '@/content/guides';
 
 const base = clientConfig.appUrl;
 
+// Hand-maintained last-change dates per content group. `new Date()` on every
+// request (the old value) makes every URL look "just modified" on every crawl,
+// which search engines learn to ignore — bump these only on an actual content
+// change. Guides carry their own `updated` field (see content/guides.ts).
+const REVISED = {
+  landing: '2026-09-05',
+  guidesIndex: '2026-07-26',
+  legal: '2026-08-30',
+} as const;
+
 // Public marketing/content pages (path suffix after the locale), with a
-// rough priority. The in-app flow is intentionally excluded (see robots.ts).
-const PAGES: { path: string; priority: number }[] = [
-  { path: '', priority: 1.0 }, // landing
-  { path: '/guides', priority: 0.6 }, // guides index (shared slug)
-  { path: '/demo', priority: 0.7 },
-  { path: '/privacy', priority: 0.3 },
-  { path: '/terms', priority: 0.3 },
-  { path: '/imprint', priority: 0.3 },
+// rough priority and a real <lastmod>. The in-app flow is intentionally
+// excluded (see robots.ts); /demo is excluded too — it only redirects into
+// that flow and carries no content (it is noindex via demo/layout.tsx).
+const PAGES: { path: string; priority: number; lastModified: string }[] = [
+  { path: '', priority: 1.0, lastModified: REVISED.landing }, // landing
+  { path: '/guides', priority: 0.6, lastModified: REVISED.guidesIndex }, // guides index (shared slug)
+  { path: '/privacy', priority: 0.3, lastModified: REVISED.legal },
+  { path: '/terms', priority: 0.3, lastModified: REVISED.legal },
+  { path: '/imprint', priority: 0.3, lastModified: REVISED.legal },
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date();
-
   // Shared-slug pages: same path suffix in every locale.
-  const pages = PAGES.flatMap(({ path, priority }) => {
+  const pages = PAGES.flatMap(({ path, priority, lastModified }) => {
     const languages = Object.fromEntries(
       routing.locales.map((l) => [l, `${base}/${l}${path}`])
     ) as Record<string, string>;
@@ -48,7 +57,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     };
     return routing.locales.map((locale) => ({
       url: `${base}/${locale}/guides/${g[locale].slug}`,
-      lastModified,
+      lastModified: g.updated,
       changeFrequency: 'monthly' as const,
       priority: 0.6,
       alternates: { languages },

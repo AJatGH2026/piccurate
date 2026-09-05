@@ -63,32 +63,51 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-// SoftwareApplication structured data — helps Rich Results and makes the
-// product's facts (category, pricing) machine-extractable for GEO (§8.2).
-async function softwareJsonLd(locale: string) {
+// Structured data for the landing page — helps Rich Results and makes the
+// product's facts machine-extractable for search and generative engines
+// (§8.2). Three nodes: the app itself, the org behind it, and the site, so
+// the entity "ShortlistBuddy"/"AuswahlBuddy" resolves unambiguously.
+async function structuredData(locale: string) {
   const t = await getTranslations({ locale, namespace: 'meta' });
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    name: brandName(locale),
-    applicationCategory: 'MultimediaApplication',
-    operatingSystem: 'Web',
-    url: `${clientConfig.appUrl}/${locale}`,
-    description: t('description'),
-    // A paid tier without a Stripe price cannot be bought yet. Saying so in the
-    // structured data too, rather than only in the visible card: an Offer with a
-    // price and no availability reads as purchasable wherever it is re-rendered.
-    offers: PRICING_PLANS.map((p) => ({
-      '@type': 'Offer',
-      name: p.tier,
-      price: (p.priceEurCents / 100).toFixed(2),
-      priceCurrency: 'EUR',
-      availability:
-        p.tier === 'free' || p.stripePriceId
-          ? 'https://schema.org/InStock'
-          : 'https://schema.org/PreOrder',
-    })),
-  };
+  const home = `${clientConfig.appUrl}/${locale}`;
+  return [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      name: brandName(locale),
+      applicationCategory: 'MultimediaApplication',
+      operatingSystem: 'Web',
+      url: home,
+      description: t('description'),
+      // A paid tier without a Stripe price cannot be bought yet. Saying so in the
+      // structured data too, rather than only in the visible card: an Offer with a
+      // price and no availability reads as purchasable wherever it is re-rendered.
+      offers: PRICING_PLANS.map((p) => ({
+        '@type': 'Offer',
+        name: p.tier,
+        price: (p.priceEurCents / 100).toFixed(2),
+        priceCurrency: 'EUR',
+        availability:
+          p.tier === 'free' || p.stripePriceId
+            ? 'https://schema.org/InStock'
+            : 'https://schema.org/PreOrder',
+      })),
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: brandName(locale),
+      url: clientConfig.appUrl,
+      logo: `${clientConfig.appUrl}/icon-512x512.png`,
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: brandName(locale),
+      url: home,
+      inLanguage: locale,
+    },
+  ];
 }
 
 export default async function LandingPage({ params }: Props) {
@@ -102,7 +121,7 @@ export default async function LandingPage({ params }: Props) {
     notFound();
   }
   setRequestLocale(locale);
-  const jsonLd = await softwareJsonLd(locale);
+  const jsonLd = await structuredData(locale);
 
   return (
     <div className="flex flex-col min-h-screen">

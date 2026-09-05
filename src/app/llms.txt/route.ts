@@ -28,6 +28,9 @@ ${guideLines}
 - [AuswahlBuddy home](${base}/en): Overview, how it works, and pricing.
 - [Try the demo](${base}/en/demo): Runs entirely in the browser, no account needed.
 
+## Full content
+- [/llms-full.txt](${base}/llms-full.txt): This map plus the complete text of every guide, inlined.
+
 ## Optional
 - [Privacy Policy](${base}/en/privacy)
 - [Terms of Service](${base}/en/terms)

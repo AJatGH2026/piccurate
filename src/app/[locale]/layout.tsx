@@ -70,10 +70,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: t('title'),
       description: t('description'),
+      url: `/${locale}`,
       siteName: brandName(locale),
       locale,
       type: 'website',
     },
+    // The share image (opengraph-image.tsx / twitter-image.tsx in this
+    // segment) is a wide 1200x630 card — tell X to render it large rather
+    // than as the default small `summary` thumbnail.
+    twitter: {
+      card: 'summary_large_image',
+    },
+    // Bing / Yandex site verification, dormant until the token is set as a
+    // host env var (same pattern as the Google tag). Google is already
+    // verified via a DNS TXT record, so it needs nothing here.
+    ...(process.env.BING_SITE_VERIFICATION
+      ? { verification: { other: { 'msvalidate.01': process.env.BING_SITE_VERIFICATION } } }
+      : {}),
   };
 }
 

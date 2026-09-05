@@ -28,6 +28,7 @@ export interface GuideContent {
 
 export interface Guide {
   id: string; // stable across locales
+  updated: string; // ISO date (YYYY-MM-DD) of the last real content change → sitemap <lastmod>
   en: GuideContent;
   de: GuideContent;
 }
@@ -35,6 +36,7 @@ export interface Guide {
 export const GUIDES: Guide[] = [
   {
     id: 'choose-best-travel-photos',
+    updated: '2026-07-26',
     en: {
       slug: 'choose-best-travel-photos',
       title: 'How to choose the best photos from your holiday',
@@ -142,6 +144,7 @@ export const GUIDES: Guide[] = [
   },
   {
     id: 'prepare-photos-for-photo-book',
+    updated: '2026-07-26',
     en: {
       slug: 'prepare-photos-for-photo-book',
       title: 'How to prepare your photos for a photo book',
@@ -249,6 +252,7 @@ export const GUIDES: Guide[] = [
   },
   {
     id: 'ai-photo-culling',
+    updated: '2026-07-26',
     en: {
       slug: 'ai-photo-culling',
       title: 'AI photo culling: what it is and how it works',
