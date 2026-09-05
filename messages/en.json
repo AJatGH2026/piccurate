@@ -20,10 +20,12 @@
     "logout": "Log out"
   },
   "hero": {
-    "title": "1,000 travel photos.",
-    "titleHighlight": "50 perfect memories.",
-    "subtitle": "Upload your photos, the AI suggests the best ones – you decide what stays.",
-    "trustNote": "Only downscaled previews are analysed – your originals stay with you.",
+    "title": "Thousands of unseen photos.",
+    "titleHighlight": "Pick your best memories – in minutes.",
+    "subtitle": "Upload your photos, ShortlistBuddy suggests a selection –\nbased on your own criteria and preferences. You make the final call.",
+    "detailCleanup": "Perfect for deleting duplicate, similar, or blurry photos\nand for sorting and selecting your best shots.",
+    "detailMotives": "Your best shots, ready to view and keep –\nready to share with friends or print in your own photo book.",
+    "trustNote": "Only downscaled previews are analysed – your originals\nstay with you. No photos are stored permanently on our servers.",
     "cta": "Try free with 250 photos",
     "ctaSecondary": "See pricing",
     "demoNote": "Beta test phase — try it free"
