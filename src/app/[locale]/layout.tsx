@@ -59,6 +59,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     // from /de shows "AuswahlBuddy" on the home screen and one from /en
     // shows "ShortlistBuddy" - same icon, per-locale name and start_url.
     manifest: `/manifest-${locale}.json`,
+    // Without these, iOS has historically been unreliable about reading the
+    // manifest's name/display for "Add to Home Screen" - this is what
+    // actually controls the home-screen label and whether it opens without
+    // Safari's URL bar.
+    appleWebApp: {
+      title: brandName(locale),
+      statusBarStyle: 'default',
+    },
     openGraph: {
       title: t('title'),
       description: t('description'),
