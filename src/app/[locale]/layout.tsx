@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { brandName } from '@/lib/brand';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
@@ -37,6 +37,10 @@ export function generateStaticParams() {
 // `RangeError: Incorrect locale information` (a 500 instead of a 404).
 export const dynamicParams = false;
 
+export const viewport: Viewport = {
+  themeColor: '#4f46e5',
+};
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   // Defense-in-depth: generateMetadata runs independently of the component
@@ -50,6 +54,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     metadataBase: new URL(clientConfig.appUrl),
     title: t('title'),
     description: t('description'),
+    // Overrides the icon.svg/apple-icon.png/manifest.json auto-detected at
+    // the true app root (src/app/) with a locale-scoped one, so an install
+    // from /de shows "AuswahlBuddy" on the home screen and one from /en
+    // shows "ShortlistBuddy" - same icon, per-locale name and start_url.
+    manifest: `/manifest-${locale}.json`,
     openGraph: {
       title: t('title'),
       description: t('description'),
