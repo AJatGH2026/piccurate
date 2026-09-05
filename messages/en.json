@@ -22,10 +22,10 @@
   "hero": {
     "title": "Thousands of unseen photos.",
     "titleHighlight": "Pick your best memories – in minutes.",
-    "subtitle": "Upload your photos, ShortlistBuddy suggests a selection –\nbased on your own criteria and preferences. You make the final call.",
-    "detailCleanup": "Perfect for deleting duplicate, similar, or blurry photos\nand for sorting and selecting your best shots.",
-    "detailMotives": "Your best shots, ready to view and keep –\nready to share with friends or print in your own photo book.",
-    "trustNote": "Only downscaled previews are analysed – your originals\nstay with you. No photos are stored permanently on our servers.",
+    "subtitle": "Upload your photos, ShortlistBuddy suggests a selection – based on your own criteria and preferences. You make the final call.",
+    "detailCleanup": "Perfect for deleting duplicate, similar, or blurry photos and for sorting and selecting your best shots.",
+    "detailMotives": "Your best shots, ready to view and keep – ready to share with friends or print in your own photo book.",
+    "trustNote": "Only downscaled previews are analysed – your originals stay with you. No photos are stored permanently on our servers.",
     "cta": "Try free with 250 photos",
     "ctaSecondary": "See pricing",
     "demoNote": "Beta test phase — try it free"
