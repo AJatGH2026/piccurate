@@ -228,7 +228,7 @@ function HeroSection({ locale }: { locale: string }) {
             fold, answering a question nobody had asked yet. It belongs here
             instead: short, specific, and at the moment someone hesitates over
             the button. */}
-        <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto whitespace-pre-line">
+        <p className="mt-4 text-base sm:text-lg text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto whitespace-pre-line">
           {t('trustNote')}
         </p>
         {/* Supporting detail, deliberately placed after the CTA rather than
@@ -236,10 +236,10 @@ function HeroSection({ locale }: { locale: string }) {
             sentence, and stacking two more paragraphs ahead of the button
             would push it back below the fold on mobile — see the 2026-08-26
             comment above this section for what that cost in conversion. */}
-        <p className="mt-8 text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto whitespace-pre-line">
+        <p className="mt-8 text-base sm:text-lg text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto whitespace-pre-line">
           {t('detailCleanup')}
         </p>
-        <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto whitespace-pre-line">
+        <p className="mt-3 text-base sm:text-lg text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto whitespace-pre-line">
           {t('detailMotives')}
         </p>
       </div>
