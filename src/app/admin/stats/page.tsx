@@ -131,7 +131,7 @@ export default async function AdminStatsPage({
             the reason they are plain links and not something shareable. */}
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
           <span className="text-zinc-500">Zeitraum:</span>
-          {[7, 14, 30, 90].map((d) => (
+          {[1, 7, 14, 30, 90].map((d) => (
             <a
               key={d}
               href={`/admin/stats?key=${encodeURIComponent(key ?? '')}&days=${d}`}
@@ -141,7 +141,7 @@ export default async function AdminStatsPage({
                   : 'border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
               }`}
             >
-              {d} Tage
+              {d === 1 ? 'Heute' : `${d} Tage`}
             </a>
           ))}
           <a
@@ -177,7 +177,7 @@ export default async function AdminStatsPage({
 
         {/* Per-day breakdown */}
         <div className="mt-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="font-semibold">Letzte {days} Tage</h2>
+          <h2 className="font-semibold">{days === 1 ? 'Heute' : `Letzte ${days} Tage`}</h2>
           <Hint>
             Tageswerte der obigen Zähler, um Trends und Ausreißer zu erkennen. Idealerweise eine wachsende oder
             zumindest stabile Kurve; einzelne Tages-Spitzen ohne erkennbaren Anlass sind eher Bot-Traffic als
@@ -293,7 +293,8 @@ export default async function AdminStatsPage({
           <h2 className="font-semibold">Event-Funnel (Marketing-Konzept, Stufe 1+2)</h2>
           <Hint>
             Kampagnen- und geräte-attribuierte Rohereignisse aus der Event-Spezifikation —
-            noch ohne Stufe 3+ (Bildselektion, Personensuche). Letzte {events.daysRead || 7} Tage.
+            noch ohne Stufe 3+ (Bildselektion, Personensuche).{' '}
+            {(events.daysRead || 7) === 1 ? 'Heute.' : `Letzte ${events.daysRead || 7} Tage.`}
             {events.internalExcluded > 0 && (
               <> Davon <b>{fmt(events.internalExcluded)}</b> eigene Testereignisse (QA-Modus) ausgeschlossen — fließen in keine Zahl auf dieser Karte oder unten ein.</>
             )}
