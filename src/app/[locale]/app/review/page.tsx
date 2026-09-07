@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { brandName } from '@/lib/brand';
 import { useEffect, useRef, useState } from 'react';
-import { logBeta } from '@/lib/beta-client';
+import { logBeta, logBetaOnce } from '@/lib/beta-client';
 import { ReviewPhotoCard } from '@/components/review/ReviewPhotoCard';
 import { Lightbox } from '@/components/review/Lightbox';
 import { SelectionStats } from '@/components/review/SelectionStats';
@@ -29,7 +29,7 @@ export default function ReviewPage() {
 
   // Funnel + selection-correction signals (§2). Count manual add/remove during
   // review and flush once on finalize — cheap, aggregate, no per-click calls.
-  useEffect(() => { logBeta('review'); }, []);
+  useEffect(() => { logBetaOnce('review'); }, []);
   const added = useRef(0);
   const removed = useRef(0);
   // Event-Spezifikation §5: `photo_removed`/`photo_added` — the section's own

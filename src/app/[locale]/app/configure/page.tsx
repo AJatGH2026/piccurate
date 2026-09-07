@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { LegalModal } from '@/components/legal/LegalModal';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { logBeta } from '@/lib/beta-client';
+import { logBeta, logBetaOnce } from '@/lib/beta-client';
 // `trackEvent` above is the dormant GA4/Ads tag (lib/analytics.ts) — kept for
 // the Ads conversion pixel once one is configured. `trackEv` here is the
 // separate first-party funnel (Event-Spezifikation.md), always on.
@@ -831,7 +831,7 @@ export default function ConfigurePage() {
           <button
             onClick={async () => {
               // A3: record the terms confirmation (date-keyed) before processing.
-              logBeta('terms_accepted');
+              logBetaOnce('terms_accepted');
               // `persons_confirmed` was removed on 2026-08-14. It told the server
               // "a person search is happening in this session" — harmless-looking
               // as a counter, but § 5.4 lists exactly that as a NO-GO: the server

@@ -20,6 +20,31 @@ export function logBeta(step: string, extra?: Record<string, unknown>): void {
 }
 
 /**
+ * Like logBeta, but at most once per browser tab session. `review` and
+ * `terms_accepted` used to fire on every /review mount and every "Jetzt
+ * analysieren"-click respectively — including the no-new-API-call path where
+ * criteria change but no photo needs re-analysis (configure/page.tsx's
+ * `rerunSelection` branch) and the plain "← Zurück" link from results back to
+ * review. That inflated both counters past `analysis` (which only counts
+ * completed Gemini calls), even though every individual click/mount was
+ * "real" — found 2026-09-07 when the admin dashboard showed review (143) and
+ * terms_accepted (124) both above analysis (88) in the same 7-day window.
+ * sessionStorage (not a ref) because each step lives in a different route
+ * component that unmounts on navigation — a ref would reset right along with
+ * it.
+ */
+export function logBetaOnce(step: string, extra?: Record<string, unknown>): void {
+  try {
+    const key = `sb-beta-once:${step}`;
+    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(key)) return;
+    logBeta(step, extra);
+    if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(key, '1');
+  } catch {
+    logBeta(step, extra);
+  }
+}
+
+/**
  * The bot signals from `useBotSignals()`, passed straight through to the API.
  * Optional so a caller without a form (there is none today) still compiles —
  * the server treats absent signals as neutral either way.
