@@ -72,8 +72,9 @@
     "freeTitle": "Gratis"
   },
   "upload": {
-    "title": "Lade deine Reisefotos hoch",
+    "title": "Lade deine Fotos hoch",
     "dropzone": "Fotos hierher ziehen oder klicken zum Auswählen",
+    "dropzoneMobile": "Fotos auswählen",
     "dropzoneActive": "Fotos hier ablegen...",
     "dropzonePending": "Fotos werden geladen…",
     "dropzonePendingHint": "Bei vielen Fotos (z. B. aus iCloud) kann das eine halbe Minute oder länger dauern.",

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { mark } from '@/lib/events-client';
+import { mark, msSince, trackEv } from '@/lib/events-client';
 import { formatEtaDuration } from '@/utils/eta';
 
 interface DropZoneProps {
@@ -97,8 +97,17 @@ export function DropZone({ onFiles, maxPhotos, disabled = false }: DropZoneProps
     // only in a stopwatch — it is the part of the wait users are most likely to
     // abandon, and the one we cannot shorten.
     mark('picker_opened');
+    // Sent as a real event too, not only kept as a local mark (2026-09-09).
+    // The mark alone can only be read back on a selection that completed, so
+    // it says nothing about the people who tapped and then backed out — and
+    // that was exactly the unanswerable half of the 0 % entry rate in the
+    // first campaign week. Pre-contract, so it carries attribution like every
+    // step before `analysis_started` (see the firewall in events-client).
+    trackEv('picker_opened', locale, {
+      duration_since_demo_start_ms: msSince('demo_start'),
+    });
     inputRef.current?.click();
-  }, [disabled]);
+  }, [disabled, locale]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,14 +178,53 @@ export function DropZone({ onFiles, maxPhotos, disabled = false }: DropZoneProps
           {/* Names iCloud and a half-minute wait — true on a phone, wrong on a
               laptop, where this state lasts a moment. Same gate as the notice. */}
           {isPhoneLike && (
-            <p className="mt-2 text-sm text-zinc-500">{t('dropzonePendingHint')}</p>
+            <>
+              <p className="mt-2 text-sm text-zinc-500">{t('dropzonePendingHint')}</p>
+              {/* Moved here from the pre-tap state on 2026-09-09. It used to sit
+                  above, before the tap, on this reasoning: during the handoff the
+                  picker covers the page, so a pending indicator cannot reach the
+                  user, and warning first is the only way to stop them concluding
+                  it hung. That argument still holds for whoever comes back to the
+                  page — which is why the text moved rather than went away.
+
+                  What it did not account for: it is also the third thing a cold
+                  ad visitor reads, before they have any reason to want the
+                  product. The first campaign week produced a 0 % entry rate,
+                  all of it mobile, on a page that led with an impossible
+                  gesture ("hierher ziehen") plus a 30-second wait warning. The
+                  sample is far too small to prove causation — hence
+                  `picker_opened` above, which will — but a warning nobody has
+                  earned yet is the cheaper of the two things to stop doing.
+
+                  The estimate follows the tier: at ~110 ms/photo the free 250 is
+                  half a minute, but 1,000 is two minutes and 5,000 is nine, and
+                  quoting the small number to someone on a large tier would set
+                  them up for exactly the surprise this is meant to prevent. */}
+              <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">
+                {t('pickerHandoffNotice', {
+                  photos: maxPhotos.toLocaleString(locale),
+                  duration: formatEtaDuration(maxPhotos * PICKER_HANDOFF_MS_PER_PHOTO, tc),
+                })}
+              </p>
+            </>
           )}
         </>
       ) : (
         <>
           <div className="text-4xl mb-4">{isDragging ? '📥' : '📸'}</div>
           <p className="text-lg font-medium text-zinc-700 dark:text-zinc-300">
-            {isDragging ? t('dropzoneActive') : t('dropzone')}
+            {/* Two different sentences, not one compromise. "Fotos hierher
+                ziehen oder klicken zum Auswählen" names a gesture a phone
+                cannot perform and a verb ("klicken") phones do not use — and
+                every upload-page visitor in the first campaign week was on a
+                phone. Same media query as the handoff notice: it asks about the
+                input method, which is the thing that decides which sentence is
+                true. */}
+            {isDragging
+              ? t('dropzoneActive')
+              : isPhoneLike
+                ? t('dropzoneMobile')
+                : t('dropzone')}
           </p>
           <p className="mt-2 text-sm text-zinc-500">
             {/* Locale passed explicitly — see the note in app/pricing: a bare
@@ -184,25 +232,6 @@ export function DropZone({ onFiles, maxPhotos, disabled = false }: DropZoneProps
                 hydration for the whole page. */}
             {t('supported', { limit: maxPhotos.toLocaleString(locale) })}
           </p>
-          {/* Said BEFORE the tap, not after it: during the handoff the picker
-              is still on screen and nobody is looking at this page, so the
-              pending indicator below cannot reach it. Warning first is the only
-              thing that gets to the user before they conclude it hung and back
-              out — which is the actual risk, since the wait itself cannot be
-              shortened from a web page.
-
-              The estimate follows the tier: at ~110 ms/photo the free 250 is
-              half a minute, but 1,000 is two minutes and 5,000 is nine, and
-              quoting the small number to someone on a large tier would set them
-              up for exactly the surprise this is meant to prevent. */}
-          {isPhoneLike && (
-            <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">
-              {t('pickerHandoffNotice', {
-                photos: maxPhotos.toLocaleString(locale),
-                duration: formatEtaDuration(maxPhotos * PICKER_HANDOFF_MS_PER_PHOTO, tc),
-              })}
-            </p>
-          )}
         </>
       )}
     </div>

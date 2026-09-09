@@ -45,14 +45,27 @@ export function PersonSetup({ locked, available }: Props) {
   const addPerson = usePhotoStore((s) => s.addPerson);
   const removePerson = usePhotoStore((s) => s.removePerson);
 
-  // Open by default. It used to start collapsed on the theory that most runs
-  // don't need it and the drop zone shouldn't drop below the fold — reasonable
-  // on paper, but a live test (2026-08-14) showed the real failure mode: a
-  // tester went straight for the big, obvious drop zone and never noticed the
-  // collapsed "Personen" strip above it at all. Since the beta's whole point
-  // right now is measuring how testers actually use this feature, a feature
-  // nobody discovers can't be measured — visibility wins over the fold here.
-  const [open, setOpen] = useState(true);
+  // Collapsed by default again since 2026-09-09 — the third position on this,
+  // so the whole argument is written down rather than re-derived next time.
+  //
+  //   1. Originally collapsed: most runs don't need it, and the drop zone
+  //      should not be pushed down.
+  //   2. Opened on 2026-08-14 after a live test: an invited tester went
+  //      straight for the big obvious drop zone and never noticed the
+  //      collapsed "Personen" strip. A feature nobody discovers cannot be
+  //      measured, and measuring person search was that phase's whole point.
+  //   3. Collapsed again now, because the audience changed rather than the
+  //      ergonomics. Since the Google Ads beta the visitors are cold paid
+  //      traffic who came to sort photos, not testers whose job was to try
+  //      this feature — and expanded it puts 305 px of biometrics explanation
+  //      plus a legal usage-confirmation checkbox between the headline and the
+  //      only action that matters, for a feature they did not ask about. The
+  //      first campaign week produced a 0 % entry rate, all of it mobile.
+  //
+  // What made (2) right has not stopped being true: collapsed means less
+  // discoverable. That is now the correct trade — but it is a trade, and if
+  // person-search usage has to be measured again, this is the line to flip.
+  const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);

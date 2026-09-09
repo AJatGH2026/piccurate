@@ -72,8 +72,9 @@
     "freeTitle": "Free plan"
   },
   "upload": {
-    "title": "Upload your travel photos",
+    "title": "Upload your photos",
     "dropzone": "Drag & drop photos here, or click to browse",
+    "dropzoneMobile": "Select photos",
     "dropzoneActive": "Drop photos here...",
     "dropzonePending": "Loading your photos…",
     "dropzonePendingHint": "With a large selection (e.g. from iCloud) this can take half a minute or longer.",

@@ -56,6 +56,17 @@ export const ALLOWED_EVENTS = new Set([
   // does the account requirement cost — but now asked of people who have
   // already seen what they would be signing up for.
   'account_gate_shown',
+  // Not in the original Event-Spezifikation — added 2026-09-09 because the
+  // spec's funnel cannot answer the question the first campaign week actually
+  // raised. `files_selected / demo_start` came out 0 %, all of it mobile, on a
+  // sample far too small to prove anything — and that single number covers two
+  // completely different failures with
+  // opposite fixes: nobody ever tapped the drop zone (a copy/CTA problem), or
+  // they tapped and abandoned the native picker (an OS-handoff problem). The
+  // mark of the same name already existed for the `picker_handoff_ms` span;
+  // this makes the step itself countable instead of only measurable in
+  // hindsight on selections that did complete.
+  'picker_opened',
   'files_selected',
   'file_transfer_ready',
   'cloud_intent_click',
@@ -154,6 +165,15 @@ export interface EventSignals {
   totals: { name: string; total: number }[];
   ratios: {
     filesSelectedPerDemoStart: number | null;
+    // The two halves of filesSelectedPerDemoStart, added 2026-09-09. Together
+    // they say WHERE the entry breaks: a low pickerOpenedPerDemoStart means
+    // the drop zone is not being tapped at all (copy/CTA), a low
+    // filesSelectedPerPickerOpened means the native picker is opened and then
+    // abandoned (OS handoff, selection size, format filter). The combined
+    // ratio above cannot separate the two, which is why it was uninterpretable
+    // at 0 %.
+    pickerOpenedPerDemoStart: number | null;
+    filesSelectedPerPickerOpened: number | null;
     downloadCompletedPerResultsShown: number | null;
     // Share of demo_starts that got all the way to the ZIP download and were
     // asked for an account there. Before 2026-08-27 this measured the wall in
@@ -167,7 +187,10 @@ export interface EventSignals {
     // which a channel can still be judged.
     analysisStartedPerDemoStart: number | null;
   };
-  byDeviceClass: Record<string, { demo_start: number; files_selected: number }>;
+  byDeviceClass: Record<
+    string,
+    { demo_start: number; picker_opened: number; files_selected: number }
+  >;
   // Keyed by `traffic_source > campaign` (e.g. "google > beta26_su_kern"),
   // "(none)" when a UTM param was absent — the only way to answer "is any
   // recorded session actually attributed to a paid campaign" without a raw
@@ -204,6 +227,8 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
     totals: [],
     ratios: {
       filesSelectedPerDemoStart: null,
+      pickerOpenedPerDemoStart: null,
+      filesSelectedPerPickerOpened: null,
       downloadCompletedPerResultsShown: null,
       accountGatePerDemoStart: null,
       analysisStartedPerDemoStart: null,
@@ -235,7 +260,10 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
       .filter((x): x is EventRecord => !!x && typeof x.name === 'string');
 
     const counts = new Map<string, number>();
-    const byDevice: Record<string, { demo_start: number; files_selected: number }> = {};
+    const byDevice: Record<
+      string,
+      { demo_start: number; picker_opened: number; files_selected: number }
+    > = {};
     type Attributed = { landing_view: number; demo_start: number; analysis_started: number };
     const blank = (): Attributed => ({ landing_view: 0, demo_start: 0, analysis_started: 0 });
     const byCampaign: Record<string, Attributed> = {};
@@ -250,9 +278,9 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
         continue;
       }
       counts.set(e.name, (counts.get(e.name) || 0) + 1);
-      if (e.name === 'demo_start' || e.name === 'files_selected') {
+      if (e.name === 'demo_start' || e.name === 'picker_opened' || e.name === 'files_selected') {
         const dc = e.device_class || 'other';
-        byDevice[dc] ??= { demo_start: 0, files_selected: 0 };
+        byDevice[dc] ??= { demo_start: 0, picker_opened: 0, files_selected: 0 };
         byDevice[dc][e.name]++;
       }
       if (e.name === 'landing_view' || e.name === 'demo_start' || e.name === 'analysis_started') {
@@ -272,6 +300,7 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
 
     const totals = Array.from(ALLOWED_EVENTS).map((name) => ({ name, total: counts.get(name) || 0 }));
     const demoStart = counts.get('demo_start') || 0;
+    const pickerOpened = counts.get('picker_opened') || 0;
     const filesSelected = counts.get('files_selected') || 0;
     const resultsShown = counts.get('results_shown') || 0;
     const downloadCompleted = counts.get('download_completed') || 0;
@@ -283,6 +312,8 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
       totals,
       ratios: {
         filesSelectedPerDemoStart: demoStart > 0 ? filesSelected / demoStart : null,
+        pickerOpenedPerDemoStart: demoStart > 0 ? pickerOpened / demoStart : null,
+        filesSelectedPerPickerOpened: pickerOpened > 0 ? filesSelected / pickerOpened : null,
         downloadCompletedPerResultsShown: resultsShown > 0 ? downloadCompleted / resultsShown : null,
         accountGatePerDemoStart: demoStart > 0 ? accountGate / demoStart : null,
         analysisStartedPerDemoStart: demoStart > 0 ? analysisStarted / demoStart : null,

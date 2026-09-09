@@ -362,7 +362,41 @@ export default async function AdminStatsPage({
                     Abbruchkriterium §9: unter 40 % → Einstiegshürde reparieren, bevor irgendetwas
                     anderes messbar wird. <b>Erst seit dem 27.08.2026 aussagekräftig für fremde
                     Besucher</b> — davor kam niemand ohne Konto bis zur Fotoauswahl, die Quote
-                    beschrieb also ausschließlich unsere eigene Nutzung.
+                    beschrieb also ausschließlich unsere eigene Nutzung. Steht die Quote schlecht,
+                    sagen die beiden Zahlen darunter, an welcher der zwei Hürden es liegt.
+                  </Hint>
+                </div>
+                <div>
+                  <p className="text-sm">
+                    picker_opened / demo_start:{' '}
+                    <span className="font-medium">
+                      {events.ratios.pickerOpenedPerDemoStart != null
+                        ? `${Math.round(events.ratios.pickerOpenedPerDemoStart * 100)}%`
+                        : '—'}
+                    </span>
+                  </p>
+                  <Hint>
+                    Erste Hälfte der Quote darüber: Anteil, der die Auswahlfläche überhaupt
+                    antippt. Niedrig ⟹ <b>Ansprache-/CTA-Problem</b> — die Fläche wird nicht als
+                    Aktion erkannt oder der Text schreckt ab. Ab 09.09.2026 gemessen; davor
+                    existierte nur eine lokale Zeitmarke, die sich ausschließlich an
+                    abgeschlossenen Auswahlen ablesen ließ.
+                  </Hint>
+                </div>
+                <div>
+                  <p className="text-sm">
+                    files_selected / picker_opened:{' '}
+                    <span className="font-medium">
+                      {events.ratios.filesSelectedPerPickerOpened != null
+                        ? `${Math.round(events.ratios.filesSelectedPerPickerOpened * 100)}%`
+                        : '—'}
+                    </span>
+                  </p>
+                  <Hint>
+                    Zweite Hälfte: Anteil, der nach dem Antippen wirklich Fotos übergibt. Niedrig
+                    ⟹ <b>Picker-/Übergabe-Problem</b> — Wartezeit der OS-Übergabe (~110 ms pro
+                    Foto), Auswahlmenge oder der Formatfilter des Datei-Dialogs. Anderer Fix als
+                    die Zahl daneben, deshalb getrennt.
                   </Hint>
                 </div>
                 <div>
@@ -380,17 +414,36 @@ export default async function AdminStatsPage({
 
               {Object.keys(events.byDeviceClass).length > 0 && (
                 <div className="mt-4 border-t border-zinc-100 dark:border-zinc-800 pt-4">
-                  <p className="text-sm text-zinc-500 mb-2">files_selected / demo_start nach Gerät (§4: zwingend aufzuschlüsseln)</p>
+                  <p className="text-sm text-zinc-500 mb-2">
+                    Einstieg nach Gerät (§4: zwingend aufzuschlüsseln) — angetippt / Fotos übergeben
+                  </p>
                   <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-xs text-zinc-400">
+                        <th className="py-1 text-left font-normal">Gerät</th>
+                        <th className="py-1 text-right font-normal">picker/demo</th>
+                        <th className="py-1 text-right font-normal">files/picker</th>
+                        <th className="py-1 text-right font-normal">files/demo</th>
+                      </tr>
+                    </thead>
                     <tbody>
                       {Object.entries(events.byDeviceClass).map(([dc, v]) => (
                         <tr key={dc} className="border-b border-zinc-100 dark:border-zinc-800 last:border-0">
                           <td className="py-1 text-zinc-500">{dc}</td>
                           <td className="py-1 text-right tabular-nums">
-                            {v.demo_start > 0 ? `${Math.round((v.files_selected / v.demo_start) * 100)}%` : '—'}
+                            {v.demo_start > 0 ? `${Math.round((v.picker_opened / v.demo_start) * 100)}%` : '—'}
+                            <span className="ml-1 text-xs text-zinc-400">
+                              ({fmt(v.picker_opened)}/{fmt(v.demo_start)})
+                            </span>
                           </td>
-                          <td className="py-1 text-right text-xs text-zinc-400">
-                            ({fmt(v.files_selected)}/{fmt(v.demo_start)})
+                          <td className="py-1 text-right tabular-nums">
+                            {v.picker_opened > 0 ? `${Math.round((v.files_selected / v.picker_opened) * 100)}%` : '—'}
+                            <span className="ml-1 text-xs text-zinc-400">
+                              ({fmt(v.files_selected)}/{fmt(v.picker_opened)})
+                            </span>
+                          </td>
+                          <td className="py-1 text-right tabular-nums">
+                            {v.demo_start > 0 ? `${Math.round((v.files_selected / v.demo_start) * 100)}%` : '—'}
                           </td>
                         </tr>
                       ))}
