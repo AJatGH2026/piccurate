@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { classifyUserAgent } from '@/lib/userAgent';
 import {
   buildContractConfirmation,
   confirmationFilename,
@@ -43,7 +44,11 @@ export function ContractConfirmation({
   placedAt: string;
   locale: string;
   /**
-   * Route the save through a popup window instead of a same-tab download.
+   * Force the popup route even on browsers that would not otherwise need it.
+   *
+   * Since 2026-09-10 WebKit takes the popup route regardless of this flag (see
+   * `usePopup` in save()), so this now only adds the browsers that are fine
+   * with a same-tab download but must not have one *right now*.
    *
    * Reported 2026-08-29: saving during the analysis on iOS killed the run after
    * 100 of 249 photos with "Load failed" — Safari treats the download of a blob
@@ -70,6 +75,14 @@ export function ContractConfirmation({
   const t = useTranslations('legal');
   const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState(false);
+  // Only for the on-screen hint below — save() reads the UA itself, since a
+  // click handler always runs on the client. Starts false so the server render
+  // and the first client render agree; the effect corrects it right after.
+  const [isWebKit, setIsWebKit] = useState(false);
+  useEffect(() => {
+    const ua = classifyUserAgent(navigator.userAgent);
+    setIsWebKit(ua.os_family === 'ios' || ua.browser_family === 'safari');
+  }, []);
 
   const { text, filename } = useMemo(() => {
     const data: ContractData = {
@@ -121,7 +134,27 @@ export function ContractConfirmation({
   };
 
   const save = () => {
-    if (saveBlocked) {
+    // WebKit always takes the popup route, not just while the analysis is
+    // running.
+    //
+    // Reported 2026-09-10 from an iPhone, immediately after the blob-realm fix
+    // below landed: saving DURING the analysis worked, saving on /results —
+    // the same-tab route — did not. It opened a viewer window that stayed
+    // blank and, on reload, showed the same WebKitBlobResource error. So iOS
+    // does not honour `<a download>` on a blob as a save at all here; it
+    // navigates a new context to the URL, which is precisely the lookup that
+    // fails. The popup route is the one measured working on a real device, so
+    // it is now the one WebKit gets everywhere.
+    //
+    // Same engine test the ZIP download uses (results/page.tsx): iOS forces
+    // every browser onto WebKit, so the OS is checked directly rather than the
+    // UA's browser label, and desktop Chrome/Firefox/Edge — which handle a
+    // same-tab download fine and would only be annoyed by a stray tab — are
+    // deliberately left out.
+    const ua = classifyUserAgent(navigator.userAgent);
+    const usePopup = saveBlocked || ua.os_family === 'ios' || ua.browser_family === 'safari';
+
+    if (usePopup) {
       // window.open must be the very first thing here — it consumes this
       // click's user-activation, same requirement as the ZIP download's popup.
       const popup = window.open('', '_blank');
@@ -183,6 +216,11 @@ export function ContractConfirmation({
     setSaved(true);
   };
 
+  // Two reasons for the same new tab, and only one of them is about the
+  // analysis. Saying "so your running analysis isn't interrupted" on /results,
+  // where nothing is running, would just be wrong.
+  const popupHint = saveBlocked ? t('confirmationSaveNewTab') : t('confirmationSaveNewTabPlain');
+
   const downloadInThisTab = (url: string) => {
     const a = document.createElement('a');
     a.href = url;
@@ -206,7 +244,7 @@ export function ContractConfirmation({
             <button
               type="button"
               onClick={save}
-              title={saveBlocked ? t('confirmationSaveNewTab') : undefined}
+              title={saveBlocked || isWebKit ? popupHint : undefined}
               className="rounded-full px-4 py-1.5 text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
             >
               {saved ? t('confirmationSaved') : t('confirmationSave')}
@@ -220,13 +258,12 @@ export function ContractConfirmation({
             </button>
           </div>
 
-          {/* The button works during analysis too now — this just explains
-              why it behaves differently (a new tab, not a same-tab download)
-              so the popup doesn't look like a mistake or an ad. */}
-          {saveBlocked && (
-            <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-              {t('confirmationSaveNewTab')}
-            </p>
+          {/* Explains why the button behaves differently (a new tab, not a
+              same-tab download) so the popup does not look like a mistake or
+              an ad. Shown wherever the popup route is actually taken — which
+              since 2026-09-10 is every WebKit browser, not only mid-analysis. */}
+          {(saveBlocked || isWebKit) && (
+            <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{popupHint}</p>
           )}
 
           {open && (

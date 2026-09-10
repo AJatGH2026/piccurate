@@ -396,6 +396,7 @@
     "confirmationSave": "Bestätigung speichern",
     "confirmationSaved": "Erneut speichern",
     "confirmationSaveNewTab": "Öffnet sich in einem neuen Tab, damit deine laufende Analyse nicht unterbrochen wird.",
+    "confirmationSaveNewTabPlain": "Öffnet sich zum Speichern in einem neuen Tab.",
     "confirmationPopupReady": "Gespeichert. Diesen Tab kannst du jetzt schließen.",
     "confirmationPopupClose": "Tab schließen",
     "confirmationShow": "Text anzeigen",
