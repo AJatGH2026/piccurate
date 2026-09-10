@@ -86,29 +86,84 @@ export function ContractConfirmation({
     };
   }, [jobId, tier, photoLimit, placedAt, locale]);
 
-  const save = () => {
-    // A Blob URL rather than a data: URI — Safari refuses to download the
-    // latter from a link with a filename, which is the same trap the ZIP
-    // download hit on iOS (see the popup note in the results page).
-    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+  /**
+   * Build the blob URL **in the document that is going to consume it**.
+   *
+   * Reported 2026-09-10 from an iPhone: saving during the analysis (the popup
+   * path below) died on Safari's own error page — "Der Vorgang konnte nicht
+   * abgeschlossen werden. (WebKitBlobResource-Fehler 1.)", i.e. Safari tried to
+   * LOAD the blob URL as a page and could not resolve it at all.
+   *
+   * Two things were wrong with creating it here in the opener and handing the
+   * string to a link inside the popup:
+   *
+   *  1. A blob URL is registered against the document that created it. An
+   *     `about:blank` popup inherits the opener's origin, so this looks like it
+   *     should resolve — and on desktop WebKit it does — but on iOS the lookup
+   *     from the other browsing context is what produces exactly this error.
+   *     Creating the blob through the popup's OWN `Blob`/`URL` (its realm, its
+   *     registry) removes the cross-document hop entirely.
+   *  2. `text/plain` is a type Safari renders inline, so it treats the link as
+   *     something to navigate to rather than something to save — which is why
+   *     the failure surfaced as a page load in the first place. An opaque type
+   *     leaves it no such option, and is the reason the ZIP download next door
+   *     (`application/zip`, same popup pattern) was never affected.
+   *
+   * Falls back to this document's own URL/Blob when the popup's realm is not
+   * reachable, which is no worse than what it did before.
+   */
+  const makeBlobUrl = (realm: Window): string => {
+    const B = (realm as Window & { Blob?: typeof Blob }).Blob ?? Blob;
+    const U = (realm as Window & { URL?: typeof URL }).URL ?? URL;
+    // Not text/plain — see (2) above. The .txt extension in `filename` still
+    // tells the user and their OS what this is.
+    return U.createObjectURL(new B([text], { type: 'application/octet-stream' }));
+  };
 
+  const save = () => {
     if (saveBlocked) {
       // window.open must be the very first thing here — it consumes this
-      // click's user-activation, same requirement as the ZIP download's
-      // popup. Anything opened later (after the URL.createObjectURL above,
-      // which is synchronous, is fine) would risk losing it.
+      // click's user-activation, same requirement as the ZIP download's popup.
       const popup = window.open('', '_blank');
       if (!popup) {
         // Popup blocked: fall back to the same-tab method. Worse than the
         // popup (may still interrupt the run, the original bug), but
         // strictly better than no way to save at all during this window.
-        downloadInThisTab(url);
-      } else {
+        const sameTabUrl = makeBlobUrl(window);
+        downloadInThisTab(sameTabUrl);
+        setTimeout(() => URL.revokeObjectURL(sameTabUrl), 30_000);
+        setSaved(true);
+        return;
+      }
+      {
+        // Give the popup a real document before touching it: on a fresh
+        // about:blank `document.body` is not guaranteed to exist yet, and the
+        // viewport meta is what keeps Safari from laying the page out at
+        // desktop width and shrinking it (same fix as the ZIP popup's).
+        try {
+          popup.document.write(
+            '<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body></body></html>'
+          );
+          popup.document.close();
+        } catch {
+          /* already navigated or closed — the appendChild below will tell us */
+        }
+        const url = makeBlobUrl(popup);
         const a = popup.document.createElement('a');
         a.href = url;
         a.download = filename;
         popup.document.body.appendChild(a);
         a.click();
+        // Revoked through the realm that created it, and only once the
+        // download has had time to start reading.
+        const U = (popup as Window & { URL?: typeof URL }).URL ?? URL;
+        setTimeout(() => {
+          try {
+            U.revokeObjectURL(url);
+          } catch {
+            /* popup gone — the URL died with its document anyway */
+          }
+        }, 30_000);
         // Painted AFTER the click, same order as the ZIP popup and for the
         // same reason: a download does not unload the document it happens
         // in, so this replaces the blank page left behind rather than racing it.
@@ -120,10 +175,11 @@ export function ContractConfirmation({
         </div>`;
       }
     } else {
+      const url = makeBlobUrl(window);
       downloadInThisTab(url);
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
     }
 
-    setTimeout(() => URL.revokeObjectURL(url), 30_000);
     setSaved(true);
   };
 
