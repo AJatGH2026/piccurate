@@ -68,7 +68,15 @@ export default async function proxy(req: NextRequest) {
     url.protocol = 'https:';
     url.host = 'shortlistbuddy.com';
     url.port = '';
-    if (!/^\/(en|de)(\/|$)/.test(url.pathname)) {
+    // Only PAGES get the locale prefix. An API route has no locale segment —
+    // prefixing one produces /de/api/… which matches no route at all, so the
+    // 308 lands the caller on a 404. Found 2026-09-10 while chasing a download
+    // that failed in German: auswahlbuddy.de/api/contract-confirmation?… came
+    // back 308 → shortlistbuddy.com/de/api/contract-confirmation?… → 404.
+    // Everything under /api is host-canonicalised but never locale-prefixed;
+    // the locale travels in the query string where a route needs it.
+    const isApi = url.pathname === '/api' || url.pathname.startsWith('/api/');
+    if (!isApi && !/^\/(en|de)(\/|$)/.test(url.pathname)) {
       url.pathname = url.pathname === '/' ? '/de' : `/de${url.pathname}`;
     }
     return NextResponse.redirect(url, 308);
