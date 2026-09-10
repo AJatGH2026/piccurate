@@ -138,19 +138,43 @@ export default function ConfigurePage() {
       fireIfAbandoned();
     };
   }, [locale]);
-  // Age/terms acceptance is remembered (localStorage) — confirm once, not again
-  // when changing criteria or re-running. (The reference-photo confirmation A2
-  // stays per analysis, as the legal text requires it before each transfer.)
+  // Age/terms acceptance is remembered — confirm once, not again when changing
+  // criteria or re-running. (The reference-photo confirmation A2 stays per
+  // analysis, as the legal text requires it before each transfer.)
   //
-  // Reported 2026-08-27: pre-filled for a brand-new visitor too, because the
-  // storage is keyed to the BROWSER, not the person — anyone who ever ticked
-  // it on this device (a previous anonymous run, a different person on a
-  // shared device) had it silently carried over. So the pre-fill now only
-  // applies once we know who is asking: a known, logged-in (non-anonymous)
-  // account. A new/anonymous visitor always gets a blank checkbox and has to
-  // click it themselves, however this browser's storage looks.
+  // Two scopes, and the split is the whole point:
+  //   - sessionStorage: this browsing session, for EVERY visitor. Ends when the
+  //     tab does, so it cannot outlive the person who ticked it.
+  //   - localStorage: across sessions, but only ever read back for a known,
+  //     logged-in (non-anonymous) account.
+  //
+  // Reported 2026-08-27: localStorage alone pre-filled the boxes for a
+  // brand-new visitor too, because it is keyed to the BROWSER, not the person —
+  // anyone who ever ticked it on this device (a previous anonymous run, a
+  // different person on a shared device) had it silently carried over. Gating
+  // it on a known account fixed that, and must stay.
   useEffect(() => {
     let cancelled = false;
+    // Same-session restore, for everyone including anonymous visitors, and
+    // deliberately synchronous — the auth lookup below is a network round trip,
+    // and until it answers the boxes would sit empty again on every arrival.
+    //
+    // Reported 2026-09-10 from a phone: both boxes had to be re-ticked every
+    // single time the page was reached — coming back from /review to change a
+    // criterion, or after iOS Safari discarded and reloaded the tab. Since
+    // registration moved to the download step, essentially every visitor is
+    // anonymous here, so the account-only restore below never applied to them.
+    //
+    // sessionStorage, not localStorage, is what keeps the 2026-08-27 finding
+    // intact: this survives exactly one browsing session in one tab, so it
+    // cannot carry a stranger's declaration over to the next person on a
+    // shared device the way the browser-keyed localStorage did.
+    try {
+      if (sessionStorage.getItem('sb-age-ok') === '1') setAgeAccepted(true);
+      if (sessionStorage.getItem('sb-terms-ok') === '1') setTermsAccepted(true);
+    } catch {
+      /* ignore — worst case, one extra click */
+    }
     (async () => {
       try {
         // The old single checkbox bundled both statements ("18+ AND terms"),
@@ -804,6 +828,10 @@ export default function ConfigurePage() {
             checked={ageAccepted}
             onChange={(e) => {
               setAgeAccepted(e.target.checked);
+              // Two stores on purpose: sessionStorage is the per-session memory
+              // every visitor gets, localStorage the long-term one that is only
+              // ever read back for a known, logged-in account (see the effect).
+              try { sessionStorage.setItem('sb-age-ok', e.target.checked ? '1' : '0'); } catch { /* ignore */ }
               try { localStorage.setItem('sb-age-ok', e.target.checked ? '1' : '0'); } catch { /* ignore */ }
             }}
             className="mt-0.5 accent-indigo-600"
@@ -816,6 +844,7 @@ export default function ConfigurePage() {
             checked={termsAccepted}
             onChange={(e) => {
               setTermsAccepted(e.target.checked);
+              try { sessionStorage.setItem('sb-terms-ok', e.target.checked ? '1' : '0'); } catch { /* ignore */ }
               try { localStorage.setItem('sb-terms-ok', e.target.checked ? '1' : '0'); } catch { /* ignore */ }
             }}
             className="mt-0.5 accent-indigo-600"
