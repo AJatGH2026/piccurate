@@ -604,6 +604,17 @@ export default function ConfigurePage() {
             <div className="mt-3 space-y-4">
               {persons.map((person) => {
                 const isExclude = person.mode === 'exclude';
+                // How many photos this person was actually recognised in.
+                // Until 2026-09-10 nothing on this page said — a reference
+                // photo with no detectable face, or simply no match at this
+                // threshold, looked exactly like a working one, and the only
+                // symptom surfaced two screens later as an empty result. Read
+                // straight from the same lowercased tags the selection uses,
+                // so it cannot drift away from what actually gets filtered.
+                const personKey = person.name.toLowerCase().trim();
+                const matchCount = photos.filter((p) =>
+                  (p.persons || []).includes(personKey)
+                ).length;
                 return (
                   <div key={person.id} className="flex items-start gap-3">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -664,6 +675,24 @@ export default function ConfigurePage() {
                           {t('personModeExclude')}
                         </button>
                       </div>
+                      {/* What the matching actually found. A person with no
+                          embedding can never match, so that gets its own line
+                          rather than a bare "0 of N" that reads like a
+                          threshold problem the slider could fix. */}
+                      {person.embedding === null ? (
+                        <p className="text-xs text-amber-700 dark:text-amber-400">
+                          {t('personsNoFaceConfigure')}
+                        </p>
+                      ) : matchCount === 0 ? (
+                        <p className="text-xs text-amber-700 dark:text-amber-400">
+                          {t('personMatchNone')}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {t('personMatchCount', { count: matchCount, total: photos.length })}
+                        </p>
+                      )}
+
                       {/* Slider (include) OR filter-note (exclude) — same
                           split we use for positive/negative custom terms. */}
                       {isExclude ? (

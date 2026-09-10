@@ -245,6 +245,15 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
             if (embedding) faceEmbeddings.push(embedding);
           }
           updatePhoto(photo.id, { faceEmbeddings });
+          // …and into the store by id, which is what makes a LATE face pass
+          // still land. `isProcessing` goes false as soon as the last photo is
+          // marked `ready` — which happens a few lines above, BEFORE this pass
+          // — so "Weiter" is already clickable while up to
+          // MAX_CONCURRENT_FACE_SEARCH photos are still here. Without this,
+          // those photos reached /configure with faceEmbeddings: null and were
+          // permanently invisible to the person search. Same fix, same reason,
+          // as noteEmbeddingSettled for the CLIP pass.
+          usePhotoStore.getState().noteFaceEmbeddings(photo.id, faceEmbeddings);
         } catch (err) {
           // A failed face pass must never fail the upload: the photo is fine,
           // only the person search is unavailable for it. Leaving faceEmbeddings

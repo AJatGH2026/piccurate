@@ -78,6 +78,16 @@ interface PhotoStore {
    */
   noteEmbeddingSettled: (photoId: string, embedding: number[] | null) => void;
   /**
+   * Called when one photo's face pass finishes, for the same reason
+   * noteEmbeddingSettled exists: the upload hook marks a photo `ready` BEFORE
+   * running the face pass, so `isProcessing` — and with it the "Weiter" button
+   * — goes free while the last photos are still being detected and embedded.
+   * Writing only into the hook's local state lost those results the moment
+   * setPhotosFromUpload had already snapshotted the set. Re-derives the matches
+   * so a late arrival is tagged like every other photo.
+   */
+  noteFaceEmbeddings: (photoId: string, faceEmbeddings: number[][]) => void;
+  /**
    * The analysis job currently in progress for this photo set, if any —
    * reused across a retry (partial batch failure, a later "catch up on the
    * rest" visit to /configure) instead of creating and — once paid tiers are
@@ -646,6 +656,13 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
         ? state.photos.map((p) => (p.id === photoId ? { ...p, embedding } : p))
         : state.photos,
     })),
+  noteFaceEmbeddings: (photoId, faceEmbeddings) =>
+    set((state) => {
+      const photos = state.photos.map((p) =>
+        p.id === photoId ? { ...p, faceEmbeddings } : p
+      );
+      return { photos: applyLocalPersonMatches(photos, state.persons, state.personThreshold) };
+    }),
   activeJobId: null,
   setActiveJobId: (jobId) => set({ activeJobId: jobId }),
   contract: null,
@@ -874,7 +891,18 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       // Reject duplicate names (case-insensitive), other than the current one.
       const lower = trimmed.toLowerCase();
       if (state.persons.some((p) => p.id !== id && p.name.toLowerCase() === lower)) return state;
-      return { persons: state.persons.map((p) => (p.id === id ? { ...p, name: trimmed } : p)) };
+      const persons = state.persons.map((p) => (p.id === id ? { ...p, name: trimmed } : p));
+      // Re-derive the matches, exactly like every other person mutator here.
+      // `photo.persons` stores the LOWERCASED name, and everything downstream
+      // (matchesPerson in the selection, the chip list on /review) looks the
+      // photo up by the person's CURRENT name — so a rename that only touched
+      // `persons` left every photo tagged with the old name and the person
+      // matching nothing at all. Reported 2026-09-10 from a phone: the
+      // reference person appeared on no photo, and the weight slider at max
+      // ("nur diese Person") then emptied the whole result, because the
+      // exclusive filter in runSelection found zero matches. Cheap to redo —
+      // it only compares stored vectors, no photo is touched again.
+      return { persons, photos: applyLocalPersonMatches(state.photos, persons, state.personThreshold) };
     });
   },
 
