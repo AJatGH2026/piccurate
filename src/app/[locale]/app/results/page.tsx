@@ -11,6 +11,7 @@ import { dominantPlace, placeFolder } from '@/utils/geo';
 import { trackEvent, trackAdsConversion } from '@/lib/analytics';
 import { trackEv, mark, msSince } from '@/lib/events-client';
 import { classifyUserAgent } from '@/lib/userAgent';
+import { canShareFile, isStandalonePWA, shareFile } from '@/utils/share';
 import { DownloadAccountGate } from '@/components/results/DownloadAccountGate';
 import { ContractConfirmation } from '@/components/legal/ContractConfirmation';
 import { logBeta } from '@/lib/beta-client';
@@ -99,6 +100,22 @@ export default function ResultsPage() {
   // 'flat' = one folder for the whole trip (best for photo-book auto-import);
   // 'byday' = one subfolder per day (best for the user's own organisation).
   const [zipMode, setZipMode] = useState<'flat' | 'byday' | 'byplace'>('flat');
+  /**
+   * A finished ZIP waiting for a second tap, in the installed app only.
+   *
+   * `navigator.share()` needs the click's transient activation, and building
+   * the ZIP (reading every original, compressing) burns straight through it —
+   * the same gesture-expiry that made a plain `a.click()` silently do nothing
+   * on iPhone back on 2026-08-15. There is no way to hold a gesture across
+   * that work, so the flow becomes two steps: this button builds, the next tap
+   * shares. The second tap is a fresh gesture, which is exactly what the API
+   * wants.
+   */
+  const [pendingShare, setPendingShare] = useState<{
+    file: File;
+    degraded: string[];
+    missing: string[];
+  } | null>(null);
   const [cloudBusy, setCloudBusy] = useState(false);
   const [cloudStatus, setCloudStatus] = useState<string | null>(null);
   // Signed-in users get a sign-out option here; demo users have no account.
@@ -239,7 +256,12 @@ export default function ResultsPage() {
     // instead of leaving the user on the results page.
     const ua = classifyUserAgent(navigator.userAgent);
     const isWebKit = ua.os_family === 'ios' || ua.browser_family === 'safari';
-    const downloadWindow = isWebKit ? window.open('', '_blank') : null;
+    // In the installed app the popup is worse than useless: it is not a tab
+    // but an in-app browser view, it cannot save a blob URL, and it covers the
+    // page the user is waiting on. Standalone takes the share sheet at the
+    // bottom of this function instead.
+    const standalone = isStandalonePWA();
+    const downloadWindow = isWebKit && !standalone ? window.open('', '_blank') : null;
     if (downloadWindow) {
       paintDownloadPopup(
         downloadWindow,
@@ -250,6 +272,8 @@ export default function ResultsPage() {
     setSourceIssues(null);
     setDownloadError(null);
     setDownloadSucceeded(false);
+    // A ZIP from an earlier attempt describes an earlier selection.
+    setPendingShare(null);
     hasActedRef.current = true; // a started download is never an idle exit, success or not
     mark('download_started');
     const selectedMb = selectedPhotos.reduce((sum, p) => sum + (p.originalFile?.size ?? 0), 0) / (1024 * 1024);
@@ -396,8 +420,29 @@ export default function ResultsPage() {
       zip.file('_index.txt', summaryLines.join('\n'));
 
       const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(zipBlob);
       const filename = `${brandName(locale).toLowerCase()}-selection-${selectedCount}-photos.zip`;
+
+      // Installed app: no URL of any kind. Park the File and let the user tap
+      // once more — see the note on `pendingShare`. Returning here deliberately
+      // skips `download_completed` and the micro-survey: nothing has been saved
+      // yet, and counting it now would inflate the one number on this page that
+      // is supposed to mean "the user got their photos".
+      if (standalone) {
+        const file = new File([zipBlob], filename, { type: 'application/zip' });
+        if (canShareFile(file)) {
+          setPendingShare({ file, degraded, missing });
+          // Reported straight away, not held back until the share: a source
+          // file that could not be read is news about the ZIP that already
+          // exists, and the user may well decide not to save it at all.
+          if (degraded.length > 0 || missing.length > 0) setSourceIssues({ degraded, missing });
+          return;
+        }
+        // The platform says it cannot share this (a very large ZIP is the
+        // likely reason). Fall through to the link below — it may not save
+        // anything here, but it is strictly better than a dead button.
+      }
+
+      const url = URL.createObjectURL(zipBlob);
       if (downloadWindow && !downloadWindow.closed) {
         // Still holds the gesture authority from the click. Built as a real
         // <a download> INSIDE the popup's own document, not a bare
@@ -709,6 +754,52 @@ export default function ResultsPage() {
               exact folder (that's the browser's call, not this page's), but
               naming the usual place beats saying nothing. */}
           <p className="mt-2 text-center text-xs text-zinc-400">{t('downloadLocationHint')}</p>
+
+          {/* Step two of the installed-app flow: the ZIP exists, and this tap
+              is the fresh gesture navigator.share() needs. Only ever rendered
+              in standalone — in a browser the download has already happened by
+              the time anything reaches this point. */}
+          {pendingShare && (
+            <div className="mt-3 rounded-xl border border-indigo-300 bg-indigo-50 p-3 dark:border-indigo-800 dark:bg-indigo-950/30">
+              <p className="text-sm text-indigo-900 dark:text-indigo-100">
+                {t('shareReady', { count: selectedCount })}
+              </p>
+              <button
+                onClick={async () => {
+                  const outcome = await shareFile(pendingShare.file, pendingShare.file.name);
+                  if (outcome === 'shared') {
+                    setDownloadSucceeded(true);
+                    // Counted HERE, not when the ZIP finished building: this is
+                    // the moment the user actually got their photos, which is
+                    // what this conversion is supposed to measure.
+                    trackEvent('download', {
+                      photos: selectedCount,
+                      zip_mode: zipMode,
+                      degraded: pendingShare.degraded.length,
+                      missing: pendingShare.missing.length,
+                    });
+                    trackAdsConversion();
+                    logBeta('download');
+                    trackEv('download_completed', locale, {
+                      duration_ms: msSince('download_started'),
+                    });
+                    trackEv('micro_survey_shown', locale);
+                    setMicroSurvey('shown');
+                    // Cleared last: everything above reads from it, and the
+                    // panel should not disappear before the success notice
+                    // below has something to replace it with.
+                    setPendingShare(null);
+                  } else if (outcome === 'failed' || outcome === 'unsupported') {
+                    // 'cancelled' keeps the button so a second try is possible.
+                    setDownloadError(t('shareFailed'));
+                  }
+                }}
+                className="mt-3 w-full rounded-full bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
+              >
+                {t('shareAction')}
+              </button>
+            </div>
+          )}
 
           {/* Same information as the small print above, but shown prominently
               right after a completed download — that small print is easy to

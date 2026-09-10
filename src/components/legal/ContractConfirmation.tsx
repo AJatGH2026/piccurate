@@ -3,6 +3,7 @@
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import { useTranslations } from 'next-intl';
 import { classifyUserAgent } from '@/lib/userAgent';
+import { canShareFile, isStandalonePWA, shareFile } from '@/utils/share';
 import {
   buildContractConfirmation,
   confirmationFilename,
@@ -16,6 +17,7 @@ import {
 // inline arrows.
 const subscribeNever = () => () => {};
 const serverSnapshot = () => false;
+const standaloneSnapshot = () => isStandalonePWA();
 const webkitSnapshot = () => {
   const ua = classifyUserAgent(navigator.userAgent);
   // iOS forces every browser onto WebKit, so the OS is checked directly rather
@@ -85,6 +87,9 @@ export function ContractConfirmation({
   // different server snapshot — no setState-in-effect, no hydration mismatch.
   // The subscribe callback is a no-op because there is nothing to subscribe to.
   const isWebKit = useSyncExternalStore(subscribeNever, webkitSnapshot, serverSnapshot);
+  // Installed as an app rather than open in a browser tab — read the same way,
+  // and for the same reason: only the client can know.
+  const standalone = useSyncExternalStore(subscribeNever, standaloneSnapshot, serverSnapshot);
 
   const { text, filename } = useMemo(() => {
     const data: ContractData = {
@@ -147,7 +152,10 @@ export function ContractConfirmation({
    * Desktop Chrome/Firefox/Edge and Android keep the plain same-tab download:
    * they never had the problem, and a stray tab is a cost with no benefit.
    */
-  const newTab = saveBlocked || isWebKit;
+  // In an installed app a new tab is the WRONG answer: it is not a tab, it is
+  // an in-app browser view that cannot save the file. Standalone gets the share
+  // sheet instead, so it never wants a target either.
+  const newTab = !standalone && (saveBlocked || isWebKit);
 
   // Two reasons for the same new tab, and only one of them is about the
   // analysis. Saying "so your running analysis isn't interrupted" on /results,
@@ -175,7 +183,36 @@ export function ContractConfirmation({
               download={filename}
               target={newTab ? '_blank' : undefined}
               rel="noopener"
-              onClick={() => setSaved(true)}
+              onClick={(e) => {
+                // Installed app: hand the File straight to the native share
+                // sheet, because a link here opens an in-app browser view that
+                // cannot save anything.
+                //
+                // Everything up to navigator.share() stays synchronous on
+                // purpose. The API needs the click's transient activation, and
+                // preventDefault() after an await is too late to stop the
+                // link — so the "can we share this" question is answered first,
+                // and only then is the default suppressed.
+                if (standalone) {
+                  const file = new File([text], filename, {
+                    type: 'text/plain;charset=utf-8',
+                  });
+                  if (canShareFile(file)) {
+                    e.preventDefault();
+                    void shareFile(file, filename).then((outcome) => {
+                      if (outcome === 'shared') setSaved(true);
+                      // 'cancelled' — the user closed the sheet, nothing to do.
+                      // 'failed' — the sheet broke after we already suppressed
+                      // the link, so do by hand what the link would have done.
+                      if (outcome === 'failed' || outcome === 'unsupported') {
+                        window.location.href = downloadUrl;
+                      }
+                    });
+                    return;
+                  }
+                }
+                setSaved(true);
+              }}
               title={newTab ? popupHint : undefined}
               className="rounded-full px-4 py-1.5 text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
             >
