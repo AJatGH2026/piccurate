@@ -23,7 +23,7 @@
     "title": "Tausende ungesehene Fotos.",
     "titleHighlight": "Wähle deine schönsten Erinnerungen – in Minuten.",
     "subtitle": "Lade deine Fotos hoch, der AuswahlBuddy schlägt eine Auswahl vor – nach deinen Kriterien und Vorlieben. Die finale Entscheidung triffst du.",
-    "detailCleanup": "Perfekt zum Löschen von doppelten, ähnlichen oder unscharfen Fotos und zum Sortieren und Selektieren von Bildern.",
+    "detailCleanup": "Perfekt zum Aussortieren doppelter, ähnlicher oder unscharfer Fotos – und zum Sortieren und Ordnen deiner Bilder.",
     "detailMotives": "Deine schönsten Motive zum Ansehen und Speichern – bereit zum Teilen mit Freunden oder für dein eigenes Fotoalbum.",
     "trustNote": "Nur verkleinerte Vorschaubilder werden analysiert – deine Originale bleiben bei dir. Keine Fotos werden dauerhaft bei uns gespeichert.",
     "cta": "Kostenlos testen mit 250 Fotos",
@@ -43,7 +43,7 @@
   },
   "showcase": {
     "title": "Aus tausend Aufnahmen deine besten",
-    "subtitle": "AuswahlBuddy hebt die Treffer hervor und legt den Rest beiseite — die Kontrolle behältst du."
+    "subtitle": "AuswahlBuddy hebt die besten Bilder hervor und legt den Rest beiseite — die Kontrolle behältst du."
   },
   "pricing": {
     "title": "Einfache Preise",
