@@ -255,6 +255,8 @@
     "shareAction": "In „Dateien\" sichern",
     "shareFailed": "Das Sichern hat nicht geklappt. Versuch es noch einmal, oder öffne die Auswahl in Safari statt in der App.",
     "downloadCompleteHint": "Fertig! Je nach Gerät findest du die Datei im Download-Ordner deines Browsers oder in der Dateien-App (iPhone: Downloads).",
+    "downloadLocationHintApp": "In der App fragt iOS beim Speichern, wohin die Datei soll — „In Dateien sichern\" legt sie dort ab, wo du sie auswählst.",
+    "downloadCompleteHintApp": "Fertig! Die Datei liegt dort, wo du sie im Teilen-Fenster gespeichert hast.",
     "downloadPopupPreparing": "Dein Download wird vorbereitet…",
     "downloadPopupReady": "Fertig! Der Download hat begonnen.",
     "downloadPopupBackHint": "Deine Auswahl ist weiterhin im anderen Tab geöffnet.",

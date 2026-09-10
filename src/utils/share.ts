@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from 'react';
+
 // Handing a file to the user from an installed (standalone) PWA.
 //
 // Why this exists at all: on 2026-09-10 a download that failed on an iPhone was
@@ -31,6 +33,24 @@ export function isStandalonePWA(): boolean {
   const iosFlag = (navigator as Navigator & { standalone?: boolean }).standalone === true;
   const mq = window.matchMedia?.('(display-mode: standalone)')?.matches === true;
   return iosFlag || mq;
+}
+
+// Stable identities at module scope — useSyncExternalStore re-subscribes when
+// `subscribe` changes, so these must not be inline arrows at the call site.
+const subscribeNever = () => () => {};
+const standaloneSnapshot = () => isStandalonePWA();
+const serverSnapshot = () => false;
+
+/**
+ * `isStandalonePWA()` for rendering.
+ *
+ * useSyncExternalStore rather than an effect: the value never changes, but the
+ * server cannot know it, and this is the hook that may answer a client-only
+ * question with a different server snapshot — no setState-in-effect, no
+ * hydration mismatch.
+ */
+export function useIsStandalonePWA(): boolean {
+  return useSyncExternalStore(subscribeNever, standaloneSnapshot, serverSnapshot);
 }
 
 /** Can this browser share THIS file? Both the API and the file type can say no. */

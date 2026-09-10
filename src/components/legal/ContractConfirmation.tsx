@@ -3,7 +3,7 @@
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import { useTranslations } from 'next-intl';
 import { classifyUserAgent } from '@/lib/userAgent';
-import { canShareFile, isStandalonePWA, shareFile } from '@/utils/share';
+import { canShareFile, shareFile, useIsStandalonePWA } from '@/utils/share';
 import {
   buildContractConfirmation,
   confirmationFilename,
@@ -17,7 +17,6 @@ import {
 // inline arrows.
 const subscribeNever = () => () => {};
 const serverSnapshot = () => false;
-const standaloneSnapshot = () => isStandalonePWA();
 const webkitSnapshot = () => {
   const ua = classifyUserAgent(navigator.userAgent);
   // iOS forces every browser onto WebKit, so the OS is checked directly rather
@@ -87,9 +86,8 @@ export function ContractConfirmation({
   // different server snapshot — no setState-in-effect, no hydration mismatch.
   // The subscribe callback is a no-op because there is nothing to subscribe to.
   const isWebKit = useSyncExternalStore(subscribeNever, webkitSnapshot, serverSnapshot);
-  // Installed as an app rather than open in a browser tab — read the same way,
-  // and for the same reason: only the client can know.
-  const standalone = useSyncExternalStore(subscribeNever, standaloneSnapshot, serverSnapshot);
+  // Installed as an app rather than open in a browser tab.
+  const standalone = useIsStandalonePWA();
 
   const { text, filename } = useMemo(() => {
     const data: ContractData = {

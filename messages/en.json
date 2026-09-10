@@ -255,6 +255,8 @@
     "shareAction": "Save to Files",
     "shareFailed": "Saving didn't work. Try again, or open your selection in Safari instead of the app.",
     "downloadCompleteHint": "Done! Depending on your device, the file is in your browser's downloads folder or the Files app (iPhone: Downloads).",
+    "downloadLocationHintApp": "In the app, iOS asks where the file should go — \"Save to Files\" puts it wherever you pick.",
+    "downloadCompleteHintApp": "Done! The file is wherever you saved it in the share sheet.",
     "downloadPopupPreparing": "Preparing your download…",
     "downloadPopupReady": "Done! Your download has started.",
     "downloadPopupBackHint": "Your selection is still open in the other tab.",

@@ -11,7 +11,7 @@ import { dominantPlace, placeFolder } from '@/utils/geo';
 import { trackEvent, trackAdsConversion } from '@/lib/analytics';
 import { trackEv, mark, msSince } from '@/lib/events-client';
 import { classifyUserAgent } from '@/lib/userAgent';
-import { canShareFile, isStandalonePWA, shareFile } from '@/utils/share';
+import { canShareFile, isStandalonePWA, shareFile, useIsStandalonePWA } from '@/utils/share';
 import { DownloadAccountGate } from '@/components/results/DownloadAccountGate';
 import { ContractConfirmation } from '@/components/legal/ContractConfirmation';
 import { logBeta } from '@/lib/beta-client';
@@ -111,6 +111,9 @@ export default function ResultsPage() {
    * shares. The second tap is a fresh gesture, which is exactly what the API
    * wants.
    */
+  // Only for the two location hints below — handleDownload calls
+  // isStandalonePWA() itself, since a click handler always runs on the client.
+  const standaloneUi = useIsStandalonePWA();
   const [pendingShare, setPendingShare] = useState<{
     file: File;
     degraded: string[];
@@ -753,7 +756,14 @@ export default function ResultsPage() {
               own download UI is easy to miss on a phone. We can't point to an
               exact folder (that's the browser's call, not this page's), but
               naming the usual place beats saying nothing. */}
-          <p className="mt-2 text-center text-xs text-zinc-400">{t('downloadLocationHint')}</p>
+          {/* Where the file ends up depends on the surface, so the sentence
+              does too. In the installed app iOS asks the user where to put it,
+              and promising them "Downloads" there is simply untrue — reported
+              2026-09-10 as "überrascht mich etwas" right after a save that had
+              gone somewhere else entirely. */}
+          <p className="mt-2 text-center text-xs text-zinc-400">
+            {standaloneUi ? t('downloadLocationHintApp') : t('downloadLocationHint')}
+          </p>
 
           {/* Step two of the installed-app flow: the ZIP exists, and this tap
               is the fresh gesture navigator.share() needs. Only ever rendered
@@ -807,7 +817,7 @@ export default function ResultsPage() {
               download sound plays, attention has often moved elsewhere. */}
           {downloadSucceeded && !downloadError && (
             <p className="mt-3 rounded-xl border border-green-300 bg-green-50 p-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/30 dark:text-green-200">
-              {t('downloadCompleteHint')}
+              {standaloneUi ? t('downloadCompleteHintApp') : t('downloadCompleteHint')}
             </p>
           )}
 
