@@ -397,8 +397,6 @@
     "confirmationSaved": "Save again",
     "confirmationSaveNewTab": "Opens in a new tab, so it doesn't interrupt your running analysis.",
     "confirmationSaveNewTabPlain": "Opens in a new tab to save it.",
-    "confirmationPopupReady": "Saved. You can close this tab now.",
-    "confirmationPopupClose": "Close tab",
     "confirmationShow": "Show the text",
     "confirmationHide": "Hide the text"
   },
