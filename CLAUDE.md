@@ -5,7 +5,8 @@
 Workspace-specific context for the AuswahlBuddy app. The shared entry point for
 every session in this workspace is the parent-directory `C:\Dev\CLAUDE.md`
 (outside any repo); it imports the project briefing from the private sibling
-repo. There is no global `~/.claude/CLAUDE.md`.
+repo. Personal working conventions (language, command ownership, ask-before-
+acting) live in `~/.claude/CLAUDE.md` on the owner's machine — not in any repo.
 
 > **This is a personal product / tool.** Keep it in its own workspace, separate
 > from unrelated work, so history and memory stay separate.
