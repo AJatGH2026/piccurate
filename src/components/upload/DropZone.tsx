@@ -244,7 +244,7 @@ export function DropZone({ onFiles, maxPhotos, disabled = false }: DropZoneProps
               no number here: the number belongs to the tier and to the moment
               someone is actually waiting, not to a first glance. */}
           {isPhoneLike && (
-            <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">
+            <p className="mt-2 text-sm text-zinc-500">
               {t('pickerHandoffShort')}
             </p>
           )}
