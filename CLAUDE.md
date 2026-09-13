@@ -2,8 +2,10 @@
 
 # AuswahlBuddy (tpai) — Project Instructions
 
-Workspace-specific context for the AuswahlBuddy app. Global identity and
-universal behaviours live in `~/.claude/CLAUDE.md`.
+Workspace-specific context for the AuswahlBuddy app. The shared entry point for
+every session in this workspace is the parent-directory `C:\Dev\CLAUDE.md`
+(outside any repo); it imports the project briefing from the private sibling
+repo. There is no global `~/.claude/CLAUDE.md`.
 
 > **This is a personal product / tool.** Keep it in its own workspace, separate
 > from unrelated work, so history and memory stay separate.
