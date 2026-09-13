@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title": "AuswahlBuddy — KI-gesteuerte Reisefoto-Auswahl",
-    "description": "Aus 1.000 Urlaubsfotos werden 50 perfekte Erinnerungen. KI-gesteuerte Auswahl, konfigurierbare Kriterien, sofortiger Download."
+    "title": "Fotos sortieren & die besten auswählen – mit KI | AuswahlBuddy",
+    "description": "Aus 1.000 Fotos die besten 50: Die KI sortiert Doppelte, Ähnliche und Unscharfe aus – du entscheidest. Kostenlos testen mit 250 Fotos, direkt im Browser."
   },
   "guides": {
     "indexTitle": "Ratgeber",
@@ -79,6 +79,7 @@
     "dropzonePending": "Fotos werden geladen…",
     "dropzonePendingHint": "Bei vielen Fotos (z. B. aus iCloud) kann das eine halbe Minute oder länger dauern.",
     "pickerHandoffNotice": "Bei vielen Fotos dauert es nach dem Bestätigen der Auswahl einen Moment, bis dein Handy sie übergeben hat — bei {photos} Fotos etwa {duration}. Das ist normal: Bitte warte, bis diese Seite wieder erscheint.",
+    "pickerHandoffShort": "Bei vielen Fotos braucht dein Handy nach dem Bestätigen einen Moment.",
     "supported": "Unterstützt JPEG, PNG, HEIC. Bis zu {limit} Fotos.",
     "keepFilesNote": "Lass deine Fotos bitte dort liegen, wo sie sind, bis der Download fertig ist. Wenn du sie zwischendurch verschiebst, umbenennst, löschst oder bearbeitest, kann dein Browser sie nicht mehr lesen — diese Fotos landen dann nur als kleine Vorschau im ZIP.",
     "accountGateTitle": "Zuerst brauchst du ein Konto",
@@ -428,7 +429,7 @@
     "errorSend": "Der Widerruf konnte nicht übermittelt werden. Bitte versuch es erneut oder schick ihn per E-Mail an contact@auswahlbuddy.de — auch das ist ein wirksamer Widerruf."
   },
   "footer": {
-    "tagline": "KI-gesteuerte Reisefoto-Auswahl",
+    "tagline": "KI-gestützte Fotoauswahl",
     "guides": "Ratgeber",
     "privacy": "Datenschutz",
     "terms": "Nutzungsbedingungen",

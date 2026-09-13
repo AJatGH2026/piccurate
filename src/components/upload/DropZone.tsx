@@ -180,21 +180,28 @@ export function DropZone({ onFiles, maxPhotos, disabled = false }: DropZoneProps
           {isPhoneLike && (
             <>
               <p className="mt-2 text-sm text-zinc-500">{t('dropzonePendingHint')}</p>
-              {/* Moved here from the pre-tap state on 2026-09-09. It used to sit
-                  above, before the tap, on this reasoning: during the handoff the
-                  picker covers the page, so a pending indicator cannot reach the
-                  user, and warning first is the only way to stop them concluding
-                  it hung. That argument still holds for whoever comes back to the
-                  page — which is why the text moved rather than went away.
+              {/* The full estimate lives here, in the pending state — but a
+                  one-line version also sits before the tap (below), and the
+                  reason is a screenshot, not a theory.
 
-                  What it did not account for: it is also the third thing a cold
-                  ad visitor reads, before they have any reason to want the
-                  product. The first campaign week produced a 0 % entry rate,
-                  all of it mobile, on a page that led with an impossible
-                  gesture ("hierher ziehen") plus a 30-second wait warning. The
-                  sample is far too small to prove causation — hence
-                  `picker_opened` above, which will — but a warning nobody has
-                  earned yet is the cheaper of the two things to stop doing.
+                  History: this text was pre-tap from the start, moved into the
+                  pending state on 2026-09-09 (a cold ad visitor was reading a
+                  30-second wait warning as the third thing on the page), and
+                  the move carried an explicit caveat that the pending state
+                  might be unreachable during the wait it explains. On
+                  2026-09-13 an iPhone screenshot settled it: while the OS
+                  source sheet is up, iOS dims the page behind it and this
+                  paragraph is barely legible; during the photo-library step
+                  the page is covered entirely, and iOS shows its own progress
+                  inside the picker. So the pending state only becomes readable
+                  once the wait is already over. The original author's argument
+                  was right — warning first is the only thing that reaches the
+                  user before they tap.
+
+                  The compromise is length, not placement: one short, calm
+                  sentence before the tap (`pickerHandoffShort`), and the full
+                  estimate with the tier-dependent number here for anyone who
+                  looks back at the page.
 
                   The estimate follows the tier: at ~110 ms/photo the free 250 is
                   half a minute, but 1,000 is two minutes and 5,000 is nine, and
@@ -232,6 +239,15 @@ export function DropZone({ onFiles, maxPhotos, disabled = false }: DropZoneProps
                 hydration for the whole page. */}
             {t('supported', { limit: maxPhotos.toLocaleString(locale) })}
           </p>
+          {/* One calm sentence, phone-only, before the tap — see the long
+              comment in the pending branch for why it came back. Deliberately
+              no number here: the number belongs to the tier and to the moment
+              someone is actually waiting, not to a first glance. */}
+          {isPhoneLike && (
+            <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">
+              {t('pickerHandoffShort')}
+            </p>
+          )}
         </>
       )}
     </div>

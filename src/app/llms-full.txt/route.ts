@@ -33,7 +33,7 @@ export function GET() {
 
   const body = `# AuswahlBuddy / ShortlistBuddy — full content
 
-> ShortlistBuddy (German: AuswahlBuddy) is an AI-powered web app that curates large sets of travel and holiday photos down to a small, high-quality selection. Upload up to a few thousand photos; it scores each photo, detects near-duplicate series and keeps the best of each, checks faces for open eyes and natural expressions, and balances the selection across places, people and subjects. It then hands you a reviewable shortlist to approve, adjust, download as a ZIP, or export to a cloud folder for photo-book services. Analysis runs on Google's Gemini vision models against downscaled previews; originals are never stored permanently. Nothing is deleted — the tool only proposes a selection, and the user keeps full control. Interface languages: English (/en) and German (/de).
+> ShortlistBuddy (German: AuswahlBuddy) is an AI-powered web app that curates large sets of photos — holiday, family, everyday — down to a small, high-quality selection. Upload up to a few thousand photos; it scores each photo, detects near-duplicate series and keeps the best of each, checks faces for open eyes and natural expressions, and balances the selection across places, people and subjects. It then hands you a reviewable shortlist to approve, adjust, download as a ZIP, or export to a cloud folder for photo-book services. Analysis runs on Google's Gemini vision models against downscaled previews; originals are never stored permanently. Nothing is deleted — the tool only proposes a selection, and the user keeps full control. Interface languages: English (/en) and German (/de).
 
 ## Product
 - Home: ${base}/en  (DE: ${base}/de)

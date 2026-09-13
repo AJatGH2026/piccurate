@@ -195,7 +195,16 @@ export interface EventSignals {
   // "(none)" when a UTM param was absent — the only way to answer "is any
   // recorded session actually attributed to a paid campaign" without a raw
   // Redis read, which the campaign owner's own tooling can't do directly.
-  byCampaign: Record<string, { landing_view: number; demo_start: number; analysis_started: number }>;
+  // Since 2026-09-13 the two entry steps sit between demo_start and
+  // analysis_started, so a traffic source can be judged on whether its
+  // visitors tap the drop zone and hand files over — not only on whether they
+  // reach the page and whether they analyse. Added after a week in which the
+  // account-wide picker/files numbers were dominated by internal PWA tests and
+  // could not be read for paid traffic at all.
+  byCampaign: Record<
+    string,
+    { landing_view: number; demo_start: number; picker_opened: number; files_selected: number; analysis_started: number }
+  >;
   // One level deeper than byCampaign: `campaign > ad_group > keyword`, i.e.
   // utm_campaign/utm_content/utm_term. On Meta that separates one creative
   // from another (utm_term=motiv_verwandlung vs motiv_texthook); on Google it
@@ -203,7 +212,10 @@ export interface EventSignals {
   // run that our own funnel could not have told apart — leaving Meta's own
   // numbers as the only verdict, which is exactly what this dashboard exists
   // not to rely on.
-  byCreative: Record<string, { landing_view: number; demo_start: number; analysis_started: number }>;
+  byCreative: Record<
+    string,
+    { landing_view: number; demo_start: number; picker_opened: number; files_selected: number; analysis_started: number }
+  >;
   daysRead: number;
   // Count of raw events in the window flagged `internal` (qa_mode cookie) and
   // therefore excluded from everything above. Surfaced so the exclusion is
@@ -264,8 +276,20 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
       string,
       { demo_start: number; picker_opened: number; files_selected: number }
     > = {};
-    type Attributed = { landing_view: number; demo_start: number; analysis_started: number };
-    const blank = (): Attributed => ({ landing_view: 0, demo_start: 0, analysis_started: 0 });
+    type Attributed = {
+      landing_view: number;
+      demo_start: number;
+      picker_opened: number;
+      files_selected: number;
+      analysis_started: number;
+    };
+    const blank = (): Attributed => ({
+      landing_view: 0,
+      demo_start: 0,
+      picker_opened: 0,
+      files_selected: 0,
+      analysis_started: 0,
+    });
     const byCampaign: Record<string, Attributed> = {};
     const byCreative: Record<string, Attributed> = {};
     let internalExcluded = 0;
@@ -283,7 +307,13 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
         byDevice[dc] ??= { demo_start: 0, picker_opened: 0, files_selected: 0 };
         byDevice[dc][e.name]++;
       }
-      if (e.name === 'landing_view' || e.name === 'demo_start' || e.name === 'analysis_started') {
+      if (
+        e.name === 'landing_view' ||
+        e.name === 'demo_start' ||
+        e.name === 'picker_opened' ||
+        e.name === 'files_selected' ||
+        e.name === 'analysis_started'
+      ) {
         const key = e.traffic_source ? `${e.traffic_source} > ${e.campaign || '(kein campaign-Wert)'}` : '(none)';
         byCampaign[key] ??= blank();
         byCampaign[key][e.name]++;

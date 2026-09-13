@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title": "ShortlistBuddy — AI Travel Photo Curation",
-    "description": "Turn 1,000 vacation photos into 50 perfect memories. AI-powered selection, configurable criteria, instant download."
+    "title": "Sort your photos & pick the best – with AI | ShortlistBuddy",
+    "description": "From 1,000 photos to your best 50: AI weeds out duplicates, near-duplicates and blurry shots – you decide. Try free with 250 photos, right in your browser."
   },
   "guides": {
     "indexTitle": "Guides",
@@ -79,6 +79,7 @@
     "dropzonePending": "Loading your photos…",
     "dropzonePendingHint": "With a large selection (e.g. from iCloud) this can take half a minute or longer.",
     "pickerHandoffNotice": "With a large selection it takes a moment after you confirm before your phone has handed the photos over — about {duration} for {photos} photos. That is normal: please wait for this page to come back.",
+    "pickerHandoffShort": "With many photos, your phone needs a moment after you confirm.",
     "supported": "Supports JPEG, PNG, HEIC. Up to {limit} photos.",
     "keepFilesNote": "Please leave your photos where they are until the download is finished. If they are moved, renamed, deleted or edited in the meantime, your browser can no longer read them — those photos then end up in the ZIP as small previews only.",
     "accountGateTitle": "You need an account first",
@@ -428,7 +429,7 @@
     "errorSend": "The withdrawal could not be submitted. Please try again or send it by email to contact@shortlistbuddy.com — that is an equally effective withdrawal."
   },
   "footer": {
-    "tagline": "AI-powered travel photo curation",
+    "tagline": "AI-powered photo curation",
     "guides": "Guides",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",

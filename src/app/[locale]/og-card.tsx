@@ -17,7 +17,7 @@ import { brandName, brandDomain } from '@/lib/brand';
 
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
-export const alt = 'ShortlistBuddy — pick your best travel photos in minutes';
+export const alt = 'ShortlistBuddy — sort your photos and pick the best, with AI';
 
 // Prerender one card per locale at build time instead of rendering on first
 // share (the parent [locale] segment's generateStaticParams doesn't reach
@@ -27,13 +27,13 @@ export function ogCardStaticParams() {
 }
 
 const KICKER: Record<'en' | 'de', string> = {
-  en: 'AI travel photo curation',
-  de: 'KI-Reisefoto-Auswahl',
+  en: 'AI photo curation',
+  de: 'KI-Fotoauswahl',
 };
 
 const TAGLINE: Record<'en' | 'de', string> = {
-  en: 'Pick your best travel photos — in minutes',
-  de: 'Wähle deine schönsten Urlaubsfotos — in Minuten',
+  en: 'Pick your best photos — in minutes',
+  de: 'Wähle deine schönsten Fotos — in Minuten',
 };
 
 export function renderOgCard(locale: string) {

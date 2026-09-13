@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AuswahlBuddy — KI-gestützte Reisefoto-Auswahl",
+  title: "AuswahlBuddy — KI-gestützte Fotoauswahl",
   description:
     "Turn 1,000 vacation photos into 50 perfect memories. AI-powered selection, configurable criteria, instant download.",
 };
