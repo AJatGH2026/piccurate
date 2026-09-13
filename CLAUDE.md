@@ -21,7 +21,7 @@ small curated keeper set to review and download / export to a photo book.
 - **Live:** https://shortlistbuddy.com (leading/canonical domain; auswahlbuddy.de redirects here). German at /de, English at /en. The Basic Auth gate (`SITE_PASSWORD`) is **currently off** — the landing page is public for the beta. Vercel deployment URL: piccurate.vercel.app.
 - **Repo:** `AJatGH2026/piccurate` (branch `master`, **public**) — Vercel auto-deploys on push
 - **Deploy target:** Vercel **Pro**, held by **AJ GmbH** (HRB 33249). Not Hobby — the free-tier limits described in older doc sections no longer apply.
-- **⚠️ AJ GmbH is the interim vehicle for the beta only.** A dedicated company is planned once the beta succeeds; every entity-bound detail (imprint, privacy, terms, persons-info, supervisory authority, and the account holders at Vercel/Stripe/domains/Google/Supabase/Resend) is provisional. Never treat it as final — see `docs/product-pipeline.md` §10.1 (local only, see below).
+- **⚠️ AJ GmbH is the interim vehicle for the beta only.** A dedicated company is planned once the beta succeeds; every entity-bound detail (imprint, privacy, terms, persons-info, supervisory authority, and the account holders at Vercel/Stripe/domains/Google/Supabase/Resend) is provisional. Never treat it as final — see `product-pipeline.md` §10.1 in the private sibling repo (see "Key documents").
 
 ## Stack
 
@@ -159,7 +159,7 @@ the other's conversation history or tool state:
   sessions about live behavior is reasoning from code, not a live
   observation, unless it says otherwise. `docs/review-notes.md` exists
   specifically because these sessions start from a fresh clone each time and
-  can't see `docs/product-pipeline.md` (gitignored) or prior chat history —
+  can't see `../shortlistbuddy-internal/` (private repo) or prior chat history —
   findings meant to survive need to be committed, not just said.
 
 If a claim's origin surface is unclear and it matters (e.g., it drives a
@@ -171,8 +171,17 @@ spend decision), ask which one it came from before acting on it.
 - [docs/review-notes.md](docs/review-notes.md) — **read before touching analytics, cookies, third-party scripts or dependencies.** Open items and the review rules behind them: which explicit *negative* promises the privacy policy makes, what retention limits allow an export to contain, and why upload performance gets measured rather than reasoned about.
 - [docs/auth-plan.md](docs/auth-plan.md) — Supabase auth (login/register/confirm): status DONE, design, Resend SMTP + corporate-scanner learnings
 - [docs/domain-setup.md](docs/domain-setup.md) — live domains, DNS (web + email/Resend), Vercel/code redirect split + learnings (read before touching domains)
-- `docs/product-pipeline.md` — full project history & rationale (German, dated changelog). **Local only**, gitignored: it holds pricing, margins and strategy and must not be published. Same for `docs/legal/` (commented legal drafts) and `.eval/reference.json` (hand-labelled ground truth). All archived under `Documents\2_11_ShortlistBuddy\IT\Code ShortlistBuddy-backup\`.
-- [docs/PicCurate-WorkLog.md](docs/PicCurate-WorkLog.md) — chronological work log (Jun 4 → Jul 18 2026)
+- **Internal documents live outside this repo** since 2026-09-13, in the private
+  sibling repo `../shortlistbuddy-internal/` (never in `piccurate/docs/`): the
+  session briefing (`00-briefing/00-START.md` — read first), `product-pipeline.md`
+  (full project history & rationale, German, dated changelog — holds pricing,
+  margins and strategy), the legal memos formerly under `docs/legal/`, business
+  model and marketing material. Code comments that cite `docs/product-pipeline.md
+  §…` or `docs/legal/<name>.md § …` refer to those files at their new location
+  (`00-briefing/product-pipeline.md`, `20-output/legal/<name>.md`); file names and
+  section numbers are stable on purpose. The `.gitignore` rules for the old paths
+  stay as a guard against copying anything back. `.eval/reference.json`
+  (hand-labelled ground truth) stays local and gitignored.
 - [.env.example](.env.example) — all environment variables
 
 ## Onboarding

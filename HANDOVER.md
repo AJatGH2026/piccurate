@@ -6,7 +6,7 @@ GitHub; only the items marked "not in the repo" below can be lost.**
 
 - **Live app:** https://shortlistbuddy.com (leading domain; auswahlbuddy.de → redirect). Vercel deployment URL: piccurate.vercel.app.
 - **Repo:** `AJatGH2026/piccurate` (branch `master`, auto-deploys to Vercel on push)
-- **Project history & decisions:** `docs/product-pipeline.md` — read the changelog at the bottom to get back up to speed. **Local only** (gitignored, archived outside the repo — it holds pricing and strategy).
+- **Project history & decisions:** `../shortlistbuddy-internal/00-briefing/product-pipeline.md` (private sibling repo, not part of this one — it holds pricing and strategy). Start with `00-briefing/00-START.md` there.
 - **All required env-var names:** [.env.example](.env.example)
 
 ---
@@ -100,7 +100,7 @@ continue:
   **2026-07-25** *"perf(heic): restore fast server path (default 4) — now on
   Vercel Pro"* set it back to `4`. Verified 2026-08-02 via
   the Vercel CLI: the variable is set in **no** environment, so the fast server
-  path is live. See `docs/product-pipeline.md` §9.10 (local only).
+  path is live. See `product-pipeline.md` §9.10 (private sibling repo `../shortlistbuddy-internal/`).
 - **Usage dashboard:** `/admin/stats` (locale-free) — shows photos / tokens /
   estimated cost when Upstash Redis is configured, plus beta feedback.
   Protected by its **own** `ADMIN_TOKEN`, deliberately independent of the

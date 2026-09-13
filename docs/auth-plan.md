@@ -295,7 +295,7 @@ an existing account) → confirmed the § 312f mail arrived for that job.
    merge to master.
 
 ## Context pointers
-- Overall project state: [HANDOVER.md](../HANDOVER.md), `docs/product-pipeline.md` (local only),
+- Overall project state: [HANDOVER.md](../HANDOVER.md), `product-pipeline.md` (private sibling repo `../shortlistbuddy-internal/`),
   [docs/domain-setup.md](domain-setup.md).
 - Recently done (not auth): domains live, security hardening + Next 16.2.12 upgrade,
   feedback-via-Resend (pending RESEND domain verify — falls back to Upstash),

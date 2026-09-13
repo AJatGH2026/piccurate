@@ -6,7 +6,7 @@ Stand 2026-08-30; Punkte 1, 2 und 4 seither bearbeitet und live verifiziert
 (siehe deren Einträge für Datum). **Einzig offen: Punkt 3** (Google Ads/
 Cookies) — wartet auf eine bewusste Entscheidung, keine technische Frage.
 
-Der Arbeitsverlauf steht in `docs/PicCurate-WorkLog.md` (lokal, gitignored);
+Der Arbeitsverlauf steht im Änderungsverlauf von `product-pipeline.md` (privates Nachbar-Repo `../shortlistbuddy-internal/`, nicht in diesem Repo);
 hier steht nur, was für Code-Reviews dauerhaft relevant bleibt.
 
 ---
