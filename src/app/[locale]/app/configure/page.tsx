@@ -27,7 +27,33 @@ const BATCH_SIZE = 20;
 // thrown errors here are already user-facing German/English sentences
 // (ensureJob's t(...) calls), not machine-readable codes, so this classifies
 // by the same substrings a human would recognise rather than a real taxonomy.
-function classifyAnalysisError(err: unknown, message: string): 'network' | 'api_limit' | 'file_access' | 'timeout' | 'other' {
+//
+// 2026-09-20: the HTTP status of a failed /api/analyze-demo batch is now
+// attached to the thrown error (see HttpError below) and takes precedence.
+// The text rules never matched the server's own refusals — "Daily limit
+// reached for this connection" (429, per-IP cap) and "Daily beta capacity
+// reached" (503) both fell through to 'other', which is exactly the class
+// that tells the panel nothing. Still a class only, never the message.
+class HttpError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+type AnalysisErrorClass =
+  | 'network' | 'api_limit' | 'capacity' | 'access' | 'payment' | 'too_large'
+  | 'server' | 'file_access' | 'timeout' | 'other';
+function classifyAnalysisError(err: unknown, message: string): AnalysisErrorClass {
+  if (err instanceof HttpError) {
+    const st = err.status;
+    if (st === 429) return 'api_limit';
+    if (st === 503) return 'capacity';
+    if (st === 402) return 'payment';
+    if (st === 401 || st === 403 || st === 404 || st === 410) return 'access';
+    if (st === 413) return 'too_large';
+    if (st >= 500) return 'server';
+  }
   if (err instanceof TypeError && /fetch/i.test(message)) return 'network';
   if (/budget|remaining|rate.?limit|too many/i.test(message)) return 'api_limit';
   if (/timeout|timed out/i.test(message)) return 'timeout';
@@ -1065,8 +1091,8 @@ export default function ConfigurePage() {
                   }
                   const response = await fetch('/api/analyze-demo', { method: 'POST', body: formData });
                   if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.error || 'Analysis failed');
+                    const err = await response.json().catch(() => ({}));
+                    throw new HttpError(err.error || 'Analysis failed', response.status);
                   }
                   const data = await response.json();
                   batchResults[b] = data.results;
@@ -1095,6 +1121,9 @@ export default function ConfigurePage() {
                 // analysed is kept, and the rest is reported as unfinished.
                 let nextBatch = 0;
                 let failure: string | null = null;
+                // The error object itself, kept alongside the message so the
+                // status-based error_class survives the re-throw below.
+                let failureErr: unknown = null;
                 const worker = async () => {
                   while (nextBatch < totalBatches && !failure) {
                     const b = nextBatch++;
@@ -1104,6 +1133,7 @@ export default function ConfigurePage() {
                       // First error wins; the other workers see `failure` and
                       // stop instead of hammering an endpoint that just refused.
                       failure ??= e instanceof Error ? e.message : String(e);
+                      failureErr ??= e;
                     }
                   }
                 };
@@ -1130,7 +1160,7 @@ export default function ConfigurePage() {
 
                 // Nothing survived — then it really is a plain failure.
                 if (flatResults.length === 0) {
-                  throw new Error(failure ?? 'Analysis failed');
+                  throw failureErr instanceof Error ? failureErr : new Error(failure ?? 'Analysis failed');
                 }
 
                 // No label→name mapping any more: the model is not asked about

@@ -438,6 +438,79 @@ export async function readUploadTimings(limit = 12, days = 3): Promise<UploadTim
   }
 }
 
+/** One analysis-stage event with the props that say how it ended. */
+export interface AnalysisOutcome {
+  ts: string;
+  name: 'analysis_started' | 'analysis_completed' | 'analysis_failed' | 'analysis_abandoned';
+  deviceClass: string;
+  trafficSource: string | null;
+  keyword: string | null;
+  internal: boolean;
+  /** Last 4 chars of the session id — enough to pair a start with its end on the panel. */
+  sessionTail: string;
+  photoCountBucket: string | null;
+  /** `analysis_failed.error_class`, else null. */
+  errorClass: string | null;
+  /** `analysis_abandoned.pct_at_exit`, else null. */
+  pctAtExit: number | null;
+  /** `analysis_completed.duration_ms` or `analysis_abandoned.elapsed_ms`, else null. */
+  elapsedMs: number | null;
+}
+
+/**
+ * The most recent analysis starts and how each ended, for /admin/stats.
+ *
+ * Added 2026-09-20, when the first search-traffic visitors reached the
+ * analysis and the panel could only count that their runs failed or were
+ * abandoned, not say why. `analysis_failed` has carried `error_class` since
+ * the event spec, `analysis_abandoned` carries `pct_at_exit` — but
+ * readEventSignals aggregates props away. Same shape as readUploadTimings:
+ * raw log, recent days, props kept.
+ */
+export async function readAnalysisOutcomes(limit = 20, days = 7): Promise<AnalysisOutcome[]> {
+  const r = getClient();
+  if (!r) return [];
+  const wanted = new Set(['analysis_started', 'analysis_completed', 'analysis_failed', 'analysis_abandoned']);
+  try {
+    const dayKeys = Array.from({ length: days }, (_, i) => {
+      const d = new Date();
+      d.setUTCDate(d.getUTCDate() - i);
+      return `ev:log:${d.toISOString().slice(0, 10)}`;
+    });
+    const lists = await Promise.all(dayKeys.map((k) => r.lrange(k, 0, -1) as Promise<unknown[]>));
+    const out: AnalysisOutcome[] = [];
+    for (const raw of lists.flat()) {
+      let e: EventRecord;
+      try {
+        e = typeof raw === 'string' ? (JSON.parse(raw) as EventRecord) : (raw as EventRecord);
+      } catch {
+        continue;
+      }
+      if (!e?.name || !wanted.has(e.name)) continue;
+      const p = e.props || {};
+      const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+      out.push({
+        ts: e.ts,
+        name: e.name as AnalysisOutcome['name'],
+        deviceClass: e.device_class,
+        trafficSource: e.traffic_source,
+        keyword: e.keyword,
+        internal: e.internal === true,
+        sessionTail: String(e.session_id || '').slice(-4),
+        photoCountBucket: e.photo_count_bucket,
+        errorClass: typeof p.error_class === 'string' ? p.error_class : null,
+        pctAtExit: num(p.pct_at_exit),
+        elapsedMs: num(p.duration_ms) ?? num(p.elapsed_ms),
+      });
+    }
+    out.sort((a, b) => (a.ts < b.ts ? 1 : -1));
+    return out.slice(0, limit);
+  } catch (err) {
+    console.warn('[events] readAnalysisOutcomes failed:', err instanceof Error ? err.message : err);
+    return [];
+  }
+}
+
 /** One day's aggregate counts, keyed by event name. */
 export interface DailyEventCounts {
   date: string;

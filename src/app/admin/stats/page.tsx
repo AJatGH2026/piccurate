@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { adminTokenOk, parseDays } from '@/lib/admin-auth';
 import { readStats } from '@/lib/stats';
 import { readBetaSignals } from '@/lib/beta';
-import { readEventSignals, readUploadTimings } from '@/lib/events';
+import { readEventSignals, readUploadTimings, readAnalysisOutcomes } from '@/lib/events';
 import { readFeedbackFromDb } from '@/lib/feedback';
 
 // Admin usage dashboard at /admin/stats (locale-free). Protected by its OWN
@@ -62,13 +62,23 @@ export default async function AdminStatsPage({
   // whole campaign runs — sat in Upstash unread. Now selectable via ?days=.
   const days = parseDays(daysRaw, 7);
 
-  const [stats, beta, events, db, uploadRuns] = await Promise.all([
+  const [stats, beta, events, db, uploadRuns, analysisOutcomes] = await Promise.all([
     readStats(days),
     readBetaSignals(),
     readEventSignals(days),
     readFeedbackFromDb(20),
     readUploadTimings(12),
+    readAnalysisOutcomes(20, days),
   ]);
+  // error_class histogram over the shown period, foreign traffic only —
+  // the same qa_mode exclusion the funnel numbers apply.
+  const failedByClass = analysisOutcomes
+    .filter((o) => o.name === 'analysis_failed' && !o.internal)
+    .reduce<Record<string, number>>((acc, o) => {
+      const k = o.errorClass ?? '(ohne Klasse)';
+      acc[k] = (acc[k] ?? 0) + 1;
+      return acc;
+    }, {});
 
   // Columns come from the data, not a fixed list: the phases differ between a
   // run with person search (yunet/facenet) and one without, and a hardcoded
@@ -590,6 +600,76 @@ export default async function AdminStatsPage({
                           {run.phases[p] ? fmt(run.phases[p].avgMs) : '·'}
                         </td>
                       ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Analyse-Ausgänge — how each started analysis ended. Added
+            2026-09-20: the funnel could count failed/abandoned runs but not
+            say why, and the props that would (error_class, pct_at_exit) were
+            aggregated away. */}
+        <div className="mt-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="font-semibold">
+            Analyse-Ausgänge{' '}
+            <span className="font-normal text-zinc-400 text-sm">(neueste {analysisOutcomes.length} Ereignisse, {days} Tage)</span>
+          </h2>
+          <Hint>
+            Jeder Analyse-Start und wie er endete. <code>failed</code> trägt die Fehlerklasse (Client-Klassifizierung nach
+            HTTP-Status und Meldung, kein Fehlertext), <code>abandoned</code> den Fortschritt beim Verlassen der Seite,
+            <code>completed</code> die Dauer. „Sitzung“ sind die letzten vier Zeichen der Sitzungskennung — nur zum
+            Zusammenlegen von Start und Ende. Eigene Läufe (QA-Modus) sind markiert, nicht ausgeblendet.
+          </Hint>
+          {Object.keys(failedByClass).length > 0 && (
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+              Fehlerklassen (fremd):{' '}
+              {Object.entries(failedByClass)
+                .sort((a, b) => b[1] - a[1])
+                .map(([k, v]) => `${k} ×${v}`)
+                .join(' · ')}
+            </p>
+          )}
+          {analysisOutcomes.length === 0 ? (
+            <p className="mt-3 text-sm text-zinc-400">Noch keine Analyse-Ereignisse im Zeitraum.</p>
+          ) : (
+            <div className="mt-3 overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="text-left text-zinc-500">
+                  <tr>
+                    <th className="py-1 pr-3">Zeit (UTC)</th>
+                    <th className="py-1 pr-3">Ereignis</th>
+                    <th className="py-1 pr-3">Gerät</th>
+                    <th className="py-1 pr-3">Quelle</th>
+                    <th className="py-1 pr-3">Fotos</th>
+                    <th className="py-1 pr-3">Sitzung</th>
+                    <th className="py-1 pr-3">Detail</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analysisOutcomes.map((o, i) => (
+                    <tr key={i} className="border-t border-zinc-100 dark:border-zinc-800">
+                      <td className="py-1 pr-3 whitespace-nowrap text-zinc-500">{o.ts.slice(5, 16).replace('T', ' ')}</td>
+                      <td className="py-1 pr-3 whitespace-nowrap">
+                        {o.name.replace('analysis_', '')}
+                        {o.internal && <span className="text-zinc-400" title="QA-Modus"> (eigen)</span>}
+                      </td>
+                      <td className="py-1 pr-3 whitespace-nowrap text-zinc-500">{o.deviceClass || '–'}</td>
+                      <td className="py-1 pr-3 whitespace-nowrap text-zinc-500">
+                        {o.trafficSource || '(none)'}
+                        {o.keyword ? ` · ${o.keyword}` : ''}
+                      </td>
+                      <td className="py-1 pr-3 whitespace-nowrap text-zinc-500">{o.photoCountBucket || '–'}</td>
+                      <td className="py-1 pr-3 whitespace-nowrap font-mono text-zinc-400">{o.sessionTail || '–'}</td>
+                      <td className="py-1 pr-3 whitespace-nowrap text-zinc-500">
+                        {o.name === 'analysis_failed' && (o.errorClass ?? '–')}
+                        {o.name === 'analysis_abandoned' &&
+                          `${o.pctAtExit != null ? `${o.pctAtExit} %` : '–'}${o.elapsedMs != null ? ` nach ${Math.round(o.elapsedMs / 1000)} s` : ''}`}
+                        {o.name === 'analysis_completed' && (o.elapsedMs != null ? `${Math.round(o.elapsedMs / 1000)} s` : '–')}
+                        {o.name === 'analysis_started' && ''}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
