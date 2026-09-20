@@ -65,6 +65,41 @@ function classifyAnalysisError(err: unknown, message: string): AnalysisErrorClas
   return 'other';
 }
 
+// One visible panel for "we are working, please wait": a title, a progress
+// bar (indeterminate when there is nothing to count yet), a one-line status
+// and an optional note. Indigo on a tinted card so it reads as the page's
+// current state, not as a footnote.
+function WaitPanel({
+  title,
+  body,
+  note,
+  fraction,
+}: {
+  title: string;
+  body: string;
+  note?: string;
+  fraction: number | null;
+}) {
+  const pct = fraction == null ? null : Math.round(Math.min(1, Math.max(0, fraction)) * 100);
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-900 dark:bg-indigo-950/40"
+    >
+      <p className="text-base font-semibold text-indigo-800 dark:text-indigo-200">{title}</p>
+      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-indigo-100 dark:bg-indigo-900">
+        <div
+          className={`h-full rounded-full bg-indigo-600 transition-[width] duration-500 ${pct == null ? 'w-1/3 animate-pulse' : ''}`}
+          style={pct == null ? undefined : { width: `${Math.max(pct, 3)}%` }}
+        />
+      </div>
+      <p className="mt-2 text-sm text-indigo-700 dark:text-indigo-300">{body}</p>
+      {note && <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">{note}</p>}
+    </div>
+  );
+}
+
 export default function ConfigurePage() {
   const t = useTranslations('criteria');
   const tc = useTranslations('common');
@@ -75,6 +110,13 @@ export default function ConfigurePage() {
   // the site the user is currently on.
   const supportAddress = locale === 'de' ? 'support@auswahlbuddy.de' : 'support@shortlistbuddy.com';
   const [analyzing, setAnalyzing] = useState(false);
+  // Batch counter as React state (the ref below serves the abandon event, not
+  // the screen). Drives the visible progress bar added 2026-09-20: a search
+  // visitor left 8 s after clicking "Analysieren" while the only sign of life
+  // was small grey text under the button — and the product owner, timing the
+  // same page himself, found both the duplicate scan (10–20 s) and the
+  // analysis wait easy to mistake for a stall.
+  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number } | null>(null);
   const [progress, setProgress] = useState('');
   const [analysisEta, setAnalysisEta] = useState<string | null>(null);
   // Mirrors `analyzing`/batch progress in refs so the pagehide/unmount
@@ -931,6 +973,7 @@ export default function ConfigurePage() {
               analyzingRef.current = true;
               analysisAbandonedFiredRef.current = false;
               analysisProgressRef.current = { done: 0, totalBatches: 0 };
+              setBatchProgress(null);
               mark('analysis_started');
               setProgress(t('progressPreparing'));
               setAnalysisEta(null);
@@ -1028,6 +1071,7 @@ export default function ConfigurePage() {
                 const batchResults: any[][] = new Array(totalBatches);
                 let done = 0;
                 analysisProgressRef.current.totalBatches = totalBatches;
+                setBatchProgress({ done: 0, total: totalBatches });
                 // Separate mark from `analysis_started`: that one also covers
                 // job creation, which the batch rate below must not be
                 // diluted by.
@@ -1102,6 +1146,7 @@ export default function ConfigurePage() {
                   batchResults[b] = data.results;
                   done++;
                   analysisProgressRef.current.done = done;
+                  setBatchProgress({ done, total: totalBatches });
                   setProgress(t('progressAnalysing', { done, total: totalBatches }));
                   const elapsedMs = msSince('analysis_batches_started');
                   const remainingMs =
@@ -1210,6 +1255,7 @@ export default function ConfigurePage() {
               } finally {
                 setAnalyzing(false);
                 analyzingRef.current = false;
+                setBatchProgress(null);
               }
             }}
             disabled={analyzing || !canAnalyze}
@@ -1229,23 +1275,34 @@ export default function ConfigurePage() {
             {analyzing ? t('analyzing') : t('analyze')}
           </button>
         </div>
-        {/* Only while the button is otherwise ready to go: saying "waiting for
+        {/* Waiting states as one prominent panel instead of small grey lines
+            (2026-09-20, see batchProgress above). Two phases share it:
+            the duplicate scan that gates the button, and the analysis itself.
+            Only while the button is otherwise ready to go: saying "waiting for
             the duplicate scan" next to an unticked consent box would name the
             wrong blocker. */}
         {!analyzing && embeddingsPending > 0 && ageAccepted && termsAccepted && (
-          <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400 text-right animate-pulse">
-            {t('waitingForDuplicateScan')}
-          </p>
-        )}
-        {progress && (
-          <p className="mt-3 text-sm text-indigo-600 text-right animate-pulse">{progress}</p>
+          <WaitPanel
+            title={t('waitPanelDuplicatesTitle')}
+            body={t('waitPanelDuplicatesBody', {
+              done: Math.max(0, photos.length - embeddingsPending),
+              total: photos.length,
+            })}
+            fraction={photos.length > 0 ? (photos.length - embeddingsPending) / photos.length : null}
+          />
         )}
         {analyzing && (
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 text-right">
-            {analysisEta ? tc('etaRemaining', { time: analysisEta }) : tc('etaCalculating')}
-            {' — '}
-            {t('analysisEtaDependencyNote')}
-          </p>
+          <WaitPanel
+            title={batchProgress ? t('waitPanelAnalysisTitle') : progress || t('progressPreparing')}
+            body={[
+              batchProgress ? t('waitPanelBatches', { done: batchProgress.done, total: batchProgress.total }) : null,
+              analysisEta ? tc('etaRemaining', { time: analysisEta }) : tc('etaCalculating'),
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+            note={`${t('waitPanelKeepOpen')} ${t('analysisEtaDependencyNote')}`}
+            fraction={batchProgress && batchProgress.total > 0 ? batchProgress.done / batchProgress.total : null}
+          />
         )}
 
         {/* Appears the moment the job exists, i.e. the moment the contract is
