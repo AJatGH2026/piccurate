@@ -42,13 +42,17 @@ class HttpError extends Error {
   }
 }
 type AnalysisErrorClass =
-  | 'network' | 'api_limit' | 'capacity' | 'access' | 'payment' | 'too_large'
-  | 'server' | 'file_access' | 'timeout' | 'other';
+  | 'network' | 'api_limit' | 'capacity' | 'blocked' | 'upstream' | 'access' | 'payment'
+  | 'too_large' | 'server' | 'file_access' | 'timeout' | 'other';
 function classifyAnalysisError(err: unknown, message: string): AnalysisErrorClass {
   if (err instanceof HttpError) {
     const st = err.status;
     if (st === 429) return 'api_limit';
     if (st === 503) return 'capacity';
+    // 422/502 are the route's own signals for "the AI provider withheld the
+    // answer" — blocked for a stated reason vs. empty without one.
+    if (st === 422) return 'blocked';
+    if (st === 502) return 'upstream';
     if (st === 402) return 'payment';
     if (st === 401 || st === 403 || st === 404 || st === 410) return 'access';
     if (st === 413) return 'too_large';
@@ -1191,8 +1195,18 @@ export default function ConfigurePage() {
                 setProgress('');
                 setAnalysisEta(null);
                 const message = err instanceof Error ? err.message : String(err);
-                trackEv('analysis_failed', locale, { error_class: classifyAnalysisError(err, message) });
-                alert(t('analysisFailed', { error: message }));
+                const errorClass = classifyAnalysisError(err, message);
+                trackEv('analysis_failed', locale, { error_class: errorClass });
+                // The provider-side failures have their own sentences: the raw
+                // message there is English and technical ("No text response
+                // from AI"), which is what a German visitor saw on 2026-09-15.
+                alert(
+                  errorClass === 'blocked'
+                    ? t('analysisBlocked')
+                    : errorClass === 'upstream'
+                      ? t('analysisUpstream')
+                      : t('analysisFailed', { error: message })
+                );
               } finally {
                 setAnalyzing(false);
                 analyzingRef.current = false;

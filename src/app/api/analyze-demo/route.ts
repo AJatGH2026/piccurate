@@ -43,6 +43,17 @@ function isRetryableGeminiError(err: unknown): boolean {
   return msg.includes('"status":"UNAVAILABLE"') || msg.includes('"code":503');
 }
 
+// An error whose HTTP status the catch-all at the bottom should pass through
+// instead of flattening everything to 500. Only for the two "Gemini answered
+// but gave us nothing" cases above; real exceptions stay 500.
+class UpstreamError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -433,7 +444,32 @@ export async function POST(request: NextRequest) {
 
     const text = response.text;
     if (!text) {
-      throw new Error('No text response from AI');
+      // Gemini answered 200 but withheld the text. Seen live on 2026-09-15:
+      // ten batches in two attempts, every one of them "No text response from
+      // AI", and nothing in the log said why — the block/finish reasons were
+      // never read. Log them, and tell the client which of the two things
+      // happened: a *blocked* prompt/candidate (422 — deterministic for this
+      // photo set, retrying will not help) versus an *empty* answer with no
+      // stated reason (502 — upstream hiccup, a retry may help).
+      const blockReason = response.promptFeedback?.blockReason ?? null;
+      const cand = response.candidates?.[0];
+      const finishReason = cand?.finishReason ?? null;
+      const flagged = [
+        ...(response.promptFeedback?.safetyRatings ?? []),
+        ...(cand?.safetyRatings ?? []),
+      ]
+        .filter((r) => r.blocked || (r.probability && !/NEGLIGIBLE|LOW/.test(String(r.probability))))
+        .map((r) => `${r.category}:${r.probability ?? '?'}${r.blocked ? '!' : ''}`);
+      console.error(
+        `[Demo Analyze] empty response — blockReason=${blockReason ?? '-'} finishReason=${finishReason ?? '-'} candidates=${response.candidates?.length ?? 0} parts=${cand?.content?.parts?.length ?? 0} flagged=[${flagged.join(' ')}] photos=${files.length}`
+      );
+      const blocked =
+        blockReason != null ||
+        (finishReason != null && !/^(STOP|MAX_TOKENS|FINISH_REASON_UNSPECIFIED)$/.test(String(finishReason)));
+      throw new UpstreamError(
+        blocked ? 'AI provider blocked this batch' : 'No text response from AI',
+        blocked ? 422 : 502
+      );
     }
 
     // Gemini exposes usageMetadata (promptTokenCount / candidatesTokenCount).
@@ -502,7 +538,7 @@ export async function POST(request: NextRequest) {
     console.error('[Demo Analyze] Error:', err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Analysis failed' },
-      { status: 500 }
+      { status: err instanceof UpstreamError ? err.status : 500 }
     );
   }
 }

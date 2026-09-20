@@ -194,6 +194,8 @@
     "lenient": "Lenient",
     "strict": "Strict",
     "analysisFailed": "Analysis failed: {error}",
+    "analysisBlocked": "The AI service did not rate these photos and gave no reason we could show you. Trying again with the same photos usually does not change that. Please drop us a line — we will check the log.",
+    "analysisUpstream": "The AI service did not return an answer just now. This is not about your photos — please try again in a moment.",
     "noPhotosConfigure": "No photos in memory. Please upload photos first.",
     "backToUpload": "Go to upload",
     "personsLocalNote": "Face recognition runs entirely on your device. The reference photo, face data and matches never leave it.",

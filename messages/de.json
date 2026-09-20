@@ -194,6 +194,8 @@
     "lenient": "Nachsichtig",
     "strict": "Streng",
     "analysisFailed": "Analyse fehlgeschlagen: {error}",
+    "analysisBlocked": "Der KI-Dienst hat diese Fotos nicht bewertet und keinen Grund genannt, den wir dir zeigen könnten. Ein neuer Versuch mit denselben Fotos ändert das meist nicht. Bitte schreib uns kurz — wir sehen im Protokoll nach.",
+    "analysisUpstream": "Der KI-Dienst hat gerade keine Antwort geliefert. Das liegt nicht an deinen Fotos — bitte versuch es in einem Moment noch einmal.",
     "noPhotosConfigure": "Keine Fotos im Speicher. Bitte zuerst Fotos hochladen.",
     "backToUpload": "Zum Upload",
     "personsLocalNote": "Die Gesichtserkennung läuft vollständig auf deinem Gerät. Referenzfoto, Gesichtsdaten und Treffer verlassen dein Gerät nicht.",

@@ -620,8 +620,10 @@ export default async function AdminStatsPage({
           <Hint>
             Jeder Analyse-Start und wie er endete. <code>failed</code> trägt die Fehlerklasse (Client-Klassifizierung nach
             HTTP-Status und Meldung, kein Fehlertext), <code>abandoned</code> den Fortschritt beim Verlassen der Seite,
-            <code>completed</code> die Dauer. „Sitzung“ sind die letzten vier Zeichen der Sitzungskennung — nur zum
-            Zusammenlegen von Start und Ende. Eigene Läufe (QA-Modus) sind markiert, nicht ausgeblendet.
+            <code>completed</code> die Dauer. „Sitzung“ und „Quelle“ stehen nur am <code>started</code> — ab dem
+            Vertragsschluss tragen Ereignisse per Attributions-Firewall (§ 312 Abs. 1a, <code>lib/events-client.ts</code>)
+            weder Sitzungskennung noch Kampagne; Start und Ende lassen sich nur über die Zeit zuordnen. Eigene Läufe
+            (QA-Modus) sind markiert, nicht ausgeblendet.
           </Hint>
           {Object.keys(failedByClass).length > 0 && (
             <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
