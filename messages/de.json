@@ -187,6 +187,7 @@
     "progressPreparing": "Fotos werden vorbereitet…",
     "waitPanelDuplicatesTitle": "Dubletten werden erkannt…",
     "waitPanelDuplicatesBody": "{done} von {total} Fotos verglichen — danach wird der Analyse-Button aktiv.",
+    "waitPanelDuplicatesBodyPlain": "{done} von {total} Fotos verglichen — läuft im Hintergrund, du kannst währenddessen die Kriterien einstellen.",
     "waitPanelAnalysisTitle": "Deine Fotos werden analysiert…",
     "waitPanelBatches": "Stapel {done} von {total}",
     "waitPanelKeepOpen": "Bitte lass diese Seite geöffnet, bis das Ergebnis da ist.",

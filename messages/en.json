@@ -187,6 +187,7 @@
     "progressPreparing": "Preparing photos…",
     "waitPanelDuplicatesTitle": "Detecting duplicates…",
     "waitPanelDuplicatesBody": "{done} of {total} photos compared — the analyse button unlocks after this.",
+    "waitPanelDuplicatesBodyPlain": "{done} of {total} photos compared — runs in the background; you can set your criteria meanwhile.",
     "waitPanelAnalysisTitle": "Your photos are being analysed…",
     "waitPanelBatches": "Batch {done} of {total}",
     "waitPanelKeepOpen": "Please keep this page open until the result is ready.",

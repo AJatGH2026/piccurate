@@ -1278,13 +1278,15 @@ export default function ConfigurePage() {
         {/* Waiting states as one prominent panel instead of small grey lines
             (2026-09-20, see batchProgress above). Two phases share it:
             the duplicate scan that gates the button, and the analysis itself.
-            Only while the button is otherwise ready to go: saying "waiting for
-            the duplicate scan" next to an unticked consent box would name the
-            wrong blocker. */}
-        {!analyzing && embeddingsPending > 0 && ageAccepted && termsAccepted && (
+            The scan panel shows whenever the scan runs — it used to wait for
+            both consent boxes (so as not to name the wrong blocker), which on
+            the product owner's own test meant the scan finished before the
+            boxes were ticked and the panel never appeared. The "button unlocks
+            after this" sentence is the only part that depends on the boxes. */}
+        {!analyzing && embeddingsPending > 0 && (
           <WaitPanel
             title={t('waitPanelDuplicatesTitle')}
-            body={t('waitPanelDuplicatesBody', {
+            body={t(ageAccepted && termsAccepted ? 'waitPanelDuplicatesBody' : 'waitPanelDuplicatesBodyPlain', {
               done: Math.max(0, photos.length - embeddingsPending),
               total: photos.length,
             })}
