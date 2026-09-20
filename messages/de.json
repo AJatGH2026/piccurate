@@ -82,6 +82,8 @@
     "pickerHandoffShort": "Bei vielen Fotos braucht dein Handy nach dem Bestätigen einen Moment.",
     "supported": "Unterstützt JPEG, PNG, HEIC. Bis zu {limit} Fotos.",
     "keepFilesNote": "Lass deine Fotos bitte dort liegen, wo sie sind, bis der Download fertig ist. Wenn du sie zwischendurch verschiebst, umbenennst, löschst oder bearbeitest, kann dein Browser sie nicht mehr lesen — diese Fotos landen dann nur als kleine Vorschau im ZIP.",
+    "allowanceNote": "Heute kannst du über diesen Anschluss noch etwa {remaining} Fotos analysieren lassen (Beta-Tagesgrenze). Wähle am besten nicht mehr aus.",
+    "allowanceExceeded": "Du hast {count} Fotos gewählt, heute sind über diesen Anschluss aber nur noch etwa {remaining} möglich. Die Analyse würde so nicht starten — nimm Fotos heraus oder versuch es morgen noch einmal.",
     "accountGateTitle": "Zuerst brauchst du ein Konto",
     "accountGateBody": "Für die Analyse brauchst du ein Konto mit bestätigter E-Mail-Adresse — auch im kostenlosen Tarif. Nach der Registrierung schicken wir dir einen Bestätigungslink. Klicke ihn an und melde dich einmal an — danach geht es hier weiter.",
     "processing": "Verarbeite {current} von {total}...",

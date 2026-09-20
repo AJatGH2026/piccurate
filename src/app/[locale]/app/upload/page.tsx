@@ -55,6 +55,11 @@ export default function UploadPage() {
   // BEFORE the work, not as a surprise on the results page.
   const [needsAccount, setNeedsAccount] = useState(false);
   const [downloadNeedsAccount, setDownloadNeedsAccount] = useState(false);
+  // Today's remaining allowance for this connection (beta caps), null = no cap
+  // or unknown. Shown before the picker when it would bite, and as a warning
+  // once more photos are selected than can be analysed today — instead of the
+  // same news arriving as an alert after the whole upload (seen 2026-09-20).
+  const [remainingToday, setRemainingToday] = useState<number | null>(null);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -69,6 +74,9 @@ export default function UploadPage() {
         const registered = !!user && !user.is_anonymous;
         // Fail open on a policy lookup error: the server still refuses the job,
         // so the worst case is the old behaviour, not an unguarded upload.
+        if (!cancelled && typeof policy?.remainingToday === 'number') {
+          setRemainingToday(policy.remainingToday);
+        }
         if (!cancelled && policy?.accountRequired === true && !registered) {
           setNeedsAccount(true);
           // `account_gate_shown` is NOT fired here any more. It now marks the
@@ -218,6 +226,13 @@ export default function UploadPage() {
               <PersonSetup locked={totalCount > 0} available={personSearchAvailable} />
             </div>
 
+            {/* Only when the cap would actually constrain this run: a note
+                nobody needs is noise, and most visitors never get near it. */}
+            {remainingToday != null && remainingToday < maxPhotos && totalCount === 0 && (
+              <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                {t('allowanceNote', { remaining: remainingToday })}
+              </p>
+            )}
             <div className="mt-4">
               <DropZone
                 onFiles={addFiles}
@@ -225,6 +240,14 @@ export default function UploadPage() {
                 disabled={isProcessing && totalCount >= maxPhotos}
               />
             </div>
+            {remainingToday != null && totalCount > remainingToday && (
+              <p
+                role="alert"
+                className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
+              >
+                {t('allowanceExceeded', { count: totalCount, remaining: remainingToday })}
+              </p>
+            )}
 
             {/* Said here, before any work is done — a download that turns out
                 to need an account only once the result is on screen is exactly

@@ -82,6 +82,8 @@
     "pickerHandoffShort": "With many photos, your phone needs a moment after you confirm.",
     "supported": "Supports JPEG, PNG, HEIC. Up to {limit} photos.",
     "keepFilesNote": "Please leave your photos where they are until the download is finished. If they are moved, renamed, deleted or edited in the meantime, your browser can no longer read them — those photos then end up in the ZIP as small previews only.",
+    "allowanceNote": "Today this connection can still have about {remaining} photos analysed (beta daily limit). Best not to select more than that.",
+    "allowanceExceeded": "You selected {count} photos, but only about {remaining} more can be analysed today from this connection. The analysis would not start like this — remove some photos or try again tomorrow.",
     "accountGateTitle": "You need an account first",
     "accountGateBody": "You need an account with a confirmed email address to run an analysis — including on the free plan. After you sign up we send you a confirmation link. Click it and log in once — then you can carry on right here.",
     "processing": "Processing {current} of {total}...",
