@@ -38,7 +38,7 @@ function GermanBody() {
   return (
     <>
       <h1>Datenschutzerklärung</h1>
-      <p>Stand: 14. August 2026</p>
+      <p>Stand: 20. September 2026</p>
       <h2>1. Verantwortlicher</h2>
       <p>Verantwortlicher im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:</p>
       <p>AJ GmbH</p>
@@ -178,9 +178,14 @@ function GermanBody() {
           specific and revocable. What we actually record is an acceptance and
           an acknowledgement. */}
       <p>Wenn du ein Nutzerkonto erstellst, verarbeiten wir deine E-Mail-Adresse, dein verschlüsseltes Passwort, die gewählte Sprache (Spracheinstellung) sowie Zeitpunkt und Nachweis der Annahme der Nutzungsbedingungen und der Kenntnisnahme dieser Datenschutzhinweise. Rechtsgrundlage ist Art. 6 Abs. 1 Buchst. b DSGVO (Vertragserfüllung).</p>
-      <h3>15.1 Konto beim Start einer Analyse</h3>
-      <p>Jede Analyse läuft technisch gegen einen benannten Vorgang, damit Fotomengen, Kontingente und Ergebnisse eindeutig zugeordnet werden können. Für eine Analyse ist ein <strong>Konto mit bestätigter E-Mail-Adresse</strong> erforderlich — auch im kostenlosen Tarif. Grund dafür ist die gesetzlich vorgeschriebene Bestätigung des Vertrags in Textform (§ 312f BGB): Ohne eine Adresse könnten wir sie dir nicht zusenden.</p>
-      <p>Rechtsgrundlage ist Art. 6 Abs. 1 Buchst. b DSGVO; ohne diese Zuordnung lässt sich der von dir angestoßene Vorgang nicht durchführen. Aus der früheren offenen Beta-Phase können noch <strong>anonyme Konten</strong> ohne Kontaktdaten bestehen; sie erlauben keine Anmeldung von einem anderen Gerät. Diese Konten und die zugehörigen Vorgangsdaten löschen wir turnusmäßig, spätestens 90 Tage nach dem letzten Vorgang.</p>
+      {/* 2026-09-20: rewritten to match the system since 2026-08-27 — the
+          account gate moved from the analysis to the ZIP download that day
+          (terms and configure page were updated, this section was not). What
+          happens now: the click on "Analysieren" creates an anonymous account;
+          an address is asked for only at the download. */}
+      <h3>15.1 Vorgang beim Start einer Analyse</h3>
+      <p>Jede Analyse läuft technisch gegen einen benannten Vorgang, damit Fotomengen, Kontingente und Ergebnisse eindeutig zugeordnet werden können. Im kostenlosen Tarif legen wir dafür beim Start der Analyse ein <strong>anonymes Konto ohne Kontaktdaten</strong> an; es erlaubt keine Anmeldung von einem anderen Gerät. Ein Konto mit bestätigter E-Mail-Adresse ist erst für den Download deines Ergebnisses erforderlich — Grund dafür ist die gesetzlich vorgeschriebene Bestätigung des Vertrags in Textform (§ 312f BGB), die wir dir dann zusenden; bis dahin steht sie dir auf dem Bildschirm zum Speichern bereit.</p>
+      <p>Rechtsgrundlage ist Art. 6 Abs. 1 Buchst. b DSGVO; ohne diese Zuordnung lässt sich der von dir angestoßene Vorgang nicht durchführen. Anonyme Konten und die zugehörigen Vorgangsdaten löschen wir turnusmäßig, spätestens 90 Tage nach dem letzten Vorgang.</p>
       <h3>15.2 Konto und Nutzungsmessung</h3>
       <p>Bist du angemeldet, ordnen wir die Ereignisse aus Abschnitt 9.1 einer aus deiner Konto-Kennung abgeleiteten Pseudonymkennung zu. Wir bilden daraus keine Profile über einzelne Nutzer, sondern werten ausschließlich aus, wie häufig der Dienst insgesamt ein zweites Mal genutzt wird.</p>
       <p>Wir setzen Supabase (Supabase Inc., 970 Trestle Glen Rd, Oakland, CA 94610, USA) als Auftragsverarbeiter für Authentifizierung und Profildatenspeicherung ein. Supabase hostet die Daten auf Servern in der EU-Region Frankfurt (AWS eu-central-1). Mit Supabase besteht ein Auftragsverarbeitungsvertrag nach Art. 28 DSGVO; für Übermittlungen in die USA dienen EU-Standardvertragsklauseln als Grundlage.</p>
@@ -196,7 +201,7 @@ function EnglishBody() {
     <>
       <h1>Privacy Policy</h1>
       <EnglishNotice />
-      <p>Last updated: 14 August 2026</p>
+      <p>Last updated: 20 September 2026</p>
       <h2>1. Controller</h2>
       <p>The controller within the meaning of the General Data Protection Regulation (GDPR) is:</p>
       <p>AJ GmbH</p>
@@ -319,9 +324,9 @@ function EnglishBody() {
       <p>You may object at any time, on grounds relating to your particular situation, to processing based on Article 6(1)(f) GDPR. We will then cease processing unless we demonstrate compelling legitimate grounds that override your interests, rights and freedoms or the processing is required to establish, exercise or defend legal claims.</p>
       <h2>15. User Account and Registration</h2>
       <p>When you create a user account, we process your email address, your encrypted password, the selected language (locale setting), and the timestamp and record of your acceptance of the Terms of Use and your acknowledgement of this Privacy Policy. The legal basis is Article 6(1)(b) GDPR (performance of contract).</p>
-      <h3>15.1 Account when starting an analysis</h3>
-      <p>Every analysis technically runs against a named job so that photo volumes, allowances and results can be assigned unambiguously. An <strong>account with a confirmed email address</strong> is required to run an analysis — including on the free plan. The reason is the statutory confirmation of the contract in text form (section 312f of the German Civil Code): without an address we could not send it to you.</p>
-      <p>The legal basis is Article 6(1)(b) GDPR; without this assignment the job you initiated cannot be carried out. <strong>Anonymous accounts</strong> without contact details may still exist from the earlier open beta phase; they do not allow sign-in from another device. We delete those accounts and the associated job data on a routine basis, at the latest 90 days after the last job.</p>
+      <h3>15.1 Job when starting an analysis</h3>
+      <p>Every analysis technically runs against a named job so that photo volumes, allowances and results can be assigned unambiguously. On the free plan we create an <strong>anonymous account without contact details</strong> for this when the analysis starts; it does not allow sign-in from another device. An account with a confirmed email address is required only to download your result — the reason is the statutory confirmation of the contract in text form (section 312f of the German Civil Code), which we then send to you; until then it is shown on screen for you to save.</p>
+      <p>The legal basis is Article 6(1)(b) GDPR; without this assignment the job you initiated cannot be carried out. We delete anonymous accounts and the associated job data on a routine basis, at the latest 90 days after the last job.</p>
       <h3>15.2 Account and usage measurement</h3>
       <p>While you are signed in, we associate the events described in section 9.1 with a pseudonymous identifier derived from your account identifier. We do not build profiles of individual users from this; we evaluate only how often the service is used a second time overall.</p>
       <p>We use Supabase (Supabase Inc., 970 Trestle Glen Rd, Oakland, CA 94610, USA) as a processor for authentication and profile data storage. Supabase hosts data on servers in the EU region Frankfurt (AWS eu-central-1). We have concluded a data processing agreement with Supabase under Article 28 GDPR; EU Standard Contractual Clauses provide the basis for transfers to the USA.</p>

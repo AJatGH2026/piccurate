@@ -288,10 +288,12 @@ export default function ConfigurePage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user || user.is_anonymous) {
       // When registration is required, signing in anonymously would create an
-      // account that can never analyse — and the privacy policy states that
-      // anonymous accounts only remain from the earlier open beta. Ask the
-      // server rather than guess; on a lookup failure fall through to the old
-      // behaviour, since /api/jobs still refuses.
+      // account that can never analyse. (Privacy policy § 15.1 describes the
+      // anonymous account as the normal free-tier path since 2026-09-20; if
+      // the gate ever moves back in front of the analysis, that section has
+      // to move with it.) Ask the server rather than guess; on a lookup
+      // failure fall through to the old behaviour, since /api/jobs still
+      // refuses.
       const policy = await fetch('/api/access-policy', { cache: 'no-store' })
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null);
