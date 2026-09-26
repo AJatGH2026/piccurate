@@ -323,15 +323,17 @@ export default function ConfigurePage() {
     const json = await res.json();
     // Refused for lack of daily budget: say how much is left, in the user's
     // language, instead of passing the server's English sentence through.
+    // HttpError (not Error) so analysis_failed.error_class gets the status-based
+    // class here too — until 2026-09-26 only the analyze-demo batches carried
+    // it, and a refused job creation landed in 'other'.
     if (res.status === 429 && typeof json?.remaining === 'number') {
-      throw new Error(t('budgetExceeded', { remaining: json.remaining, requested: photoCount }));
+      throw new HttpError(t('budgetExceeded', { remaining: json.remaining, requested: photoCount }), 429);
     }
     // A 5xx is our fault, not something the user can act on — show a sentence in
     // their language rather than whatever the server happened to say.
-    if (res.status >= 500) throw new Error(t('jobCreateFailed'));
-    if (!res.ok || !json?.data?.jobId) {
-      throw new Error(json?.error || t('jobCreateFailed'));
-    }
+    if (res.status >= 500) throw new HttpError(t('jobCreateFailed'), res.status);
+    if (!res.ok) throw new HttpError(json?.error || t('jobCreateFailed'), res.status);
+    if (!json?.data?.jobId) throw new Error(t('jobCreateFailed'));
     // This response is the moment the contract exists (terms § 3), so it is
     // also the moment the § 312f confirmation becomes due. Record what it has
     // to state; the panel below renders it and offers it for saving.
