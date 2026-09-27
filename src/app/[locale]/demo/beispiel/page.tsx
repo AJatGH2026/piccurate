@@ -27,9 +27,10 @@ import { SAMPLE_FIXTURE_URL, toProcessedPhotos, type SampleFixture } from '@/lib
 
 type MotifKey = 'preferFaces' | 'preferAnimals' | 'preferLandscapes' | 'preferArchitecture' | 'preferFood' | 'preferSharpness';
 
-// A slightly larger default than the app's 8 %: with 101 photos, 8 % is eight
-// pictures — too few to show both the real and the generated part of the year.
-const SAMPLE_DEFAULTS: CriteriaConfig = { ...DEFAULT_CRITERIA, selectionPercentage: 15 };
+// A larger default than the app's 8 % (decision AJ 2026-09-27): with 101 photos,
+// 8 % is eight pictures, and at 15 % only one of the real Japan photos made it
+// in — the model scores the generated ones higher. 25 % shows both parts.
+const SAMPLE_DEFAULTS: CriteriaConfig = { ...DEFAULT_CRITERIA, selectionPercentage: 25 };
 
 export default function SampleDemoPage() {
   const t = useTranslations('sampleDemo');

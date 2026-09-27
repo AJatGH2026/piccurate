@@ -460,9 +460,9 @@ const VISUAL_DEDUP_MAX = 5000;
  *     back to pHash).
  *
  * All thresholds scale with the Duplicates slider (1 = lenient … 10 = strict):
- *   Slider 1  → GAP_S =  0s, D =  7, Dv = 0, SIM = 0.97  (near-exact only)
- *   Slider 8  → GAP_S = 47s, D = 14, Dv = 6, SIM ≈ 0.90  (default)
- *   Slider 10 → GAP_S = 60s, D = 16, Dv = 8, SIM = 0.88  (aggressive)
+ *   Slider 1  → GAP_S =  0s, D =  7, Dv = 0, SIM = 0.95  (near-exact only)
+ *   Slider 8  → GAP_S = 47s, D = 14, Dv = 6, SIM ≈ 0.864 (default)
+ *   Slider 10 → GAP_S = 60s, D = 16, Dv = 8, SIM = 0.84  (aggressive)
  */
 // Exported for the sample demo (/demo/beispiel), which runs the real selection
 // on a frozen fixture without touching this store.
@@ -471,9 +471,16 @@ export function detectSeries(photos: ProcessedPhoto[], criteria: CriteriaConfig)
   const GAP_S = Math.round(((s - 1) * 60) / 9);
   const D = 6 + s;
   const Dv = Math.round(((s - 1) * 8) / 9);
-  // Cosine threshold for cross-camera semantic dedup. Empirical — tune on real
-  // sets if it over- or under-merges.
-  const SIM = 0.97 - ((s - 1) * (0.97 - 0.88)) / 9;
+  // Cosine threshold for cross-camera semantic dedup. Calibrated 2026-09-27 —
+  // the original 0.97…0.88 (26.07.) was never measured on real photos and was
+  // too strict: on 101 photos across 26 known scenes, same-scene pairs of REAL
+  // photos sit as low as 0.79–0.87 (different phones, angles, zoom), while the
+  // most similar pair of DIFFERENT scenes reached 0.84. At the default slider
+  // the old 0.90 split five real series into 2–4 groups each (bridge, polar
+  // bear, coast, skyline, lanterns); 0.864 keeps all but one together and
+  // merges no two different scenes. Only 0.84 (slider 10) merged one pair of
+  // neighbouring scenes. Re-check on a larger real set when one is at hand.
+  const SIM = 0.95 - ((s - 1) * (0.95 - 0.84)) / 9;
 
   const sorted = [...photos].sort((a, b) => (a.dateTaken || '').localeCompare(b.dateTaken || ''));
   const n = sorted.length;
