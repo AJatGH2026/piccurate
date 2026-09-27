@@ -156,8 +156,15 @@ async function Header({ locale }: { locale: string }) {
   const t = await getTranslations('nav');
   const otherLocale = locale === 'en' ? 'de' : 'en';
 
-  const supabase = await createServerSupabaseClient();
-  const { data: { user: authUser } } = await supabase.auth.getUser();
+  // Without Supabase configured (Vercel Preview deployments carry the Supabase
+  // variables for Production only) the landing page used to crash with a 500
+  // instead of rendering signed-out — found 2026-09-27 on the first preview of
+  // the sample demo. Same fail-open as the results page.
+  let authUser: { email?: string; is_anonymous?: boolean } | null = null;
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    const supabase = await createServerSupabaseClient();
+    authUser = (await supabase.auth.getUser()).data.user;
+  }
   // Anonymous sign-in gives demo visitors a session. They are not "logged in"
   // in any sense they would recognise — showing them a sign-out link and an
   // empty email would be a puzzle, so the header stays in its signed-out state.
