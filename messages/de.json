@@ -518,8 +518,8 @@
     "back": "Zur Startseite",
     "moreSettings": "Mehr Einstellungen",
     "lessSettings": "Weniger Einstellungen",
-    "introTitle": "Das sind die Fotos eines Jahres",
-    "introText": "{total} Fotos von {cameras} Kameras – Winter, Sommerurlaub am Meer und in den Bergen, Herbst in Japan. Wie im echten Leben: Serien, dieselbe Szene von mehreren Handys, Verwackeltes und Versehentliches.",
+    "introTitle": "Zwei Wochen Urlaub. Vier Handys. 5.000 Fotos.",
+    "introText": "So sieht es nach einem Familienurlaub schnell aus: Serien, dieselbe Szene von mehreren Handys, Verwackeltes und Versehentliches. Die Demo zeigt das Prinzip an einem Ausschnitt: {total} Beispielfotos.",
     "selectButton": "Beste Fotos auswählen",
     "selectHint": "Die KI-Analyse dieser Beispielfotos ist schon gelaufen – ein Klick zeigt dir das Ergebnis.",
     "backToAll": "Alle {total} Fotos"

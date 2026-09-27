@@ -518,8 +518,8 @@
     "back": "Back to home",
     "moreSettings": "More settings",
     "lessSettings": "Fewer settings",
-    "introTitle": "These are the photos of a year",
-    "introText": "{total} photos from {cameras} cameras – winter, a summer holiday by the sea and in the mountains, autumn in Japan. Just like real life: bursts, the same scene from several phones, shaky and accidental shots.",
+    "introTitle": "Two weeks of holiday. Four phones. 5,000 photos.",
+    "introText": "That's what a family holiday quickly turns into: bursts, the same scene from several phones, shaky and accidental shots. This demo shows the principle on an excerpt: {total} sample photos.",
     "selectButton": "Pick the best photos",
     "selectHint": "The AI analysis of these sample photos has already run – one click shows you the result.",
     "backToAll": "All {total} photos"

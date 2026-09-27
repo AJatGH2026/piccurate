@@ -100,11 +100,6 @@ export default function SampleDemoPage() {
     return m;
   }, [clusters]);
   const seriesCount = clusters.filter((c) => c.length > 1).length;
-  const cameraCount = useMemo(
-    () => new Set((base || []).map((p) => p.cameraModel).filter(Boolean)).size,
-    [base]
-  );
-
   const selectedCount = photos.filter((p) => p.selected).length;
   const rejectedCount = photos.length - selectedCount;
 
@@ -203,7 +198,7 @@ export default function SampleDemoPage() {
         <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-6 pb-16">
           <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100">{t('introTitle')}</h1>
           <p className="mt-2 max-w-3xl text-zinc-600 dark:text-zinc-400">
-            {t('introText', { total: base?.length ?? 101, cameras: cameraCount || 8 })}
+            {t('introText', { total: base?.length ?? 101 })}
           </p>
           {provenance}
 
