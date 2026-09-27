@@ -489,7 +489,7 @@
     "metaTitle": "Beispiel ansehen",
     "badge": "Beispiel",
     "title": "So sieht dein Ergebnis aus",
-    "intro": "Ein Fotojahr mit {total} Fotos von {cameras} Kameras – Winter, Sommerurlaub und Herbst in Japan. Die Auswahl entsteht live in deinem Browser: Beweg die Regler und sieh, wie sie sich ändert.",
+    "intro": "Serien und ähnliche Aufnahmen sind zusammengefasst, aus jeder die beste gewählt. Beweg die Regler und sieh, wie sich die Auswahl sofort ändert.",
     "provenance": "Die Personen-, Sommer- und Winterfotos sind KI-generiert – fiktive Personen und Orte. Die Japanfotos sind echt: aufgenommen vom Gründer, verkleinert und ohne Standortdaten.",
     "loading": "Beispiel wird geladen …",
     "loadError": "Das Beispiel konnte nicht geladen werden. Bitte lade die Seite neu.",
@@ -517,6 +517,11 @@
     "ctaMobileHint": "Am besten am Computer – dort liegen alle Fotos, und die Auswahl macht mehr Spaß.",
     "back": "Zur Startseite",
     "moreSettings": "Mehr Einstellungen",
-    "lessSettings": "Weniger Einstellungen"
+    "lessSettings": "Weniger Einstellungen",
+    "introTitle": "Das sind die Fotos eines Jahres",
+    "introText": "{total} Fotos von {cameras} Kameras – Winter, Sommerurlaub am Meer und in den Bergen, Herbst in Japan. Wie im echten Leben: Serien, dieselbe Szene von mehreren Handys, Verwackeltes und Versehentliches.",
+    "selectButton": "Beste Fotos auswählen",
+    "selectHint": "Die KI-Analyse dieser Beispielfotos ist schon gelaufen – ein Klick zeigt dir das Ergebnis.",
+    "backToAll": "Alle {total} Fotos"
   }
 }

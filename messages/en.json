@@ -489,7 +489,7 @@
     "metaTitle": "See an example",
     "badge": "Example",
     "title": "This is what your result looks like",
-    "intro": "A year in photos: {total} pictures from {cameras} cameras – winter, a summer holiday and autumn in Japan. The selection is computed live in your browser: move the sliders and watch it change.",
+    "intro": "Bursts and near-duplicates are collapsed, the best of each kept. Move the sliders and watch the selection change instantly.",
     "provenance": "The people, summer and winter photos are AI-generated – fictional people and places. The Japan photos are real: taken by the founder, downscaled and without location data.",
     "loading": "Loading the example …",
     "loadError": "The example could not be loaded. Please reload the page.",
@@ -517,6 +517,11 @@
     "ctaMobileHint": "Best on a computer – that's where all your photos are, and choosing is more fun.",
     "back": "Back to home",
     "moreSettings": "More settings",
-    "lessSettings": "Fewer settings"
+    "lessSettings": "Fewer settings",
+    "introTitle": "These are the photos of a year",
+    "introText": "{total} photos from {cameras} cameras – winter, a summer holiday by the sea and in the mountains, autumn in Japan. Just like real life: bursts, the same scene from several phones, shaky and accidental shots.",
+    "selectButton": "Pick the best photos",
+    "selectHint": "The AI analysis of these sample photos has already run – one click shows you the result.",
+    "backToAll": "All {total} photos"
   }
 }

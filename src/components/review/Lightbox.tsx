@@ -8,7 +8,8 @@ interface LightboxProps {
   photos: ProcessedPhoto[];
   index: number;
   onIndexChange: (i: number) => void;
-  onToggle: (id: string) => void;
+  /** Omit to show the photo only, without a keep/remove button (sample demo, step 1). */
+  onToggle?: (id: string) => void;
   onClose: () => void;
 }
 
@@ -96,6 +97,7 @@ export function Lightbox({ photos, index, onIndexChange, onToggle, onClose }: Li
             <span className="text-white/40">· {photo.contentTags.slice(0, 4).join(' · ')}</span>
           )}
         </div>
+        {onToggle && (
         <button
           onClick={() => onToggle(photo.id)}
           className={`flex-none rounded-full px-5 py-2 text-sm font-semibold transition-colors ${
@@ -106,6 +108,7 @@ export function Lightbox({ photos, index, onIndexChange, onToggle, onClose }: Li
         >
           {photo.selected ? t('remove') : t('addBack')}
         </button>
+        )}
       </div>
 
       <button className="sr-only" onClick={onClose}>{tc('close')}</button>

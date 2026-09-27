@@ -68,10 +68,12 @@ export const ALLOWED_EVENTS = new Set([
   // hindsight on selections that did complete.
   'picker_opened',
   // Sample demo (/demo/beispiel, 2026-09-27): click on "Mit Beispielfotos
-  // ansehen", the example result actually on screen, and the step from the
+  // ansehen", the example photos on screen (step 1), the result after
+  // "Beste Fotos auswählen" (step 2), and the step from the
   // example to the real upload. Pre-contract like landing_view — the demo
   // concludes no contract and never reaches `analysis_started`.
   'sample_demo_start',
+  'sample_demo_intro_view',
   'sample_demo_results_view',
   'sample_demo_to_upload',
   'files_selected',
