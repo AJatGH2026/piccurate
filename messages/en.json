@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Sort your photos & pick the best – with AI | ShortlistBuddy",
-    "description": "From 1,000 photos to your best 50: AI weeds out duplicates, near-duplicates and blurry shots – you decide. Try free with 250 photos, right in your browser."
+    "description": "From 1,000 photos to your best 50: AI weeds out duplicates, near-duplicates and blurry shots – you decide. Try free with up to 250 photos, right in your browser."
   },
   "guides": {
     "indexTitle": "Guides",
@@ -26,7 +26,7 @@
     "detailCleanup": "Perfect for weeding out duplicate, similar or blurry photos – and for sorting and organising your pictures.",
     "detailMotives": "Your best shots, ready to view and keep – ready to share with friends or print in your own photo book.",
     "trustNote": "Only downscaled previews are analysed – your originals stay with you. No photos are stored permanently on our servers.",
-    "cta": "Try free with 250 photos",
+    "cta": "Try free with up to 250 photos",
     "ctaSecondary": "See pricing",
     "demoNote": "Beta test phase — try it free",
     "ctaSample": "See it with sample photos"

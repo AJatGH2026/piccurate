@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Fotos sortieren & die besten auswählen – mit KI | AuswahlBuddy",
-    "description": "Aus 1.000 Fotos die besten 50: Die KI sortiert Doppelte, Ähnliche und Unscharfe aus – du entscheidest. Kostenlos testen mit 250 Fotos, direkt im Browser."
+    "description": "Aus 1.000 Fotos die besten 50: Die KI sortiert Doppelte, Ähnliche und Unscharfe aus – du entscheidest. Kostenlos testen mit bis zu 250 Fotos, direkt im Browser."
   },
   "guides": {
     "indexTitle": "Ratgeber",
@@ -26,7 +26,7 @@
     "detailCleanup": "Perfekt zum Aussortieren doppelter, ähnlicher oder unscharfer Fotos – und zum Sortieren und Ordnen deiner Bilder.",
     "detailMotives": "Deine schönsten Motive zum Ansehen und Speichern – bereit zum Teilen mit Freunden oder für dein eigenes Fotoalbum.",
     "trustNote": "Nur verkleinerte Vorschaubilder werden analysiert – deine Originale bleiben bei dir. Keine Fotos werden dauerhaft bei uns gespeichert.",
-    "cta": "Kostenlos testen mit 250 Fotos",
+    "cta": "Kostenlos testen mit bis zu 250 Fotos",
     "ctaSecondary": "Preise ansehen",
     "demoNote": "Beta-Testphase – Kostenlos testen",
     "ctaSample": "Mit Beispielfotos ansehen"
