@@ -67,6 +67,13 @@ export const ALLOWED_EVENTS = new Set([
   // this makes the step itself countable instead of only measurable in
   // hindsight on selections that did complete.
   'picker_opened',
+  // Sample demo (/demo/beispiel, 2026-09-27): click on "Mit Beispielfotos
+  // ansehen", the example result actually on screen, and the step from the
+  // example to the real upload. Pre-contract like landing_view — the demo
+  // concludes no contract and never reaches `analysis_started`.
+  'sample_demo_start',
+  'sample_demo_results_view',
+  'sample_demo_to_upload',
   'files_selected',
   'file_transfer_ready',
   'cloud_intent_click',

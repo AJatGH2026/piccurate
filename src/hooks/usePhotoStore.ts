@@ -464,7 +464,9 @@ const VISUAL_DEDUP_MAX = 5000;
  *   Slider 8  → GAP_S = 47s, D = 14, Dv = 6, SIM ≈ 0.90  (default)
  *   Slider 10 → GAP_S = 60s, D = 16, Dv = 8, SIM = 0.88  (aggressive)
  */
-function detectSeries(photos: ProcessedPhoto[], criteria: CriteriaConfig): ProcessedPhoto[][] {
+// Exported for the sample demo (/demo/beispiel), which runs the real selection
+// on a frozen fixture without touching this store.
+export function detectSeries(photos: ProcessedPhoto[], criteria: CriteriaConfig): ProcessedPhoto[][] {
   const s = Math.max(1, Math.min(10, criteria.dedupSensitivity || 8));
   const GAP_S = Math.round(((s - 1) * 60) / 9);
   const D = 6 + s;
@@ -533,7 +535,8 @@ function detectSeries(photos: ProcessedPhoto[], criteria: CriteriaConfig): Proce
  *  - Otherwise → balanced/biased: rank reps by score and take the top N% as a
  *    MAXIMUM (selectionPercentage). Sliders 1–9 bias the ranking toward a motif.
  */
-function runSelection(
+// Exported for the sample demo — see detectSeries.
+export function runSelection(
   photos: ProcessedPhoto[],
   criteria: CriteriaConfig,
   persons: Person[],

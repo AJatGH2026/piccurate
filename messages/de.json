@@ -9,7 +9,7 @@
     "readMore": "Ratgeber lesen",
     "backHome": "Zurück zur Startseite",
     "ctaText": "Lass AuswahlBuddy den ersten Durchgang machen — aus deinen Urlaubsfotos wird in wenigen Minuten eine prüfbare Auswahl.",
-    "ctaButton": "Demo ausprobieren"
+    "ctaButton": "Mit eigenen Fotos testen"
   },
   "nav": {
     "home": "Startseite",
@@ -28,7 +28,8 @@
     "trustNote": "Nur verkleinerte Vorschaubilder werden analysiert – deine Originale bleiben bei dir. Keine Fotos werden dauerhaft bei uns gespeichert.",
     "cta": "Kostenlos testen mit 250 Fotos",
     "ctaSecondary": "Preise ansehen",
-    "demoNote": "Beta-Testphase – Kostenlos testen"
+    "demoNote": "Beta-Testphase – Kostenlos testen",
+    "ctaSample": "Mit Beispielfotos ansehen"
   },
   "howItWorks": {
     "title": "So funktioniert es",
@@ -483,5 +484,39 @@
     "alreadyBody": "Für dein Konto ist bereits der Tarif {tier} mit {photos} Fotos freigeschaltet. Das Angebot gilt einmal je Konto, ein zweiter Tarif ist nicht möglich.",
     "alreadyCta": "Verstanden",
     "home": "Zur Startseite"
+  },
+  "sampleDemo": {
+    "metaTitle": "Beispiel ansehen",
+    "badge": "Beispiel",
+    "title": "So sieht dein Ergebnis aus",
+    "intro": "Ein Fotojahr mit {total} Fotos von {cameras} Kameras – Winter, Sommerurlaub und Herbst in Japan. Die Auswahl entsteht live in deinem Browser: Beweg die Regler und sieh, wie sie sich ändert.",
+    "provenance": "Die Personen-, Sommer- und Winterfotos sind KI-generiert – fiktive Personen und Orte. Die Japanfotos sind echt: aufgenommen vom Gründer, verkleinert und ohne Standortdaten.",
+    "loading": "Beispiel wird geladen …",
+    "loadError": "Das Beispiel konnte nicht geladen werden. Bitte lade die Seite neu.",
+    "statTotal": "{count} Fotos",
+    "statSeries": "{count} Serien und ähnliche Aufnahmen zusammengefasst",
+    "statSelected": "{count} ausgewählt",
+    "seriesBadge": "1 von {count}",
+    "seriesBadgeTitle": "Beste Aufnahme aus {count} ähnlichen Fotos",
+    "controlsTitle": "Auswahl anpassen",
+    "controlsHint": "Alles rechnet sofort neu – ohne neue Analyse.",
+    "size": "Wie viele Fotos?",
+    "sizeValue": "bis {percent} %",
+    "dedup": "Ähnliche Fotos zusammenfassen",
+    "dedupLenient": "großzügig",
+    "dedupStrict": "streng",
+    "motifs": "Worauf es dir ankommt",
+    "reset": "Zurücksetzen",
+    "showRejected": "Aussortierte Fotos zeigen ({count})",
+    "hideRejected": "Aussortierte Fotos ausblenden",
+    "rejectedLabel": "aussortiert",
+    "enlargeHint": "Tipp auf ein Foto, um es groß zu sehen – und nimm es in die Auswahl auf oder heraus.",
+    "ctaTitle": "Und jetzt mit deinen Fotos?",
+    "ctaBody": "Kostenlos bis 250 Fotos. Deine Originale bleiben bei dir – analysiert werden nur verkleinerte Vorschaubilder.",
+    "ctaButton": "Jetzt mit deinen Fotos testen",
+    "ctaMobileHint": "Am besten am Computer – dort liegen alle Fotos, und die Auswahl macht mehr Spaß.",
+    "back": "Zur Startseite",
+    "moreSettings": "Mehr Einstellungen",
+    "lessSettings": "Weniger Einstellungen"
   }
 }

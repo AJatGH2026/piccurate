@@ -11,6 +11,7 @@ import { PRICING_PLANS, formatPrice } from '@/types/pricing';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { LogoutButton } from '@/components/auth/LogoutButton';
 import { TrackLandingView } from '@/components/analytics/TrackLandingView';
+import { SampleDemoLink } from '@/components/analytics/SampleDemoLink';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -229,20 +230,30 @@ function HeroSection({ locale }: { locale: string }) {
         <p className="mt-6 text-lg sm:text-xl leading-8 text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto whitespace-pre-line">
           {t('subtitle')}
         </p>
-        <div className="mt-6 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+        {/* Two equal entry points since 2026-09-27: the sample demo shows the
+            result without any upload. On a phone it comes FIRST — the own
+            upload is the weaker action there (0 of 11 mobile visitors picked
+            files in the September test), while the example works anywhere. */}
+        <div className="mt-6 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
           <Link
             href={`/${locale}/demo`}
-            className="rounded-full bg-indigo-600 px-8 py-3 text-lg font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-colors"
+            className="order-2 sm:order-1 rounded-full bg-indigo-600 px-8 py-3 text-lg font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-colors"
           >
             {t('cta')}
           </Link>
-          <a
-            href="#pricing"
-            className="text-lg font-semibold text-indigo-600 hover:text-indigo-700"
+          <SampleDemoLink
+            locale={locale}
+            className="order-1 sm:order-2 rounded-full border-2 border-indigo-600 bg-white dark:bg-zinc-900 px-8 py-2.5 text-lg font-semibold text-indigo-600 hover:bg-indigo-50 dark:hover:bg-zinc-800 transition-colors"
           >
-            {t('ctaSecondary')} &darr;
-          </a>
+            {t('ctaSample')}
+          </SampleDemoLink>
         </div>
+        <a
+          href="#pricing"
+          className="mt-4 inline-block text-base font-semibold text-indigo-600 hover:text-indigo-700"
+        >
+          {t('ctaSecondary')} &darr;
+        </a>
         {/* The privacy promise used to open the subtitle, two lines above the
             fold, answering a question nobody had asked yet. It belongs here
             instead: short, specific, and at the moment someone hesitates over

@@ -9,7 +9,7 @@
     "readMore": "Read guide",
     "backHome": "Back to home",
     "ctaText": "Let ShortlistBuddy do the first pass — turn your holiday photos into a reviewable shortlist in minutes.",
-    "ctaButton": "Try the demo"
+    "ctaButton": "Try it with your photos"
   },
   "nav": {
     "home": "Home",
@@ -28,7 +28,8 @@
     "trustNote": "Only downscaled previews are analysed – your originals stay with you. No photos are stored permanently on our servers.",
     "cta": "Try free with 250 photos",
     "ctaSecondary": "See pricing",
-    "demoNote": "Beta test phase — try it free"
+    "demoNote": "Beta test phase — try it free",
+    "ctaSample": "See it with sample photos"
   },
   "howItWorks": {
     "title": "How it works",
@@ -483,5 +484,39 @@
     "alreadyBody": "Your account already has the {tier} plan with {photos} photos unlocked. The offer applies once per account; a second plan is not possible.",
     "alreadyCta": "Got it",
     "home": "Back to home"
+  },
+  "sampleDemo": {
+    "metaTitle": "See an example",
+    "badge": "Example",
+    "title": "This is what your result looks like",
+    "intro": "A year in photos: {total} pictures from {cameras} cameras – winter, a summer holiday and autumn in Japan. The selection is computed live in your browser: move the sliders and watch it change.",
+    "provenance": "The people, summer and winter photos are AI-generated – fictional people and places. The Japan photos are real: taken by the founder, downscaled and without location data.",
+    "loading": "Loading the example …",
+    "loadError": "The example could not be loaded. Please reload the page.",
+    "statTotal": "{count} photos",
+    "statSeries": "{count} series and near-duplicates collapsed",
+    "statSelected": "{count} selected",
+    "seriesBadge": "1 of {count}",
+    "seriesBadgeTitle": "Best shot out of {count} similar photos",
+    "controlsTitle": "Adjust the selection",
+    "controlsHint": "Everything updates instantly – no new analysis.",
+    "size": "How many photos?",
+    "sizeValue": "up to {percent}%",
+    "dedup": "Collapse similar photos",
+    "dedupLenient": "lenient",
+    "dedupStrict": "strict",
+    "motifs": "What matters to you",
+    "reset": "Reset",
+    "showRejected": "Show rejected photos ({count})",
+    "hideRejected": "Hide rejected photos",
+    "rejectedLabel": "rejected",
+    "enlargeHint": "Tap a photo to see it large – and add it to or remove it from the selection.",
+    "ctaTitle": "Now with your own photos?",
+    "ctaBody": "Free for up to 250 photos. Your originals stay with you – only downscaled previews are analysed.",
+    "ctaButton": "Try it with your photos",
+    "ctaMobileHint": "Best on a computer – that's where all your photos are, and choosing is more fun.",
+    "back": "Back to home",
+    "moreSettings": "More settings",
+    "lessSettings": "Fewer settings"
   }
 }

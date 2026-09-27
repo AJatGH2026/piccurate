@@ -52,8 +52,12 @@ export function FeedbackWidget() {
 
   if (embedded) return null;
 
+  // The sample demo has a control bar fixed to the bottom edge on phones; sit
+  // above it there instead of on top of its "more settings" button.
+  const aboveSampleBar = !!pathname?.endsWith('/demo/beispiel');
+
   return (
-    <div className="fixed bottom-4 left-4 z-40 print:hidden">
+    <div className={`fixed ${aboveSampleBar ? 'bottom-44 lg:bottom-4' : 'bottom-4'} left-4 z-40 print:hidden`}>
       {open ? (
         <div className="w-72 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg p-4">
           <div className="flex items-center justify-between">
