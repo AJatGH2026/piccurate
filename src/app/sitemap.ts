@@ -17,6 +17,7 @@ const REVISED = {
   landing: '2026-09-05',
   guidesIndex: '2026-07-26',
   legal: '2026-08-30',
+  press: '2026-09-28',
 } as const;
 
 // Public marketing/content pages (path suffix after the locale), with a
@@ -26,6 +27,7 @@ const REVISED = {
 const PAGES: { path: string; priority: number; lastModified: string }[] = [
   { path: '', priority: 1.0, lastModified: REVISED.landing }, // landing
   { path: '/guides', priority: 0.6, lastModified: REVISED.guidesIndex }, // guides index (shared slug)
+  { path: '/press', priority: 0.4, lastModified: REVISED.press },
   { path: '/privacy', priority: 0.3, lastModified: REVISED.legal },
   { path: '/terms', priority: 0.3, lastModified: REVISED.legal },
   { path: '/imprint', priority: 0.3, lastModified: REVISED.legal },

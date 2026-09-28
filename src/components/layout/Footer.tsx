@@ -24,6 +24,9 @@ export function Footer({ locale }: { locale: string }) {
           <Link href={`/${locale}/guides`} className="hover:text-zinc-900 dark:hover:text-zinc-100">
             {t('guides')}
           </Link>
+          <Link href={`/${locale}/press`} className="hover:text-zinc-900 dark:hover:text-zinc-100">
+            {t('press')}
+          </Link>
           <Link href={`/${locale}/privacy`} className="hover:text-zinc-900 dark:hover:text-zinc-100">
             {t('privacy')}
           </Link>

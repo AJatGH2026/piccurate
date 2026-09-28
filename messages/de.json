@@ -446,7 +446,8 @@
     "terms": "Nutzungsbedingungen",
     "withdrawal": "Vertrag widerrufen",
     "imprint": "Impressum",
-    "copyright": "© {year} AuswahlBuddy. Alle Rechte vorbehalten."
+    "copyright": "© {year} AuswahlBuddy. Alle Rechte vorbehalten.",
+    "press": "Presse"
   },
   "checkout": {
     "title": "Tarif {tier} kaufen",

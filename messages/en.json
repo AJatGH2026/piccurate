@@ -446,7 +446,8 @@
     "terms": "Terms of Service",
     "withdrawal": "Withdraw from contract",
     "imprint": "Imprint",
-    "copyright": "© {year} ShortlistBuddy. All rights reserved."
+    "copyright": "© {year} ShortlistBuddy. All rights reserved.",
+    "press": "Press"
   },
   "checkout": {
     "title": "Buy the {tier} plan",
