@@ -8,7 +8,7 @@
 // is uploaded" is false: the 512 px previews go to the AI provider).
 // Deliberately NOT claimed: reliable closed-eyes detection (measured unreliable
 // 2026-09-27), prices of the paid tiers (not on sale), anything about the
-// founder beyond his name.
+// founder (his name was taken out of the release too — decision AJ 2026-09-28).
 
 export const PRESS_REVISED = '2026-09-28';
 
@@ -36,7 +36,6 @@ type PressText = {
   videoLinks: string;
   screenshotsTitle: string;
   screenshotsNote: string;
-  zip: string;
   logo: string;
   contactTitle: string;
   contactText: string;
@@ -56,7 +55,7 @@ export const PRESS: Record<'de' | 'en', PressText> = {
     body: [
       'Die Web-Anwendung AuswahlBuddy nimmt diesen ersten Durchgang ab. Nutzer wählen ihre Fotos im Browser aus – auch nacheinander aus mehreren Ordnern oder aus Dropbox. Die Anwendung fasst Serien und ähnliche Aufnahmen zusammen, auch wenn sie von verschiedenen Kameras stammen, bewertet Schärfe und Bildwirkung und schlägt eine Auswahl vor. Wie groß sie wird und worauf es ankommt – Menschen, Tiere, Landschaft, Essen –, steuern Nutzer per Regler. Jedes Foto bleibt prüfbar; gelöscht wird nichts.',
       'Die Originale verlassen dabei das eigene Gerät nicht. Zur KI-Analyse gehen nur verkleinerte Vorschaubilder (höchstens 512 × 512 Pixel), die nicht dauerhaft gespeichert werden. Eine optionale Personensuche läuft vollständig auf dem eigenen Gerät. Für Analyse und Ergebnis ist kein Konto nötig, erst für den Download der Auswahl.',
-      'Wer das Prinzip ohne eigene Fotos sehen möchte, findet auf der Website eine Demo mit 101 Beispielfotos. AuswahlBuddy befindet sich in einer öffentlichen Beta und ist bis 250 Fotos kostenlos. Entwickelt hat es Andreas Jahnke.',
+      'Wer das Prinzip ohne eigene Fotos sehen möchte, findet auf der Website eine Demo mit 101 Beispielfotos. AuswahlBuddy befindet sich in einer öffentlichen Beta und ist bis 250 Fotos kostenlos.',
     ],
     demoCta: 'Demo ansehen',
     factsTitle: 'Fakten',
@@ -76,7 +75,6 @@ export const PRESS: Record<'de' | 'en', PressText> = {
     screenshotsTitle: 'Screenshots',
     screenshotsNote:
       'Frei zur redaktionellen Verwendung im Zusammenhang mit AuswahlBuddy. Die Beispielfotos sind teils KI-generiert (fiktive Personen und Orte); die Japanfotos sind echt.',
-    zip: 'Alle Screenshots als ZIP',
     logo: 'App-Symbol (PNG)',
     contactTitle: 'Kontakt',
     contactText: 'Für Fragen, Gespräche oder einen Testzugang schreiben Sie uns:',
@@ -94,7 +92,7 @@ export const PRESS: Record<'de' | 'en', PressText> = {
     body: [
       'The web app ShortlistBuddy takes on that first pass. Users pick their photos in the browser – from several folders one after another, or from Dropbox. The app collapses bursts and near-duplicates, even across different cameras, rates sharpness and visual appeal, and proposes a selection. How big it gets and what matters – people, animals, landscapes, food – is up to the user, via sliders. Every photo stays checkable; nothing is deleted.',
       'The originals never leave the device. Only downscaled previews (at most 512 × 512 pixels) are sent for the AI analysis, and they are not stored permanently. An optional person search runs entirely on the device. No account is needed to analyse and see the result – only to download the selection.',
-      'A demo with 101 sample photos shows the principle without uploading anything. ShortlistBuddy is in public beta and free for up to 250 photos. It was built by Andreas Jahnke.',
+      'A demo with 101 sample photos shows the principle without uploading anything. ShortlistBuddy is in public beta and free for up to 250 photos.',
     ],
     demoCta: 'See the demo',
     factsTitle: 'Facts',
@@ -114,7 +112,6 @@ export const PRESS: Record<'de' | 'en', PressText> = {
     screenshotsTitle: 'Screenshots',
     screenshotsNote:
       'Free for editorial use in connection with ShortlistBuddy. The sample photos are partly AI-generated (fictional people and places); the Japan photos are real.',
-    zip: 'All screenshots as ZIP',
     logo: 'App icon (PNG)',
     contactTitle: 'Contact',
     contactText: 'For questions, interviews or test access, write to us:',

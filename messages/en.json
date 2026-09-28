@@ -517,13 +517,12 @@
     "ctaButton": "Try it with your photos",
     "ctaMobileHint": "Best on a computer – that's where all your photos are, and choosing is more fun.",
     "back": "Back to home",
-    "moreSettings": "More settings",
-    "lessSettings": "Fewer settings",
     "introTitle": "Two weeks of holiday. Four phones. 5,000 photos.",
     "introText": "That's what a family holiday quickly turns into: lots of bursts and similar shots of the same scene from several phones, blurry or dark photos and someone always has their eyes closed. ShortlistBuddy helps you pick the best photos. The demo shows the principle on {total} sample photos.",
     "selectButton": "Pick the best photos",
     "selectHint": "The AI analysis of these sample photos has already run – one click shows you the result.",
-    "backToAll": "All {total} photos"
+    "backToAll": "All {total} photos",
+    "jumpToSettings": "All settings ↓"
   },
   "videoBlock": {
     "title": "How it works – in under a minute",

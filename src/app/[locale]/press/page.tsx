@@ -114,9 +114,10 @@ export default async function PressPage({ params }: Props) {
             </a>
           ))}
         </div>
+        {/* No ZIP of all screenshots: *.zip is blocked by both .gitignore and the
+            pre-push hook (guards against backups/exports), and the link went
+            live as a 404 on 2026-09-28. The six files are linked one by one above. */}
         <p className="mt-4 text-sm">
-          <a href={`/press/screenshots-${lang}.zip`} download className="text-indigo-600 hover:text-indigo-700">{t.zip}</a>
-          <span className="mx-2 text-zinc-300">·</span>
           <a href="/icon-512x512.png" download className="text-indigo-600 hover:text-indigo-700">{t.logo}</a>
         </p>
 

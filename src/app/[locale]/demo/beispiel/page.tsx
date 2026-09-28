@@ -56,7 +56,6 @@ export default function SampleDemoPage() {
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
   const [showRejected, setShowRejected] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [showMore, setShowMore] = useState(false);
   const resultTracked = useRef(false);
   // Phone-like device → "best on a computer" hint under the CTA. Read through
   // useSyncExternalStore so the prerendered HTML (server: false) hydrates cleanly.
@@ -291,11 +290,7 @@ export default function SampleDemoPage() {
         </div>
       </div>
 
-      {/* On a phone only the size card shows up front; desktop shows all. */}
-      <button onClick={() => setShowMore((s) => !s)} className="text-xs font-medium text-indigo-600 lg:hidden">
-        {showMore ? t('lessSettings') : t('moreSettings')}
-      </button>
-      <div className={`space-y-3 ${showMore ? 'block' : 'hidden lg:block'}`}>
+      <div className="space-y-3">
         <div className={CARD}>
           <h3 className="font-medium text-zinc-900 dark:text-zinc-100">{tc('dedup')}</h3>
           <p className="text-sm text-zinc-500 mt-0.5">{tc('dedupDesc')}</p>
@@ -389,8 +384,7 @@ export default function SampleDemoPage() {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {header}
-      {/* Bottom padding on a phone keeps the last photos clear of the fixed control bar. */}
-      <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-6 pb-56 lg:py-8">
+      <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-6 pb-16 lg:py-8">
         <button onClick={() => setStage('before')} className="text-sm text-indigo-600 hover:text-indigo-700">
           ← {t('backToAll', { total: photos.length })}
         </button>
@@ -413,18 +407,39 @@ export default function SampleDemoPage() {
           </span>
         </div>
 
+        {/* Phone: a slim bar that stays on top while scrolling — count + size
+            slider, so the effect is visible on the photos right away, and a jump
+            to all settings. The earlier bottom sheet covered the photos and the
+            CTA once expanded (feedback AJ 2026-09-28). */}
+        <div className="lg:hidden sticky top-0 z-30 -mx-4 mt-4 px-4 py-2 bg-indigo-600 text-white shadow-md">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold whitespace-nowrap">{t('statSelected', { count: selectedCount })}</span>
+            <input
+              type="range" min="1" max="30"
+              value={criteria.selectionPercentage}
+              onChange={(e) => setCriteria((c) => ({ ...c, selectionPercentage: Number(e.target.value) }))}
+              className="flex-1 h-1.5 rounded-full appearance-none bg-indigo-300 accent-white"
+              aria-label={tc('selectionPercentage')}
+            />
+            <a href="#settings" className="text-xs font-medium underline underline-offset-2 whitespace-nowrap">
+              {t('jumpToSettings')}
+            </a>
+          </div>
+        </div>
+
         <div className="mt-6 flex flex-col lg:flex-row gap-8">
           {/* Desktop: sticky sidebar that scrolls INSIDE itself when taller than
               the window — at 100 % zoom its end (and the CTA) was out of reach
-              (feedback AJ 2026-09-27). Phone: a bar fixed to the bottom edge. */}
-          <aside className="fixed inset-x-0 bottom-0 z-40 lg:static lg:z-auto lg:order-2 lg:w-80 flex-shrink-0">
-            <div className="max-h-[70vh] overflow-y-auto rounded-t-2xl border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:pr-1 lg:shadow-none">
+              (feedback AJ 2026-09-27). Phone: an ordinary, clearly coloured
+              card after the photos and directly above the CTA. */}
+          <aside id="settings" className="order-2 lg:w-80 flex-shrink-0 scroll-mt-16">
+            <div className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-4 dark:border-indigo-800 dark:bg-indigo-950/40 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:pr-1 lg:dark:bg-transparent">
               {controls}
               <div className="mt-4 hidden lg:block">{cta}</div>
             </div>
           </aside>
 
-          <section className="flex-1 lg:order-1 min-w-0">
+          <section className="order-1 flex-1 min-w-0">
             <p className="text-xs text-zinc-500">{t('enlargeHint')}</p>
             {groups.map(([date, group]) => {
               const shown = group.filter((p) => p.selected || showRejected);
@@ -481,10 +496,11 @@ export default function SampleDemoPage() {
             >
               {showRejected ? t('hideRejected') : t('showRejected', { count: rejectedCount })}
             </button>
-
-            <div className="mt-8 lg:hidden">{cta}</div>
           </section>
         </div>
+
+        {/* Phone: the CTA comes after the settings card, as the last step. */}
+        <div className="mt-8 lg:hidden">{cta}</div>
       </main>
 
       {lightboxIndex !== null && lightboxIndex >= 0 && (

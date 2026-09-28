@@ -517,13 +517,12 @@
     "ctaButton": "Jetzt mit deinen Fotos testen",
     "ctaMobileHint": "Am besten am Computer – dort liegen alle Fotos, und die Auswahl macht mehr Spaß.",
     "back": "Zur Startseite",
-    "moreSettings": "Mehr Einstellungen",
-    "lessSettings": "Weniger Einstellungen",
     "introTitle": "Zwei Wochen Urlaub. Vier Handys. 5.000 Fotos.",
     "introText": "So sieht es nach einem Familienurlaub schnell aus: Viele Serienfotos und ähnliche Bilder derselben Szene von mehreren Handys, unscharfe oder dunkle Fotos und einer hat immer die Augen zu. Der AuswahlBuddy hilft, die besten Fotos auszuwählen. Die Demo zeigt das Prinzip an {total} Beispielfotos.",
     "selectButton": "Beste Fotos auswählen",
     "selectHint": "Die KI-Analyse dieser Beispielfotos ist schon gelaufen – ein Klick zeigt dir das Ergebnis.",
-    "backToAll": "Alle {total} Fotos"
+    "backToAll": "Alle {total} Fotos",
+    "jumpToSettings": "Alle Einstellungen ↓"
   },
   "videoBlock": {
     "title": "So funktioniert's – in unter einer Minute",
