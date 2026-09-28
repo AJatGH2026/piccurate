@@ -37,6 +37,8 @@ type PressText = {
   screenshotsTitle: string;
   screenshotsNote: string;
   logo: string;
+  close: string;
+  download: string;
   contactTitle: string;
   contactText: string;
   revised: string;
@@ -76,6 +78,8 @@ export const PRESS: Record<'de' | 'en', PressText> = {
     screenshotsNote:
       'Frei zur redaktionellen Verwendung im Zusammenhang mit AuswahlBuddy. Die Beispielfotos sind teils KI-generiert (fiktive Personen und Orte); die Japanfotos sind echt.',
     logo: 'App-Symbol (PNG)',
+    close: 'Schließen',
+    download: 'Bild herunterladen',
     contactTitle: 'Kontakt',
     contactText: 'Für Fragen, Gespräche oder einen Testzugang schreiben Sie uns:',
     revised: 'Stand: 28. September 2026',
@@ -113,6 +117,8 @@ export const PRESS: Record<'de' | 'en', PressText> = {
     screenshotsNote:
       'Free for editorial use in connection with ShortlistBuddy. The sample photos are partly AI-generated (fictional people and places); the Japan photos are real.',
     logo: 'App icon (PNG)',
+    close: 'Close',
+    download: 'Download image',
     contactTitle: 'Contact',
     contactText: 'For questions, interviews or test access, write to us:',
     revised: 'As of 28 September 2026',

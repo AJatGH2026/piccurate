@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -7,6 +6,7 @@ import { brandName } from '@/lib/brand';
 import { routing } from '../../../../i18n/routing';
 import { PRESS, PRESS_SCREENSHOTS } from '@/content/press';
 import { LandingVideo } from '@/components/landing/LandingVideo';
+import { PressGallery } from '@/components/press/PressGallery';
 
 // Press page: release, facts, video, screenshots, contact — the one link a
 // journalist needs (Presseansprache, 2026-09-27). Indexable on purpose, unlike
@@ -101,19 +101,11 @@ export default async function PressPage({ params }: Props) {
 
         <h3 className="mt-10 font-semibold text-zinc-900 dark:text-zinc-100">{t.screenshotsTitle}</h3>
         <p className="mt-1 text-sm text-zinc-500">{t.screenshotsNote}</p>
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {PRESS_SCREENSHOTS.map((s) => (
-            <a key={s.file} href={`/press/${lang}-${s.file}.jpg`} target="_blank" rel="noopener" className="group block">
-              <img
-                src={`/press/${lang}-${s.file}.jpg`}
-                alt={s[lang]}
-                loading="lazy"
-                className="aspect-[16/10] w-full rounded-lg object-cover object-top ring-1 ring-black/10 group-hover:ring-indigo-400"
-              />
-              <span className="mt-1 block text-xs text-zinc-500">{s[lang]}</span>
-            </a>
-          ))}
-        </div>
+        <PressGallery
+          shots={PRESS_SCREENSHOTS.map((s) => ({ src: `/press/${lang}-${s.file}.jpg`, label: s[lang] }))}
+          closeLabel={t.close}
+          downloadLabel={t.download}
+        />
         {/* No ZIP of all screenshots: *.zip is blocked by both .gitignore and the
             pre-push hook (guards against backups/exports), and the link went
             live as a 404 on 2026-09-28. The six files are linked one by one above. */}
