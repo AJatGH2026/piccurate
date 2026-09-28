@@ -14,7 +14,10 @@ import { LandingVideo } from '@/components/landing/LandingVideo';
 
 type Props = { params: Promise<{ locale: string }> };
 
-const CONTACT = 'contact@auswahlbuddy.de'; // the address the imprint already publishes
+// The address and number the imprint already publishes (phone on the press
+// page: decision AJ 2026-09-28).
+const CONTACT = 'contact@auswahlbuddy.de';
+const PHONE = '+49 155 61229658';
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -122,6 +125,10 @@ export default async function PressPage({ params }: Props) {
         <p className="mt-2 text-zinc-600 dark:text-zinc-400">
           {t.contactText}{' '}
           <a href={`mailto:${CONTACT}`} className="font-medium text-indigo-600 hover:text-indigo-700">{CONTACT}</a>
+        </p>
+        <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+          {locale === 'de' ? 'Telefon' : 'Phone'}:{' '}
+          <a href={`tel:${PHONE.replace(/\s/g, '')}`} className="font-medium text-indigo-600 hover:text-indigo-700">{PHONE}</a>
         </p>
         <p className="mt-10 text-xs text-zinc-400">{t.revised}</p>
       </main>
