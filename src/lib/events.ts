@@ -76,6 +76,8 @@ export const ALLOWED_EVENTS = new Set([
   'sample_demo_intro_view',
   'sample_demo_results_view',
   'sample_demo_to_upload',
+  // Explainer video on the landing page (self-hosted), first play per page view.
+  'video_play',
   'files_selected',
   'file_transfer_ready',
   'cloud_intent_click',

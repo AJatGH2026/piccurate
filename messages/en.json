@@ -519,9 +519,20 @@
     "moreSettings": "More settings",
     "lessSettings": "Fewer settings",
     "introTitle": "Two weeks of holiday. Four phones. 5,000 photos.",
-    "introText": "That's what a family holiday quickly turns into: bursts, the same scene from several phones, shaky and accidental shots. This demo shows the principle on an excerpt: {total} sample photos.",
+    "introText": "That's what a family holiday quickly turns into: lots of bursts and similar shots of the same scene from several phones, blurry or dark photos and someone always has their eyes closed. ShortlistBuddy helps you pick the best photos. The demo shows the principle on {total} sample photos.",
     "selectButton": "Pick the best photos",
     "selectHint": "The AI analysis of these sample photos has already run – one click shows you the result.",
     "backToAll": "All {total} photos"
+  },
+  "videoBlock": {
+    "title": "How it works – in under a minute",
+    "videoLabel": "Explainer video: ShortlistBuddy picks the best of your holiday photos",
+    "p1Strong": "Your originals stay with you.",
+    "p1": "Only downscaled previews are analysed.",
+    "p2Strong": "Nothing is stored permanently on our side.",
+    "p2": "Previews only for the duration of the analysis.",
+    "p3Strong": "No account needed to see the result.",
+    "p3": "You only need one to download.",
+    "privacyLink": "How we handle your photos"
   }
 }

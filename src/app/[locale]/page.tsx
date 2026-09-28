@@ -12,6 +12,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { LogoutButton } from '@/components/auth/LogoutButton';
 import { TrackLandingView } from '@/components/analytics/TrackLandingView';
 import { SampleDemoLink } from '@/components/analytics/SampleDemoLink';
+import { LandingVideo } from '@/components/landing/LandingVideo';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -137,6 +138,9 @@ export default async function LandingPage({ params }: Props) {
 
       {/* Hero */}
       <HeroSection locale={locale} />
+
+      {/* Explainer video + the privacy promise in three lines */}
+      <VideoSection locale={locale} />
 
       {/* How It Works */}
       <HowItWorksSection />
@@ -300,6 +304,52 @@ function HeroSection({ locale }: { locale: string }) {
             />
           </div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+function VideoSection({ locale }: { locale: string }) {
+  const t = useTranslations('videoBlock');
+  const lang = locale === 'de' ? 'de' : 'en';
+  // The three privacy lines follow the wording checked against the privacy
+  // policy (§ 4, § 5, § 11) — Umsetzungsplan Null-Aufwand-Demo § 7. Change them
+  // only together with that check: an overstated privacy claim is a
+  // misleading advertising claim.
+  const lines = [
+    [t('p1Strong'), t('p1')],
+    [t('p2Strong'), t('p2')],
+    [t('p3Strong'), t('p3')],
+  ];
+  return (
+    <section className="py-16 bg-white dark:bg-zinc-950">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <h2 className="text-center text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100">{t('title')}</h2>
+        <div className="mt-10 grid gap-10 lg:grid-cols-5 lg:items-center">
+          <div className="lg:col-span-3">
+            <LandingVideo
+              locale={locale}
+              src={`/video/demo-${lang}.mp4`}
+              poster={`/video/demo-${lang}-poster.jpg`}
+              label={t('videoLabel')}
+            />
+          </div>
+          <ul className="lg:col-span-2 space-y-5">
+            {lines.map(([strong, rest]) => (
+              <li key={strong} className="flex gap-3">
+                <span aria-hidden="true" className="mt-1 text-indigo-600">✓</span>
+                <p className="text-zinc-600 dark:text-zinc-400">
+                  <strong className="font-semibold text-zinc-900 dark:text-zinc-100">{strong}</strong> {rest}
+                </p>
+              </li>
+            ))}
+            <li>
+              <Link href={`/${locale}/privacy`} className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
+                {t('privacyLink')} →
+              </Link>
+            </li>
+          </ul>
+        </div>
       </div>
     </section>
   );

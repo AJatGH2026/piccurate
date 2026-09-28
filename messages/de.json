@@ -519,9 +519,20 @@
     "moreSettings": "Mehr Einstellungen",
     "lessSettings": "Weniger Einstellungen",
     "introTitle": "Zwei Wochen Urlaub. Vier Handys. 5.000 Fotos.",
-    "introText": "So sieht es nach einem Familienurlaub schnell aus: Serien, dieselbe Szene von mehreren Handys, Verwackeltes und Versehentliches. Die Demo zeigt das Prinzip an einem Ausschnitt: {total} Beispielfotos.",
+    "introText": "So sieht es nach einem Familienurlaub schnell aus: Viele Serienfotos und ähnliche Bilder derselben Szene von mehreren Handys, unscharfe oder dunkle Fotos und einer hat immer die Augen zu. Der AuswahlBuddy hilft, die besten Fotos auszuwählen. Die Demo zeigt das Prinzip an {total} Beispielfotos.",
     "selectButton": "Beste Fotos auswählen",
     "selectHint": "Die KI-Analyse dieser Beispielfotos ist schon gelaufen – ein Klick zeigt dir das Ergebnis.",
     "backToAll": "Alle {total} Fotos"
+  },
+  "videoBlock": {
+    "title": "So funktioniert's – in unter einer Minute",
+    "videoLabel": "Erklärvideo: AuswahlBuddy wählt aus Urlaubsfotos die besten aus",
+    "p1Strong": "Deine Originale bleiben bei dir.",
+    "p1": "Analysiert werden nur verkleinerte Vorschaubilder.",
+    "p2Strong": "Nichts wird dauerhaft bei uns gespeichert.",
+    "p2": "Vorschaubilder nur für die Dauer der Analyse.",
+    "p3Strong": "Kein Konto nötig, um das Ergebnis zu sehen.",
+    "p3": "Ein Konto brauchst du erst für den Download.",
+    "privacyLink": "Wie wir mit deinen Fotos umgehen"
   }
 }
