@@ -111,6 +111,16 @@ interface PhotoStore {
    */
   contract: { jobId: string; tier: string; photoLimit: number; placedAt: string } | null;
   setContract: (c: { jobId: string; tier: string; photoLimit: number; placedAt: string } | null) => void;
+  /**
+   * Photos the AI provider refused to rate in the last analysis run (Gemini
+   * answers "PROHIBITED_CONTENT" for a whole batch when one photo trips its
+   * filter). Found by splitting the batch until the single photo is isolated —
+   * see the analysis run in app/configure. Shown on /review by file name so the
+   * owner can look at them: the filter gives no reason, and it is sometimes
+   * wrong. Session-only, like everything else here.
+   */
+  skippedPhotos: { id: string; filename: string }[];
+  setSkippedPhotos: (list: { id: string; filename: string }[]) => void;
   /** Custom terms present at the last analysis (to detect when re-analysis is needed). */
   analyzedCustomTerms: string[];
   /**
@@ -680,6 +690,8 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
   setActiveJobId: (jobId) => set({ activeJobId: jobId }),
   contract: null,
   setContract: (c) => set({ contract: c }),
+  skippedPhotos: [],
+  setSkippedPhotos: (list) => set({ skippedPhotos: list }),
   analyzedCustomTerms: [],
   persons: [],
   analyzedPersons: [],
@@ -768,6 +780,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       // photos, so it must not be reused for this one.
       activeJobId: null,
       contract: null,
+      skippedPhotos: [],
     }));
   },
 
@@ -949,6 +962,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       embeddingsPending: 0,
       activeJobId: null,
       contract: null,
+      skippedPhotos: [],
       persons: [],
       analyzedCustomTerms: [],
       analyzedPersons: [],

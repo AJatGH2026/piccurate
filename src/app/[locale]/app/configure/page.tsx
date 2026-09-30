@@ -1086,8 +1086,17 @@ export default function ConfigurePage() {
                 // whenever progress first reaches or passes it.
                 const progressFired = { 25: false, 50: false, 75: false };
 
-                const runBatch = async (b: number) => {
-                  const batch = toAnalyze.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE);
+                // Photos Gemini refuses to rate, found by isolation (see
+                // analyseChunk). Collected here, shown on /review by file name.
+                const skipped: { id: string; filename: string }[] = [];
+                // Which photo ids each batch actually got results for. Usually
+                // all of them; fewer when isolation had to skip some.
+                const batchIds: string[][] = new Array(totalBatches);
+
+                // One request: the given photos to /api/analyze-demo, results
+                // in the same order. Throws HttpError (status from the server)
+                // or the browser's own TypeError when the request never arrived.
+                const sendChunk = async (batch: typeof toAnalyze): Promise<any[]> => {
                   const formData = new FormData();
                   formData.append('jobId', jobId);
                   // Consent attestation — this fetch only runs when the UI's
@@ -1147,7 +1156,66 @@ export default function ConfigurePage() {
                     throw new HttpError(err.error || 'Analysis failed', response.status);
                   }
                   const data = await response.json();
-                  batchResults[b] = data.results;
+                  if (!Array.isArray(data.results) || data.results.length !== batch.length) {
+                    throw new HttpError('Analysis returned an unexpected result', 502);
+                  }
+                  return data.results;
+                };
+
+                const pause = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+                // A request that never arrived, or a 5xx that is the server's
+                // hiccup rather than a verdict on the photos, is worth a short
+                // retry before it ends the run. Until 2026-09-30 the first such
+                // failure stopped all five workers ("Failed to fetch" at batch 0
+                // of 185, 2026-09-30). Everything else — payment, access, limits —
+                // is a real answer and is not retried.
+                const isTransient = (e: unknown) =>
+                  e instanceof TypeError ||
+                  (e instanceof HttpError && (e.status === 500 || e.status === 502 || e.status === 504));
+                const sendWithRetry = async (chunk: typeof toAnalyze): Promise<any[]> => {
+                  for (let attempt = 0; ; attempt++) {
+                    try {
+                      return await sendChunk(chunk);
+                    } catch (e) {
+                      if (attempt >= 2 || !isTransient(e)) throw e;
+                      await pause(1500 * (attempt + 1));
+                    }
+                  }
+                };
+                // Gemini blocks a WHOLE batch with 422 (PROHIBITED_CONTENT) as soon
+                // as one photo in it trips its filter, and names no photo. Seen on
+                // 2026-09-30: roughly 4 in 10 batches of a 4,500-photo set, and the
+                // first refusal stopped the run — so every retry ended at the same
+                // spot after ~60 photos. Now the batch is split in halves, down to
+                // the single photo, which is skipped and reported; the rest is
+                // analysed normally. Costs extra requests only where a block occurs.
+                const analyseChunk = async (
+                  chunk: typeof toAnalyze
+                ): Promise<{ results: any[]; ids: string[] }> => {
+                  try {
+                    const results = await sendWithRetry(chunk);
+                    return { results, ids: chunk.map((p) => p.id) };
+                  } catch (e) {
+                    if (!(e instanceof HttpError && e.status === 422)) throw e;
+                    if (chunk.length === 1) {
+                      skipped.push({ id: chunk[0].id, filename: chunk[0].filename });
+                      return { results: [], ids: [] };
+                    }
+                    const mid = Math.ceil(chunk.length / 2);
+                    const first = await analyseChunk(chunk.slice(0, mid));
+                    const second = await analyseChunk(chunk.slice(mid));
+                    return {
+                      results: [...first.results, ...second.results],
+                      ids: [...first.ids, ...second.ids],
+                    };
+                  }
+                };
+
+                const runBatch = async (b: number) => {
+                  const batch = toAnalyze.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE);
+                  const out = await analyseChunk(batch);
+                  batchResults[b] = out.results;
+                  batchIds[b] = out.ids;
                   done++;
                   analysisProgressRef.current.done = done;
                   setBatchProgress({ done, total: totalBatches });
@@ -1206,19 +1274,22 @@ export default function ConfigurePage() {
                   const res = batchResults[b];
                   if (!res) continue;
                   flatResults.push(...res);
-                  analysedIds.push(
-                    ...toAnalyze.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE).map((p) => p.id)
-                  );
+                  analysedIds.push(...batchIds[b]);
                 }
 
-                // Nothing survived — then it really is a plain failure.
+                // Nothing survived — then it really is a plain failure. When the
+                // reason is that the provider refused every photo, say so (the
+                // 'blocked' class has its own sentence).
                 if (flatResults.length === 0) {
-                  throw failureErr instanceof Error ? failureErr : new Error(failure ?? 'Analysis failed');
+                  if (failureErr instanceof Error) throw failureErr;
+                  if (skipped.length > 0) throw new HttpError('AI provider blocked this batch', 422);
+                  throw new Error(failure ?? 'Analysis failed');
                 }
 
                 // No label→name mapping any more: the model is not asked about
                 // people at all, and the store ignores any `persons` it returns.
                 applyAnalysisResults(flatResults, criteria, analysedIds);
+                usePhotoStore.getState().setSkippedPhotos(skipped);
                 trackEvent('analysis_complete', {
                   photos: analysedIds.length,
                   requested: toAnalyze.length,
@@ -1236,6 +1307,14 @@ export default function ConfigurePage() {
                     done: analysedIds.length,
                     total: toAnalyze.length,
                     error: failure,
+                  }));
+                } else if (skipped.length > 0) {
+                  // The names are on the next page; an alert is no place for a
+                  // list of a hundred file names.
+                  alert(t('analysisSkipped', {
+                    done: analysedIds.length,
+                    total: toAnalyze.length,
+                    skipped: skipped.length,
                   }));
                 }
                 router.push(`/${locale}/app/review`);
