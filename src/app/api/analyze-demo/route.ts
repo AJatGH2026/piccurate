@@ -211,67 +211,12 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json({ error: ACCESS_ERRORS.paymentRequired }, { status: 402 });
     }
-    // The tier's photo limit, enforced across the whole job rather than per
-    // request — the client sends batches, so a per-request check would be
-    // trivially bypassed by splitting. Read-then-write races between concurrent
-    // batches can overshoot slightly; this is a budget guard, not a security
-    // boundary, and the per-IP/day caps below bound the damage.
+    // Beta cost/abuse guards (§10) run BEFORE the job is charged. They used to
+    // come after it, so a batch refused by the daily cap had already been taken
+    // off the job's allowance — harmless for a 250-photo free run, but a
+    // grant is a 30-day pot and losing photos from it to a refusal is not ok.
     //
-    // Charged per DISTINCT photo since 2026-08-29 (migration 007). Before that
-    // this reserved photo_count += files.length before calling Gemini, so an
-    // interrupted run left its quota spent on photos whose results never
-    // reached the browser, and the retry it explicitly invites ("you can catch
-    // up on the rest later") could not fit. Photos this job was already charged
-    // for are now free to resend.
-    const photoRefs = parsePhotoIds(formData.get('photoIds'), files.length);
-    let newRefs: string[] = [];
-    let charge = files.length;
-    if (photoRefs) {
-      const { data: charged } = await supabase
-        .from('job_photos')
-        .select('photo_ref')
-        .eq('job_id', job.id)
-        .in('photo_ref', photoRefs);
-      const already = new Set((charged ?? []).map((r) => r.photo_ref as string));
-      newRefs = [...new Set(photoRefs)].filter((ref) => !already.has(ref));
-      charge = newRefs.length;
-    }
-    // No usable ids (an older client, or a direct caller) falls back to
-    // charging every file — the conservative direction, so omitting them can
-    // never buy a bigger allowance than sending them.
-    if (job.photo_count + charge > job.photo_limit) {
-      return NextResponse.json(
-        { error: ACCESS_ERRORS.jobExhausted, limit: job.photo_limit },
-        { status: 402 }
-      );
-    }
-    // Ceiling on total work regardless of how the ids repeat — see
-    // SUBMISSION_ALLOWANCE_FACTOR.
-    const submitted = job.submitted_count ?? job.photo_count;
-    if (submitted + files.length > job.photo_limit * SUBMISSION_ALLOWANCE_FACTOR) {
-      return NextResponse.json(
-        { error: ACCESS_ERRORS.jobExhausted, limit: job.photo_limit },
-        { status: 402 }
-      );
-    }
-    if (newRefs.length) {
-      // Written before the analysis, like the counter it replaces: the cost is
-      // incurred by calling Gemini, so it must not be possible to run the batch
-      // without recording it.
-      await supabase
-        .from('job_photos')
-        .insert(newRefs.map((photo_ref) => ({ job_id: job.id, photo_ref })));
-    }
-    await supabase
-      .from('jobs')
-      .update({
-        photo_count: job.photo_count + charge,
-        submitted_count: submitted + files.length,
-        status: 'analyzing',
-      })
-      .eq('id', job.id);
-
-    // Beta cost/abuse guards (§10). Per-request cap first (cheap, always on).
+    // Per-request cap first (cheap, always on).
     if (files.length > BETA_MAX_PHOTOS_PER_REQUEST) {
       return NextResponse.json(
         { error: `Too many photos in one request (max ${BETA_MAX_PHOTOS_PER_REQUEST}).` },
@@ -293,23 +238,54 @@ export async function POST(request: NextRequest) {
     // reserve-then-check: we allow the request that crosses the line, block the
     // next (best-effort; exact fairness isn't worth a lock here).
     //
-    // A granted job raises its own ceiling to the allowance it was promised.
-    // The default cap is 750/day and the smallest grant is 1,000, so leaving it
-    // alone would refuse the offer we just made — the tester would be stopped
-    // three quarters of the way through the run they were invited to make.
-    // The grant is one per account and an account needs a confirmed address, so
-    // the ceiling cannot simply be reached again tomorrow by the same person.
-    const ipCap = job.beta_grant
-      ? Math.max(BETA_IP_DAILY_PHOTO_CAP, job.photo_limit)
-      : BETA_IP_DAILY_PHOTO_CAP;
-    if (ipCap > 0) {
+    // A grant job is not counted per connection at all (product-owner decision, 2026-09-30):
+    // its own allowance — one job per account, 30 days, charged atomically
+    // below — is the limit, and the global daily cap above still applies. The
+    // per-connection cap is for everything else, i.e. anonymous and free runs.
+    if (!job.beta_grant && BETA_IP_DAILY_PHOTO_CAP > 0) {
       const ipTotal = await reserveIpDailyPhotos(ip, files.length);
-      if (ipTotal != null && ipTotal - files.length >= ipCap) {
+      if (ipTotal != null && ipTotal - files.length >= BETA_IP_DAILY_PHOTO_CAP) {
         return NextResponse.json(
           { error: 'Daily limit reached for this connection. Please try again tomorrow.' },
           { status: 429, headers: { 'Retry-After': '3600' } }
         );
       }
+    }
+
+    // The job's allowance, enforced across the whole job rather than per
+    // request — the client sends batches, so a per-request check would be
+    // trivially bypassed by splitting. Charged per DISTINCT photo (migration
+    // 007): photos this job was already charged for are free to resend within
+    // the same session. Photo ids are random per browser session, and neither
+    // photos nor interim results are stored, so a NEW session counts afresh.
+    //
+    // One database call under a row lock (migration 009). The old
+    // read-then-write let the client's 5 parallel batches overwrite each other's
+    // count, which under-counted and could not carry a pot used from several
+    // devices. Written before the analysis: the cost is incurred by calling
+    // Gemini, so it must not be possible to run the batch without recording it.
+    // No usable ids (an older client, or a direct caller) charges every file —
+    // the conservative direction.
+    const photoRefs = parsePhotoIds(formData.get('photoIds'), files.length);
+    const { data: chargeRows, error: chargeError } = await supabase.rpc('charge_job_photos', {
+      p_job_id: job.id,
+      p_refs: photoRefs,
+      p_files: files.length,
+      p_factor: SUBMISSION_ALLOWANCE_FACTOR,
+    });
+    if (chargeError) {
+      console.error('[Demo Analyze] charge_job_photos failed:', chargeError.message);
+      return NextResponse.json({ error: 'Could not record the analysis. Please try again.' }, { status: 500 });
+    }
+    const charge = Array.isArray(chargeRows) ? chargeRows[0] : chargeRows;
+    if (!charge || charge.r_status === 'not_found') {
+      return NextResponse.json({ error: ACCESS_ERRORS.jobRequired }, { status: 404 });
+    }
+    if (charge.r_status !== 'ok') {
+      return NextResponse.json(
+        { error: ACCESS_ERRORS.jobExhausted, limit: job.photo_limit },
+        { status: 402 }
+      );
     }
 
     const metadata: {

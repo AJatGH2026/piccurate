@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analysisRequiresAccount, remainingPhotoBudget } from '@/lib/access';
 import { clientIp } from '@/lib/rate-limit';
+import { getGrantStatus } from '@/lib/grant';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 // Tells the browser whether a permanent account is required to run an analysis.
 // `ANALYSIS_REQUIRES_ACCOUNT` is deliberately server-side only so the browser
@@ -21,9 +23,28 @@ export async function GET(request: NextRequest) {
   // used to surface only at "Analysieren", after 250 photos had been read,
   // thumbnailed and compared. It is the caller's own allowance; a lookup
   // failure yields null and the page simply shows nothing.
-  const remainingToday = await remainingPhotoBudget(clientIp(request)).catch(() => null);
+  //
+  // A registered user with an active beta grant is measured against the rest of
+  // their allowance instead (`grant`), and only the global daily cap applies to
+  // `remainingToday` — the per-connection cap does not (2026-09-30, lib/grant.ts).
+  let grant: { tier: string; total: number; remaining: number; expiresAt: string } | null = null;
+  try {
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user && !user.is_anonymous) {
+      const g = await getGrantStatus(supabase, user.id);
+      if (g) grant = { tier: g.tier, total: g.total, remaining: g.remaining, expiresAt: g.expiresAt };
+    }
+  } catch {
+    grant = null;
+  }
+  const remainingToday = await remainingPhotoBudget(clientIp(request), { skipIp: !!grant }).catch(
+    () => null
+  );
   return NextResponse.json(
-    { accountRequired: analysisRequiresAccount(), remainingToday },
+    { accountRequired: analysisRequiresAccount(), remainingToday, grant },
     // No caching: flipping BETA_OPEN_ACCESS at sales launch must take effect for
     // the next visitor, not after a CDN TTL expires.
     { headers: { 'Cache-Control': 'no-store' } }

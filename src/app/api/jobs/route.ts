@@ -4,6 +4,7 @@ import { JobManager } from '@/services/job-manager';
 import type { CreateJobRequest, CreateJobResponse, ApiResponse } from '@/types/api';
 import type { Tier } from '@/types/job';
 import { analysisRequiresAccount, remainingPhotoBudget, ACCESS_ERRORS } from '@/lib/access';
+import { getGrantStatus } from '@/lib/grant';
 import { clientIp } from '@/lib/rate-limit';
 import { sendContractConfirmationOnce } from '@/lib/send-contract-confirmation';
 
@@ -43,33 +44,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Refuse a run the daily caps cannot finish, before a job exists and before
-    // a single token is spent. `photoCount` is advisory (the client's plan for
-    // this run); the per-request and per-IP caps in the analysis route remain
-    // the hard guards.
+    // A beta grant is a pot of photos held by ONE job for 30 days (lib/grant.ts).
+    // Whoever has an active one runs against it — whatever tier the client
+    // derived from its photo count, which only fits the purchase flow. Until
+    // 2026-09-30 the tier had to match the granted tier exactly, so a "Large"
+    // grant with 900 photos got a small job with no grant flag at all.
+    const grant = user.is_anonymous ? null : await getGrantStatus(supabase, user.id);
+
+    // Refuse a run the caps cannot finish, before a job exists and before a
+    // single token is spent. `photoCount` is advisory (the client's plan for
+    // this run); the checks in the analysis route remain the hard guards.
     //
-    // Skipped for a tier the user unlocked as a beta grant: the allowance is
-    // larger than the per-IP daily cap by design, so pre-flighting it against
-    // that cap would refuse the very run we invited them to make. The analysis
-    // route raises the same ceiling for granted jobs.
+    // A grant job is measured against what is left of its own allowance and the
+    // global daily cap — not against the per-connection cap, which would refuse
+    // the very run we invited them to make.
     const photoCount = Number((body as { photoCount?: number }).photoCount ?? 0);
-    let granted = false;
-    if (body.tier !== 'free') {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('beta_grant_tier')
-        .eq('id', user.id)
-        .maybeSingle();
-      granted = profile?.beta_grant_tier === body.tier;
+    if (grant && photoCount > grant.remaining) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: ACCESS_ERRORS.grantExhausted,
+          remaining: grant.remaining,
+          grantRemaining: true,
+        },
+        { status: 402 }
+      );
     }
-    if (photoCount > 0 && !granted) {
-      const remaining = await remainingPhotoBudget(clientIp(request));
+    if (photoCount > 0) {
+      const remaining = await remainingPhotoBudget(clientIp(request), { skipIp: !!grant });
       if (remaining != null && photoCount > remaining) {
         return NextResponse.json(
           { success: false, error: ACCESS_ERRORS.budgetExceeded, remaining },
           { status: 429, headers: { 'Retry-After': '3600' } }
         );
       }
+    }
+
+    // The grant's job already exists (an earlier session, or another device on
+    // the same account): use it rather than open a second one.
+    if (grant?.jobId) {
+      return NextResponse.json<ApiResponse<CreateJobResponse>>(
+        {
+          success: true,
+          data: { jobId: grant.jobId, tier: grant.tier, photoLimit: grant.total, requiresPayment: false },
+        },
+        { status: 200 }
+      );
     }
 
     // The language this contract is being concluded in. Computed before the job
@@ -108,7 +128,35 @@ export async function POST(request: NextRequest) {
     }
 
     const jobManager = new JobManager(supabase);
-    const job = await jobManager.createJob(user.id, body.tier);
+    let job;
+    if (grant) {
+      try {
+        job = await jobManager.createJob(user.id, grant.tier, {
+          photoLimit: grant.total,
+          expiresAt: grant.expiresAt,
+        });
+      } catch (err) {
+        // Two devices created the grant's job at the same moment; the unique
+        // index (migration 009) let one through. Hand out the winner's job.
+        const raced = err instanceof Error && err.message.includes('jobs_one_grant_job_per_user');
+        const existing = raced ? await getGrantStatus(supabase, user.id) : null;
+        if (!existing?.jobId) throw err;
+        return NextResponse.json<ApiResponse<CreateJobResponse>>(
+          {
+            success: true,
+            data: {
+              jobId: existing.jobId,
+              tier: existing.tier,
+              photoLimit: existing.total,
+              requiresPayment: false,
+            },
+          },
+          { status: 200 }
+        );
+      }
+    } else {
+      job = await jobManager.createJob(user.id, body.tier);
+    }
 
     // § 312f BGB for the FREE tier. The paid tiers get their confirmation from
     // the Stripe webhook; a free contract has no payment and therefore no
@@ -127,7 +175,7 @@ export async function POST(request: NextRequest) {
     //
     // Never fail the request on a mail error: the contract exists either way,
     // and refusing the job would punish the user for our outage.
-    if (body.tier === 'free') {
+    if (!grant && body.tier === 'free') {
       await sendContractConfirmationOnce(job.id, contractLocale ?? undefined);
     }
 
@@ -135,7 +183,7 @@ export async function POST(request: NextRequest) {
       jobId: job.id,
       tier: job.tier,
       photoLimit: job.photoLimit,
-      requiresPayment: body.tier !== 'free',
+      requiresPayment: !grant && body.tier !== 'free',
     };
 
     return NextResponse.json<ApiResponse<CreateJobResponse>>(

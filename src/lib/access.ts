@@ -48,12 +48,17 @@ export function analysisRequiresAccount(): boolean {
 export const BETA_MAX_PHOTOS_PER_REQUEST = Number(process.env.BETA_MAX_PHOTOS_PER_REQUEST ?? '250');
 // Raised from 20,000 on 2026-08-10 because of the beta grant: at 5,000 free
 // photos per tester, four testers in one day exhausted the old cap — and the
-// fifth was refused on the very day the ads were running. Sized against the
-// measured per-photo cost (kept out of this public repo; see the local
-// pipeline doc) so the ceiling stays a small fraction of the monthly budget.
+// fifth was refused on the very day the ads were running. Raised again from
+// 50,000 to 102,000 on 2026-09-30 (product-owner decision): sized against the
+// measured per-photo cost (kept out of this public repo; see the local pipeline
+// doc), with the provider-side billing limit raised to match.
 // The hard backstop remains the Gemini billing spend limit at Google, not this.
-export const BETA_DAILY_PHOTO_CAP = Number(process.env.BETA_DAILY_PHOTO_CAP ?? '50000');
-export const BETA_IP_DAILY_PHOTO_CAP = Number(process.env.BETA_IP_DAILY_PHOTO_CAP ?? '750');
+export const BETA_DAILY_PHOTO_CAP = Number(process.env.BETA_DAILY_PHOTO_CAP ?? '102000');
+// Per connection and day, for jobs WITHOUT a beta grant (anonymous / free runs).
+// 750 until 2026-09-30, then 2,500 (product-owner decision): shared connections such as
+// newsrooms and offices hit 750 with a handful of testers. A grant job is not
+// counted here at all — its own allowance is the limit (see lib/grant.ts).
+export const BETA_IP_DAILY_PHOTO_CAP = Number(process.env.BETA_IP_DAILY_PHOTO_CAP ?? '2500');
 
 /**
  * How many photos this caller may still analyse today, or `null` when no cap
@@ -62,12 +67,18 @@ export const BETA_IP_DAILY_PHOTO_CAP = Number(process.env.BETA_IP_DAILY_PHOTO_CA
  * Checked up front so a run is refused before the first token is spent. The
  * caps used to bite mid-run: a 750-photo job died at batch 36 of 38, and every
  * analysed batch was thrown away — the user had waited and paid for nothing.
+ *
+ * `skipIp` is for callers whose allowance is a grant job: only the global daily
+ * cap applies to them, not the per-connection one.
  */
-export async function remainingPhotoBudget(ip: string): Promise<number | null> {
+export async function remainingPhotoBudget(
+  ip: string,
+  opts: { skipIp?: boolean } = {}
+): Promise<number | null> {
   const { getTodayPhotos, getIpDailyPhotos } = await import('./stats');
   const limits: number[] = [];
 
-  if (BETA_IP_DAILY_PHOTO_CAP > 0) {
+  if (BETA_IP_DAILY_PHOTO_CAP > 0 && !opts.skipIp) {
     const used = await getIpDailyPhotos(ip);
     if (used != null) limits.push(Math.max(0, BETA_IP_DAILY_PHOTO_CAP - used));
   }
@@ -85,4 +96,5 @@ export const ACCESS_ERRORS = {
   jobRequired: 'No valid job for this analysis.',
   jobExhausted: 'This job has reached its photo limit.',
   budgetExceeded: 'Daily analysis capacity for this connection is used up.',
+  grantExhausted: 'Your photo allowance does not cover this many photos.',
 } as const;

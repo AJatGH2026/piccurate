@@ -60,6 +60,14 @@ export default function UploadPage() {
   // once more photos are selected than can be analysed today — instead of the
   // same news arriving as an alert after the whole upload (seen 2026-09-20).
   const [remainingToday, setRemainingToday] = useState<number | null>(null);
+  // The beta grant's pot (lib/grant.ts): what is left of it and until when. When
+  // present it replaces the per-connection reading above as the thing that
+  // limits this run — the server does not count a grant job per connection.
+  const [grant, setGrant] = useState<{
+    total: number;
+    remaining: number;
+    expiresAt: string;
+  } | null>(null);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -76,6 +84,13 @@ export default function UploadPage() {
         // so the worst case is the old behaviour, not an unguarded upload.
         if (!cancelled && typeof policy?.remainingToday === 'number') {
           setRemainingToday(policy.remainingToday);
+        }
+        if (!cancelled && policy?.grant && typeof policy.grant.remaining === 'number') {
+          setGrant({
+            total: Number(policy.grant.total),
+            remaining: Number(policy.grant.remaining),
+            expiresAt: String(policy.grant.expiresAt),
+          });
         }
         if (!cancelled && policy?.accountRequired === true && !registered) {
           setNeedsAccount(true);
@@ -109,7 +124,9 @@ export default function UploadPage() {
   const setPhotosFromUpload = usePhotoStore((s) => s.setPhotosFromUpload);
 
   const plan = PRICING_PLANS.find((p) => p.tier === currentTier)!;
-  const maxPhotos = plan.photoLimit;
+  // With a grant, what is left of the pot — not the tier's full size: a second
+  // session must not be offered photos the first one already used up.
+  const maxPhotos = grant ? grant.remaining : plan.photoLimit;
   // Free for everyone during the beta — deliberately, to see how testers use
   // it. Paid-tier-only once sales start (AGB § 5 / plan § 7b, Auflage 1). The
   // switch is the same one that turns on checkout, not a second flag someone
@@ -184,7 +201,7 @@ export default function UploadPage() {
                 : plan.tier === 'medium'
                   ? tp('medium')
                   : tp('large')}{' '}
-            &middot; {t('allowance', { photos: maxPhotos.toLocaleString(locale) })}
+            &middot; {t('allowance', { photos: (grant ? grant.total : maxPhotos).toLocaleString(locale) })}
           </div>
         )}
 
@@ -228,9 +245,26 @@ export default function UploadPage() {
 
             {/* Only when the cap would actually constrain this run: a note
                 nobody needs is noise, and most visitors never get near it. */}
+            {grant && (
+              <p className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                {grant.remaining > 0
+                  ? t('grantNote', {
+                      remaining: grant.remaining.toLocaleString(locale),
+                      total: grant.total.toLocaleString(locale),
+                      date: new Date(grant.expiresAt).toLocaleDateString(locale, {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      }),
+                    })
+                  : t('grantEmpty', { total: grant.total.toLocaleString(locale) })}
+              </p>
+            )}
             {remainingToday != null && remainingToday < maxPhotos && totalCount === 0 && (
               <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-                {t('allowanceNote', { remaining: remainingToday })}
+                {grant
+                  ? t('allowanceGlobal', { remaining: remainingToday })
+                  : t('allowanceNote', { remaining: remainingToday })}
               </p>
             )}
             <div className="mt-4">
@@ -245,7 +279,9 @@ export default function UploadPage() {
                 role="alert"
                 className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
               >
-                {t('allowanceExceeded', { count: totalCount, remaining: remainingToday })}
+                {grant
+                  ? t('allowanceGlobal', { remaining: remainingToday })
+                  : t('allowanceExceeded', { count: totalCount, remaining: remainingToday })}
               </p>
             )}
 

@@ -91,7 +91,7 @@ function GermanBody({ withdrawalUrl }: { withdrawalUrl: string }) {
       <h2>2. Tarife und Leistungsumfang</h2>
       <p>AuswahlBuddy wird in einem kostenlosen und in kostenpflichtigen Tarifen angeboten. Maßgeblich sind die auf der Preisseite angegebenen Fotogrenzen und Preise in ihrer zum Zeitpunkt der Bestellung geltenden Fassung.</p>
       <p>Der kostenlose Tarif umfasst einen Analysevorgang mit bis zu 250 Fotos, einmalig je Konto.</p>
-      <p>Ein kostenpflichtiger Tarif berechtigt zu einem Analysevorgang bis zu der für den Tarif angegebenen Fotomenge. Es handelt sich um eine Einmalzahlung je Vorgang, nicht um ein Abonnement; eine automatische Verlängerung findet nicht statt. Nicht ausgeschöpfte Fotokontingente verfallen mit Abschluss des Vorgangs und werden nicht erstattet.</p>
+      <p>Ein kostenpflichtiger Tarif berechtigt dazu, innerhalb von 30 Tagen ab Freischaltung bzw. Kauf Fotos bis zu der für den Tarif angegebenen Fotomenge analysieren zu lassen, auch in mehreren Sitzungen. Jede Sitzung wird neu gezählt: Wir speichern weder deine Fotos noch Zwischenergebnisse, deshalb werden bereits analysierte Fotos, die du in einer späteren Sitzung erneut auswählst, erneut angerechnet. Es handelt sich um eine Einmalzahlung, nicht um ein Abonnement; eine automatische Verlängerung findet nicht statt. Nicht ausgeschöpfte Fotokontingente verfallen nach 30 Tagen und werden nicht erstattet.</p>
       <p>Alle Preise sind Endpreise in Euro und enthalten die gesetzliche Umsatzsteuer. Weitere Kosten fallen nicht an; die Kosten deiner eigenen Internetverbindung trägst du selbst.</p>
       <p><strong>Welche Tarife jeweils buchbar sind, ergibt sich aus der Preisseite. Derzeit ist nur der kostenlose Tarif freigeschaltet.</strong></p>
       <h2>3. Vertragsschluss, Zahlung und Rechnung</h2>
@@ -230,7 +230,7 @@ function EnglishBody({ withdrawalUrl }: { withdrawalUrl: string }) {
       <h2>2. Plans and scope of service</h2>
       <p>ShortlistBuddy is offered in a free plan and in paid plans. The photo limits and prices shown on the pricing page, as applicable at the time of your order, are decisive.</p>
       <p>The free plan covers one analysis job with up to 250 photos, once per account.</p>
-      <p>A paid plan entitles you to one analysis job up to the photo limit stated for that plan. It is a one-off payment per job, not a subscription; there is no automatic renewal. Unused photo allowances expire when the job is completed and are not refunded.</p>
+      <p>A paid plan entitles you to have photos analysed, up to the photo limit stated for that plan, within 30 days of unlocking or purchase, including across several sessions. Every session is counted afresh: we store neither your photos nor interim results, so photos that were already analysed and that you select again in a later session are charged again. It is a one-off payment, not a subscription; there is no automatic renewal. Unused photo allowances expire after 30 days and are not refunded.</p>
       <p>All prices are final prices in euros and include statutory VAT. No further costs arise; you bear the cost of your own internet connection.</p>
       <p><strong>Which plans are currently bookable is shown on the pricing page. At present only the free plan is enabled.</strong></p>
       <h2>3. Contract formation, payment and invoicing</h2>

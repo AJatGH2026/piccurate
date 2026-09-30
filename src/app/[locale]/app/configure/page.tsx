@@ -65,6 +65,14 @@ function classifyAnalysisError(err: unknown, message: string): AnalysisErrorClas
   return 'other';
 }
 
+// The server's two 402 refusals arrive as raw English sentences ("This job has
+// not been paid for yet.", "This job has reached its photo limit."), which a
+// German visitor saw verbatim on 2026-09-30. Map them to translated ones.
+function paymentKey(err: unknown, message: string): 'analysisJobExhausted' | 'analysisPayment' | null {
+  if (!(err instanceof HttpError) || err.status !== 402) return null;
+  return /photo limit/i.test(message) ? 'analysisJobExhausted' : 'analysisPayment';
+}
+
 // One visible panel for "we are working, please wait": a title, a progress
 // bar (indeterminate when there is nothing to count yet), a one-line status
 // and an optional note. Indigo on a tinted card so it reads as the page's
@@ -326,6 +334,11 @@ export default function ConfigurePage() {
     // HttpError (not Error) so analysis_failed.error_class gets the status-based
     // class here too — until 2026-09-26 only the analyze-demo batches carried
     // it, and a refused job creation landed in 'other'.
+    // The grant's pot cannot cover the selection (e.g. a second session after
+    // the first used part of it): say what is left, not "daily limit".
+    if (res.status === 402 && json?.grantRemaining === true && typeof json?.remaining === 'number') {
+      throw new HttpError(t('grantRemaining', { remaining: json.remaining, requested: photoCount }), 402);
+    }
     if (res.status === 429 && typeof json?.remaining === 'number') {
       throw new HttpError(t('budgetExceeded', { remaining: json.remaining, requested: photoCount }), 429);
     }
@@ -1303,10 +1316,11 @@ export default function ConfigurePage() {
                 // Say what happened before showing the result, so nobody wonders
                 // why some photos are missing from the review.
                 if (failure) {
+                  const failKey = paymentKey(failureErr, failure);
                   alert(t('analysisPartial', {
                     done: analysedIds.length,
                     total: toAnalyze.length,
-                    error: failure,
+                    error: failKey ? t(failKey) : failure,
                   }));
                 } else if (skipped.length > 0) {
                   // The names are on the next page; an alert is no place for a
@@ -1328,12 +1342,15 @@ export default function ConfigurePage() {
                 // The provider-side failures have their own sentences: the raw
                 // message there is English and technical ("No text response
                 // from AI"), which is what a German visitor saw on 2026-09-15.
+                const payKey = paymentKey(err, message);
                 alert(
                   errorClass === 'blocked'
                     ? t('analysisBlocked')
                     : errorClass === 'upstream'
                       ? t('analysisUpstream')
-                      : t('analysisFailed', { error: message })
+                      : payKey
+                        ? t(payKey)
+                        : t('analysisFailed', { error: message })
                 );
               } finally {
                 setAnalyzing(false);

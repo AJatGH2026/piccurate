@@ -17,8 +17,19 @@ interface SupabaseClient {
 export class JobManager {
   constructor(private db: SupabaseClient) {}
 
-  /** Create a new curation job */
-  async createJob(userId: string, tier: Tier): Promise<Job> {
+  /**
+   * Create a new curation job.
+   *
+   * `grant` marks the job as the one a beta grant turns into (decided by the
+   * caller from the profile, see lib/grant.ts): it carries the granted allowance
+   * and ends when the grant does. A paid tier's job lives 30 days, a free one
+   * keeps the 24 hours of the column default.
+   */
+  async createJob(
+    userId: string,
+    tier: Tier,
+    grant?: { photoLimit: number; expiresAt: string }
+  ): Promise<Job> {
     const plan = getPlan(tier);
 
     // Check free tier eligibility (free 250 photos = once per user, not per
@@ -41,30 +52,27 @@ export class JobManager {
       }
     }
 
-    // A paid tier the tester unlocked during the beta instead of buying it
-    // (see /api/beta/unlock). It runs as a normal job of that tier, but is
-    // settled by the grant rather than by a payment — and is flagged, because
-    // the analysis route has to let it past the per-IP daily photo cap that
-    // would otherwise refuse the allowance we just promised.
-    let betaGrant = false;
-    if (tier !== 'free') {
-      const { data: profile } = await this.db
-        .from('profiles')
-        .select('beta_grant_tier')
-        .eq('id', userId)
-        .single();
-      betaGrant = profile?.beta_grant_tier === tier;
-    }
+    // A grant job: the allowance the tester unlocked during the beta instead of
+    // buying it (see /api/beta/unlock). It is settled by the grant rather than
+    // by a payment, and flagged — the analysis route exempts it from the
+    // per-connection cap, because the allowance itself is its limit.
+    const betaGrant = !!grant;
+    const expiresAt = grant
+      ? grant.expiresAt
+      : tier === 'free'
+        ? undefined
+        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
     const { data, error } = await this.db
       .from('jobs')
       .insert({
         user_id: userId,
         tier,
-        photo_limit: plan.photoLimit,
+        photo_limit: grant ? grant.photoLimit : plan.photoLimit,
         payment_status: tier === 'free' || betaGrant ? 'free' : 'pending',
         beta_grant: betaGrant,
         criteria: DEFAULT_CRITERIA,
+        ...(expiresAt ? { expires_at: expiresAt } : {}),
       })
       .select()
       .single();
