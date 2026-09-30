@@ -87,7 +87,11 @@ export async function POST(request: NextRequest) {
 
   // Conditional update: only rows that have no grant yet are touched, so a
   // double click (or a second tab) cannot hand out two allowances.
-  const { data: updated, error } = await supabase
+  //
+  // Service-role client on purpose (migration 010): the grant columns of
+  // `profiles` are written by the server only. The user was validated above and
+  // the update is scoped to their own row.
+  const { data: updated, error } = await createAdminClient()
     .from('profiles')
     .update({
       beta_grant_tier: tier,

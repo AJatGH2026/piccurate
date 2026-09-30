@@ -127,7 +127,10 @@ export async function POST(request: NextRequest) {
       console.error(`[jobs] profile ensure failed for ${user.id}:`, profileErr);
     }
 
-    const jobManager = new JobManager(supabase);
+    // Created with the service-role client on purpose (migration 010): the row
+    // carries the allowance, which is the server's to write. The owner is the
+    // validated session user, never anything from the request body.
+    const jobManager = new JobManager(createAdminClient());
     let job;
     if (grant) {
       try {
