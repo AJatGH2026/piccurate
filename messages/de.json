@@ -55,6 +55,7 @@
     "medium": "Mittel",
     "large": "Groß",
     "photosUpTo": "Bis zu {count} Fotos",
+    "photosUpToDays": "Bis zu {count} Fotos innerhalb von 30 Tagen",
     "oneTime": "einmalig",
     "perUse": "pro Nutzung",
     "features": {
@@ -68,7 +69,7 @@
     "oneTimeUse": "Einmalige Nutzung",
     "inclVat": "inkl. MwSt.",
     "plannedPrice": "Geplanter Preis — noch nicht buchbar",
-    "priceNote": "inkl. MwSt. pro Nutzung",
+    "priceNote": "inkl. MwSt.",
     "choosePlan": "Tarif wählen",
     "freeTitle": "Gratis"
   },
@@ -179,7 +180,6 @@
     "contractMailNotice": "Mit dem Start der Analyse kommt der Vertrag über die kostenlose Fotoauswahl zustande. Die gesetzlich vorgeschriebene Bestätigung dazu zeigen wir dir direkt hier an — und schicken sie dir zusätzlich per E-Mail, sobald zu deinem Konto eine Adresse hinterlegt ist.",
     "analysisPayment": "Für diesen Vorgang ist weder eine Zahlung noch eine Freischaltung hinterlegt. Bitte lade die Seite neu und versuch es noch einmal. Bleibt es dabei, schreib uns kurz.",
     "analysisJobExhausted": "Das Fotokontingent dieses Vorgangs ist aufgebraucht.",
-    "analysisSkipped":"{done} von {total} Fotos wurden analysiert. {skipped} Fotos hat der KI-Dienst nicht bewertet, ohne einen Grund zu nennen. Die Dateinamen findest du gleich auf der nächsten Seite.",
     "analysisPartial": "{done} von {total} Fotos wurden analysiert. Der Rest konnte nicht mehr verarbeitet werden: {error} Die bereits analysierten Fotos siehst du gleich — die übrigen kannst du später nachholen.",
     "budgetExceeded": "Für heute kannst du noch etwa {remaining} Fotos analysieren, ausgewählt sind {requested}. Reduziere die Auswahl oder versuch es morgen noch einmal.",
     "grantRemaining": "Dein Kontingent reicht noch für {remaining} Fotos, ausgewählt sind {requested}. Reduziere die Auswahl.",
@@ -234,8 +234,8 @@
   },
   "review": {
     "title": "Deine Auswahl prüfen",
-    "skippedTitle": "{count} Fotos hat der KI-Dienst nicht bewertet",
-    "skippedBody": "Der KI-Dienst hat diese Fotos ohne Begründung abgelehnt. Sie sind nicht in der Auswahl, und ein Analyselauf hat sie nicht berücksichtigt. Sieh sie dir an — die Sperre des Dienstes ist nicht immer berechtigt. Wenn du magst, schick uns die Liste; wir sehen dann nach, woran es liegt.",
+    "skippedTitle": "{count, plural, one {# Foto wurde} other {# Fotos wurden}} nicht ausgewertet",
+    "skippedBody": "Der KI-Dienst hat sie ohne Begründung nicht bewertet — mit deinen übrigen Fotos hat das nichts zu tun. In der Auswahl sind sie nicht enthalten. Sieh sie dir ruhig an, die Sperre ist nicht immer berechtigt. Wenn du magst, schick uns die Liste, wir sehen dann nach.",
     "skippedShow": "Dateinamen anzeigen",
     "skippedCopy": "Liste kopieren",
     "skippedCopied": "Kopiert",

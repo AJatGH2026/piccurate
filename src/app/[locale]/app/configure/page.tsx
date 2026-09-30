@@ -1023,8 +1023,16 @@ export default function ConfigurePage() {
                 // local now and re-derives instantly from stored embeddings —
                 // re-running the (paid) analysis for it would charge the user for
                 // nothing.
+                // Photos the AI provider already refused in an earlier run are
+                // left out: they stay "not analysed", so every re-run (new
+                // criteria, say) used to send them again — alone, as a batch of
+                // one — get the same refusal, end with nothing analysed and show
+                // an error instead of the review page (seen 2026-10-01).
+                const knownSkipped = new Set(
+                  usePhotoStore.getState().skippedPhotos.map((s) => s.id)
+                );
                 const toAnalyze = photos.filter(
-                  (p) => !p.saved && (!p.analyzed || termsChanged)
+                  (p) => !p.saved && !knownSkipped.has(p.id) && (!p.analyzed || termsChanged)
                 );
 
                 if (toAnalyze.length === 0) {
@@ -1295,14 +1303,39 @@ export default function ConfigurePage() {
                 // 'blocked' class has its own sentence).
                 if (flatResults.length === 0) {
                   if (failureErr instanceof Error) throw failureErr;
-                  if (skipped.length > 0) throw new HttpError('AI provider blocked this batch', 422);
+                  if (skipped.length > 0) {
+                    // Only photos that were analysed before exist already — a
+                    // re-run whose few new photos were all refused is no failure:
+                    // the earlier results stand, so go on to the review page.
+                    if (usePhotoStore.getState().photos.some((p) => p.analyzed)) {
+                      const prev = usePhotoStore.getState().skippedPhotos;
+                      const seen = new Set(prev.map((s) => s.id));
+                      usePhotoStore.getState().setSkippedPhotos([
+                        ...prev,
+                        ...skipped.filter((s) => !seen.has(s.id)),
+                      ]);
+                      rerunSelection(criteria);
+                      router.push(`/${locale}/app/review`);
+                      return;
+                    }
+                    throw new HttpError('AI provider blocked this batch', 422);
+                  }
                   throw new Error(failure ?? 'Analysis failed');
                 }
 
                 // No label→name mapping any more: the model is not asked about
                 // people at all, and the store ignores any `persons` it returns.
                 applyAnalysisResults(flatResults, criteria, analysedIds);
-                usePhotoStore.getState().setSkippedPhotos(skipped);
+                // Keep the ones from earlier runs of this photo set: they are
+                // still not in the analysis, and the review page lists them.
+                {
+                  const prev = usePhotoStore.getState().skippedPhotos;
+                  const seen = new Set(prev.map((s) => s.id));
+                  usePhotoStore.getState().setSkippedPhotos([
+                    ...prev,
+                    ...skipped.filter((s) => !seen.has(s.id)),
+                  ]);
+                }
                 trackEvent('analysis_complete', {
                   photos: analysedIds.length,
                   requested: toAnalyze.length,
@@ -1322,15 +1355,11 @@ export default function ConfigurePage() {
                     total: toAnalyze.length,
                     error: failKey ? t(failKey) : failure,
                   }));
-                } else if (skipped.length > 0) {
-                  // The names are on the next page; an alert is no place for a
-                  // list of a hundred file names.
-                  alert(t('analysisSkipped', {
-                    done: analysedIds.length,
-                    total: toAnalyze.length,
-                    skipped: skipped.length,
-                  }));
                 }
+                // Photos the provider refused get NO pop-up: the review page
+                // says so in a box, with the names. A blocking alert for a
+                // photo or two reads like a failure of the whole run, which it
+                // is not (product-owner feedback, 2026-10-01).
                 router.push(`/${locale}/app/review`);
               } catch (err) {
                 console.error('Analysis failed:', err);

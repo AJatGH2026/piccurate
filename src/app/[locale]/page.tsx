@@ -521,7 +521,9 @@ function PricingSection({ locale }: { locale: string }) {
                   plan.highlight ? 'text-white' : 'text-zinc-900 dark:text-zinc-100'
                 }`}
               >
-                {t('photosUpTo', { count: plan.photos.toLocaleString(locale) })}
+                {t(plan.tier === 'free' ? 'photosUpTo' : 'photosUpToDays', {
+                  count: plan.photos.toLocaleString(locale),
+                })}
               </p>
               <ul className="mt-6 flex-1 space-y-2">
                 {plan.features.map((f) => (

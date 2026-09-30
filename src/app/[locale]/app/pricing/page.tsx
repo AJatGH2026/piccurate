@@ -154,7 +154,9 @@ export default function PricingPage() {
                   never attached: the tier buttons and the offer dialogue
                   silently did nothing. */}
               <p className={`mt-3 text-lg font-semibold ${plan.highlight ? 'text-white' : 'text-zinc-900 dark:text-zinc-100'}`}>
-                {t('photosUpTo', { count: plan.photoLimit.toLocaleString(locale) })}
+                {t(plan.tier === 'free' ? 'photosUpTo' : 'photosUpToDays', {
+                  count: plan.photoLimit.toLocaleString(locale),
+                })}
               </p>
               {plan.tier === 'free' && (
                 <p className={`text-xs ${plan.highlight ? 'text-indigo-200' : 'text-amber-600'}`}>

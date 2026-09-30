@@ -55,6 +55,7 @@
     "medium": "Medium",
     "large": "Large",
     "photosUpTo": "Up to {count} photos",
+    "photosUpToDays": "Up to {count} photos within 30 days",
     "oneTime": "one-time",
     "perUse": "per use",
     "features": {
@@ -68,7 +69,7 @@
     "oneTimeUse": "One-time use",
     "inclVat": "incl. VAT",
     "plannedPrice": "Planned price — not bookable yet",
-    "priceNote": "incl. VAT per use",
+    "priceNote": "incl. VAT",
     "choosePlan": "Choose plan",
     "freeTitle": "Free plan"
   },
@@ -179,7 +180,6 @@
     "contractMailNotice": "Starting the analysis forms the contract for the free photo selection. We show you the confirmation the law requires right here — and email it to you as well once an address is held in your account.",
     "analysisPayment": "Neither a payment nor an unlock is on record for this job. Please reload the page and try again. If it keeps happening, drop us a line.",
     "analysisJobExhausted": "The photo allowance of this job is used up.",
-    "analysisSkipped":"{done} of {total} photos were analysed. The AI service did not rate {skipped} photos and gave no reason. You will find their file names on the next page.",
     "analysisPartial": "{done} of {total} photos were analysed. The rest could not be processed: {error} You'll see the analysed ones now — the others can follow later.",
     "budgetExceeded": "You can analyse about {remaining} more photos today, but {requested} are selected. Reduce the selection or try again tomorrow.",
     "grantRemaining": "Your allowance covers {remaining} more photos, but {requested} are selected. Reduce the selection.",
@@ -234,8 +234,8 @@
   },
   "review": {
     "title": "Review your selection",
-    "skippedTitle": "The AI service did not rate {count} photos",
-    "skippedBody": "The AI service refused these photos without giving a reason. They are not in the selection, and the analysis run did not take them into account. Have a look at them — the service's block is not always justified. If you like, send us the list and we will look into why.",
+    "skippedTitle": "{count, plural, one {# photo was} other {# photos were}} not rated",
+    "skippedBody": "The AI service did not rate them and gave no reason — it has nothing to do with your other photos. They are not in the selection. Have a look at them, the block is not always justified. If you like, send us the list and we will look into it.",
     "skippedShow": "Show file names",
     "skippedCopy": "Copy list",
     "skippedCopied": "Copied",
