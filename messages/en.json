@@ -235,7 +235,7 @@
   "review": {
     "title": "Review your selection",
     "skippedTitle": "{count, plural, one {# photo was} other {# photos were}} not rated",
-    "skippedBody": "The AI service did not rate them and gave no reason — it has nothing to do with your other photos. They are not in the selection. Have a look at them, the block is not always justified. If you like, send us the list and we will look into it.",
+    "skippedBody": "The AI service did not rate them and gave no reason, so they are not in the selection. You will find the photos among the rejected photos, though, and can add them back to the list manually.",
     "skippedShow": "Show file names",
     "skippedCopy": "Copy list",
     "skippedCopied": "Copied",
