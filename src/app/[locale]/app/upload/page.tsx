@@ -121,6 +121,7 @@ export default function UploadPage() {
     };
   }, []);
   const [showDropbox, setShowDropbox] = useState(false);
+  const [failedCopied, setFailedCopied] = useState(false);
   const setPhotosFromUpload = usePhotoStore((s) => s.setPhotosFromUpload);
 
   const plan = PRICING_PLANS.find((p) => p.tier === currentTier)!;
@@ -357,14 +358,47 @@ export default function UploadPage() {
 
         {/* Failed-conversion notice + retry (only the failed ones) */}
         {failedCount > 0 && !isProcessing && (
-          <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-lg bg-amber-50 text-amber-800 text-sm dark:bg-amber-900/20 dark:text-amber-300">
-            <span>{t('someFailed', { count: failedCount })}</span>
-            <button
-              onClick={retryFailed}
-              className="self-start sm:self-auto rounded-full bg-amber-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 transition-colors"
-            >
-              {t('retryFailed', { count: failedCount })}
-            </button>
+          <div className="mt-4 p-3 rounded-lg bg-amber-50 text-amber-800 text-sm dark:bg-amber-900/20 dark:text-amber-300">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <span>{t('someFailed', { count: failedCount })}</span>
+              <button
+                onClick={retryFailed}
+                className="self-start sm:self-auto rounded-full bg-amber-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 transition-colors"
+              >
+                {t('retryFailed', { count: failedCount })}
+              </button>
+            </div>
+            {/* By file name, so the owner can find them in the folder: files that
+                cannot be read (damaged, unsupported) usually show no preview in
+                the file manager either. The browser's own reason is the tooltip. */}
+            <details className="mt-2">
+              <summary className="cursor-pointer underline">{t('failedShow')}</summary>
+              <ul className="mt-2 max-h-60 overflow-auto font-mono text-xs">
+                {photos
+                  .filter((p) => p.status === 'error')
+                  .map((p) => (
+                    <li key={p.id} title={p.error ?? undefined}>
+                      {p.filename}
+                    </li>
+                  ))}
+              </ul>
+              <button
+                type="button"
+                className="mt-2 rounded-full border border-amber-400 px-3 py-1 text-xs"
+                onClick={() => {
+                  try {
+                    void navigator.clipboard.writeText(
+                      photos.filter((p) => p.status === 'error').map((p) => p.filename).join('\n')
+                    );
+                    setFailedCopied(true);
+                  } catch {
+                    /* clipboard blocked — the list is selectable on screen */
+                  }
+                }}
+              >
+                {failedCopied ? t('failedCopied') : t('failedCopy')}
+              </button>
+            </details>
           </div>
         )}
 
