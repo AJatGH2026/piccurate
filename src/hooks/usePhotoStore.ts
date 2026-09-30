@@ -212,10 +212,12 @@ function matchesMotif(p: ProcessedPhoto, key: MotifKey): boolean {
       return ARCH_SCENES.includes(scene);
     case 'preferFood': {
       if (scene === 'food') return true;
-      // Coffee / drinks: catch via content tags (substring) — covers cases the
-      // AI labels as a non-food primary scene.
-      const tags = (p.contentTags || []).map((t) => t.toLowerCase());
-      return tags.some((t) => DRINK_TAGS.some((d) => t.includes(d)));
+      // Coffee / drinks: catch via content tags — covers cases the AI labels
+      // as a non-food primary scene. Whole words only (plus plural): a plain
+      // substring match let "capybara" count as food via "bar" (found in the
+      // sample demo 2026-09-30); "team"/"steam" would hit "tea" the same way.
+      const words = (p.contentTags || []).flatMap((t) => t.toLowerCase().split(/[^\p{L}]+/u));
+      return words.some((w) => DRINK_TAGS.some((d) => w === d || w === d + 's' || w === d + 'es'));
     }
   }
 }
