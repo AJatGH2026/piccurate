@@ -674,8 +674,20 @@ export function runSelection(
     // Threshold from the same slider as the series detector: 1 = lenient
     // (practically off) … 10 = strict. Photos without an embedding (not
     // computed yet, or failed) are never skipped — cosineSim gives 0 for them.
+    //
+    // 1…8 run 0.97 → 0.869 as before; the last two steps drop faster, to 0.80
+    // at 10, so the strict end also removes photos that are merely similar —
+    // the same person or motif a few minutes apart, which is what the owner
+    // wanted gone (2026-10-01: ~8 % of the selection still "too similar" at 10
+    // with 0.84). A time criterion (≤ 5 min and a lower similarity) was
+    // measured and left out: his series are bursts the detector already
+    // merges, so it added little. Reference-set cost of the lower threshold:
+    // 21 of 3,240 pairs he kept both of would be affected (8 at 0.84).
     const strictness = Math.max(1, Math.min(10, criteria.dedupSensitivity || 8));
-    const diversityTau = 0.97 - ((strictness - 1) * (0.97 - 0.84)) / 9;
+    const diversityTau =
+      strictness <= 8
+        ? 0.97 - ((strictness - 1) * (0.97 - 0.869)) / 7
+        : 0.869 - ((strictness - 8) * (0.869 - 0.8)) / 2;
     const chosen: ProcessedPhoto[] = photos.filter((p) => p.saved && p.embedding);
     const picked: ProcessedPhoto[] = [];
     for (const p of reps) {
