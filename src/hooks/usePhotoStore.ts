@@ -660,8 +660,31 @@ export function runSelection(
     );
     selectedIds = new Set(eligible.map((p) => p.id));
   } else {
-    // Balanced/biased: top N% of the pool.
-    selectedIds = new Set(reps.slice(0, cap).map((p) => p.id));
+    // Balanced/biased: top N% of the pool — but varied. Series-collapse only
+    // merges photos the detector recognises as one series, and it does not
+    // always (measured 2026-10-01: a scene of the demo set came apart into
+    // several groups at both ends of the slider). Ranking is by each photo's
+    // own score, and near-identical scenes score alike, so they sit next to
+    // each other in the ranking and ALL get in once the cap is large enough
+    // ("too many similar photos in the selection", product owner, 2026-10-01).
+    // So walk down the ranking and skip a photo that is too similar (CLIP
+    // cosine) to one already chosen; the next best takes its place. The cap
+    // is still filled — only with more varied photos. Locked keepers count as
+    // already chosen, so a new pick does not repeat a saved one.
+    // Threshold from the same slider as the series detector: 1 = lenient
+    // (practically off) … 10 = strict. Photos without an embedding (not
+    // computed yet, or failed) are never skipped — cosineSim gives 0 for them.
+    const strictness = Math.max(1, Math.min(10, criteria.dedupSensitivity || 8));
+    const diversityTau = 0.97 - ((strictness - 1) * (0.97 - 0.84)) / 9;
+    const chosen: ProcessedPhoto[] = photos.filter((p) => p.saved && p.embedding);
+    const picked: ProcessedPhoto[] = [];
+    for (const p of reps) {
+      if (picked.length >= cap) break;
+      if (p.embedding && chosen.some((c) => cosineSim(p.embedding, c.embedding) >= diversityTau)) continue;
+      picked.push(p);
+      chosen.push(p);
+    }
+    selectedIds = new Set(picked.map((p) => p.id));
   }
 
   return photos.map((p) => {
