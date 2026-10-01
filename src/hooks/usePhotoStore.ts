@@ -121,6 +121,15 @@ interface PhotoStore {
    */
   skippedPhotos: { id: string; filename: string }[];
   setSkippedPhotos: (list: { id: string; filename: string }[]) => void;
+  /**
+   * Only the photos refused in the LATEST analysis run — what /review reports.
+   * `skippedPhotos` keeps every refused photo of this set (so later runs leave
+   * them out); showing all of them again after each re-run made the notice
+   * reappear although nothing new had happened (product-owner feedback,
+   * 2026-10-01).
+   */
+  skippedNew: { id: string; filename: string }[];
+  setSkippedNew: (list: { id: string; filename: string }[]) => void;
   /** Custom terms present at the last analysis (to detect when re-analysis is needed). */
   analyzedCustomTerms: string[];
   /**
@@ -692,6 +701,8 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
   setContract: (c) => set({ contract: c }),
   skippedPhotos: [],
   setSkippedPhotos: (list) => set({ skippedPhotos: list }),
+  skippedNew: [],
+  setSkippedNew: (list) => set({ skippedNew: list }),
   analyzedCustomTerms: [],
   persons: [],
   analyzedPersons: [],
@@ -781,6 +792,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       activeJobId: null,
       contract: null,
       skippedPhotos: [],
+      skippedNew: [],
     }));
   },
 
@@ -963,6 +975,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       activeJobId: null,
       contract: null,
       skippedPhotos: [],
+      skippedNew: [],
       persons: [],
       analyzedCustomTerms: [],
       analyzedPersons: [],

@@ -23,7 +23,7 @@ export default function ReviewPage() {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const photos = usePhotoStore((s) => s.photos);
-  const skippedPhotos = usePhotoStore((s) => s.skippedPhotos);
+  const skippedNew = usePhotoStore((s) => s.skippedNew);
   const [skippedCopied, setSkippedCopied] = useState(false);
   const { criteria } = useCriteria();
   const persons = usePhotoStore((s) => s.persons);
@@ -136,14 +136,14 @@ export default function ReviewPage() {
             {/* Photos the AI provider refused to rate, by file name — the
                 filter names no reason and is sometimes wrong, so the owner
                 gets to look. Only after a run that had any. */}
-            {skippedPhotos.length > 0 && (
+            {skippedNew.length > 0 && (
               <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-                <p className="font-medium">{t('skippedTitle', { count: skippedPhotos.length })}</p>
+                <p className="font-medium">{t('skippedTitle', { count: skippedNew.length })}</p>
                 <p className="mt-1">{t('skippedBody')}</p>
                 <details className="mt-2">
                   <summary className="cursor-pointer underline">{t('skippedShow')}</summary>
                   <ul className="mt-2 max-h-60 overflow-auto font-mono text-xs">
-                    {skippedPhotos.map((p) => (
+                    {skippedNew.map((p) => (
                       <li key={p.id}>{p.filename}</li>
                     ))}
                   </ul>
@@ -152,7 +152,7 @@ export default function ReviewPage() {
                     className="mt-2 rounded-full border border-amber-400 px-3 py-1 text-xs"
                     onClick={() => {
                       try {
-                        void navigator.clipboard.writeText(skippedPhotos.map((p) => p.filename).join('\n'));
+                        void navigator.clipboard.writeText(skippedNew.map((p) => p.filename).join('\n'));
                         setSkippedCopied(true);
                       } catch {
                         /* clipboard blocked — the list is selectable on screen */

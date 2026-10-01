@@ -1036,6 +1036,8 @@ export default function ConfigurePage() {
                 );
 
                 if (toAnalyze.length === 0) {
+                  // Nothing is sent to the AI, so there is nothing new to report.
+                  usePhotoStore.getState().setSkippedNew([]);
                   setProgress(t('progressRecomputing'));
                   trackEv('reselect_run', locale, { run_index: nextRunIndex() });
                   rerunSelection(criteria);
@@ -1314,6 +1316,7 @@ export default function ConfigurePage() {
                         ...prev,
                         ...skipped.filter((s) => !seen.has(s.id)),
                       ]);
+                      usePhotoStore.getState().setSkippedNew(skipped);
                       rerunSelection(criteria);
                       router.push(`/${locale}/app/review`);
                       return;
@@ -1335,6 +1338,8 @@ export default function ConfigurePage() {
                     ...prev,
                     ...skipped.filter((s) => !seen.has(s.id)),
                   ]);
+                  // The review page reports only what this run refused.
+                  usePhotoStore.getState().setSkippedNew(skipped);
                 }
                 trackEvent('analysis_complete', {
                   photos: analysedIds.length,
