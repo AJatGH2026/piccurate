@@ -214,7 +214,7 @@ export interface EventSignals {
   // could not be read for paid traffic at all.
   byCampaign: Record<
     string,
-    { landing_view: number; demo_start: number; picker_opened: number; files_selected: number; analysis_started: number }
+    { landing_view: number; sample_demo_intro_view: number; demo_start: number; picker_opened: number; files_selected: number; analysis_started: number }
   >;
   // One level deeper than byCampaign: `campaign > ad_group > keyword`, i.e.
   // utm_campaign/utm_content/utm_term. On Meta that separates one creative
@@ -225,7 +225,7 @@ export interface EventSignals {
   // not to rely on.
   byCreative: Record<
     string,
-    { landing_view: number; demo_start: number; picker_opened: number; files_selected: number; analysis_started: number }
+    { landing_view: number; sample_demo_intro_view: number; demo_start: number; picker_opened: number; files_selected: number; analysis_started: number }
   >;
   daysRead: number;
   // Count of raw events in the window flagged `internal` (qa_mode cookie) and
@@ -287,8 +287,14 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
       string,
       { demo_start: number; picker_opened: number; files_selected: number }
     > = {};
+    // sample_demo_intro_view since 2026-10-29: the example demo is the second
+    // way in (hero button, ad sitelink straight to /demo/beispiel), and a
+    // campaign has to be judged on both — "opened the example" counts as
+    // engaging just like "went to upload". The intro view, not the button
+    // click, so a visitor who lands directly on the demo page is counted too.
     type Attributed = {
       landing_view: number;
+      sample_demo_intro_view: number;
       demo_start: number;
       picker_opened: number;
       files_selected: number;
@@ -296,6 +302,7 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
     };
     const blank = (): Attributed => ({
       landing_view: 0,
+      sample_demo_intro_view: 0,
       demo_start: 0,
       picker_opened: 0,
       files_selected: 0,
@@ -320,6 +327,7 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
       }
       if (
         e.name === 'landing_view' ||
+        e.name === 'sample_demo_intro_view' ||
         e.name === 'demo_start' ||
         e.name === 'picker_opened' ||
         e.name === 'files_selected' ||

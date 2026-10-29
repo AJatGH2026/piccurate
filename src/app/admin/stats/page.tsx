@@ -465,7 +465,7 @@ export default async function AdminStatsPage({
               {Object.keys(events.byCampaign).length > 0 && (
                 <div className="mt-4 border-t border-zinc-100 dark:border-zinc-800 pt-4">
                   <p className="text-sm text-zinc-500 mb-2">
-                    Trichter je Kampagnen-Attribution (traffic_source &gt; campaign): landing → demo → picker → files → analysis
+                    Trichter je Kampagnen-Attribution (traffic_source &gt; campaign): landing → beispiel | demo → picker → files → analysis
                   </p>
                   <table className="w-full text-sm">
                     <tbody>
@@ -476,7 +476,7 @@ export default async function AdminStatsPage({
                             <td className="py-1 text-zinc-500">{key}</td>
                             <td className="py-1 text-right tabular-nums">{fmt(v.landing_view)}</td>
                             <td className="py-1 text-right tabular-nums text-xs text-zinc-400">
-                              ({fmt(v.demo_start)} demo · {fmt(v.picker_opened)} picker · {fmt(v.files_selected)} files ·{' '}
+                              ({fmt(v.sample_demo_intro_view)} beispiel · {fmt(v.demo_start)} demo · {fmt(v.picker_opened)} picker · {fmt(v.files_selected)} files ·{' '}
                               <b>{fmt(v.analysis_started)} analysis</b>)
                             </td>
                           </tr>
@@ -501,7 +501,7 @@ export default async function AdminStatsPage({
                             <td className="py-1 text-zinc-500">{key}</td>
                             <td className="py-1 text-right tabular-nums">{fmt(v.landing_view)}</td>
                             <td className="py-1 text-right tabular-nums text-xs text-zinc-400">
-                              ({fmt(v.demo_start)} demo_start · <b>{fmt(v.analysis_started)} analysis_started</b>
+                              ({fmt(v.sample_demo_intro_view)} beispiel · {fmt(v.demo_start)} demo_start · <b>{fmt(v.analysis_started)} analysis_started</b>
                               {v.landing_view > 0 ? ` · ${Math.round((v.demo_start / v.landing_view) * 100)}%` : ''})
                             </td>
                           </tr>
