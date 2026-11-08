@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getGuide, guideParams } from '@/content/guides';
 import { clientConfig } from '@/lib/config';
+import { TrackContentView } from '@/components/analytics/TrackContentView';
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
@@ -80,6 +81,8 @@ export default async function GuidePage({ params }: Props) {
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      {/* Label by the guide's language-neutral id, so DE and EN visits of the same guide add up. */}
+      <TrackContentView locale={locale} page={`guide:${found.guide.id}`} />
 
       <header className="border-b border-zinc-200 dark:border-zinc-800">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">

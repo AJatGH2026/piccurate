@@ -7,6 +7,7 @@ import { routing } from '../../../../i18n/routing';
 import { PRESS, PRESS_SCREENSHOTS } from '@/content/press';
 import { LandingVideo } from '@/components/landing/LandingVideo';
 import { PressGallery } from '@/components/press/PressGallery';
+import { TrackContentView } from '@/components/analytics/TrackContentView';
 
 // Press page: release, facts, video, screenshots, contact — the one link a
 // journalist needs (Presseansprache, 2026-09-27). Indexable on purpose, unlike
@@ -46,6 +47,7 @@ export default async function PressPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950">
+      <TrackContentView locale={locale} page="press" />
       <header className="border-b border-zinc-200 dark:border-zinc-800">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href={`/${locale}`} className="text-xl font-bold text-indigo-600">{brandName(locale)}</Link>

@@ -486,6 +486,45 @@ export default async function AdminStatsPage({
                 </div>
               )}
 
+              {Object.keys(events.byReferrer).length > 0 && (
+                <div className="mt-4 border-t border-zinc-100 dark:border-zinc-800 pt-4">
+                  <p className="text-sm text-zinc-500 mb-2">
+                    Herkunft nach verweisender Seite (nur Domain): Sitzungen · Startseite · Ratgeber/Presse · Beispiel —{' '}
+                    <b>KI-Assistenten: {fmt(events.aiSessions)} Sitzungen</b>
+                  </p>
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {Object.entries(events.byReferrer)
+                        .sort((a, b) => Number(b[1].ai) - Number(a[1].ai) || b[1].sessions - a[1].sessions)
+                        .slice(0, 25)
+                        .map(([host, v]) => (
+                          <tr key={host} className="border-b border-zinc-100 dark:border-zinc-800 last:border-0">
+                            <td className="py-1 text-zinc-500">
+                              {host}
+                              {v.ai && (
+                                <span className="ml-2 rounded bg-indigo-100 px-1.5 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300">
+                                  KI
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-1 text-right tabular-nums">{fmt(v.sessions)}</td>
+                            <td className="py-1 text-right tabular-nums text-xs text-zinc-400">
+                              ({fmt(v.landing_view)} start · {fmt(v.content_view)} ratgeber/presse · {fmt(v.sample_demo_intro_view)} beispiel)
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                  <Hint>
+                    Für GEO (Sichtbarkeit in ChatGPT, Perplexity, Gemini …). Die Zahl „KI-Assistenten“ zählt eine Sitzung,
+                    wenn die verweisende Domain oder utm_source ein KI-Dienst ist. Unterschätzt systematisch: KI-Dienste
+                    öffnen Links oft ohne Referrer (dann „keine Angabe“), und ChatGPT hat seine utm-Kennzeichnung zeitweise
+                    weggelassen. Ratgeber und Presse werden erst seit 08.11.2026 gezählt, „Beispiel“ trägt die Domain ebenfalls
+                    erst seitdem. „(eigene Seite)“ = Sprung innerhalb unserer Domains.
+                  </Hint>
+                </div>
+              )}
+
               {Object.keys(events.byCreative).length > 0 && (
                 <div className="mt-4 border-t border-zinc-100 dark:border-zinc-800 pt-4">
                   <p className="text-sm text-zinc-500 mb-2">

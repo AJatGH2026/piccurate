@@ -78,6 +78,10 @@ export const ALLOWED_EVENTS = new Set([
   'sample_demo_to_upload',
   // Explainer video on the landing page (self-hosted), first play per page view.
   'video_play',
+  // Guides and press page (2026-11-08, GEO measurement, product-pipeline
+  // §8.9): the pages an AI assistant or search engine links to instead of the
+  // home page. Carries `page` and `referrer_domain` (host only). Pre-contract.
+  'content_view',
   'files_selected',
   'file_transfer_ready',
   'cloud_intent_click',
@@ -227,12 +231,58 @@ export interface EventSignals {
     string,
     { landing_view: number; sample_demo_intro_view: number; demo_start: number; picker_opened: number; files_selected: number; analysis_started: number }
   >;
+  // Sessions by the host of the page they came from (2026-11-08, GEO,
+  // product-pipeline §8.9). Built from the `referrer_domain` prop on
+  // landing_view, content_view and sample_demo_intro_view. Counted per session,
+  // not per event: document.referrer stays at the entry value across in-app
+  // navigation, so every later event of a visit repeats the same host.
+  byReferrer: Record<string, { sessions: number; landing_view: number; content_view: number; sample_demo_intro_view: number; ai: boolean }>;
+  // Sessions attributed to an AI assistant by referrer host OR by
+  // utm_source (ChatGPT tags some of its links utm_source=chatgpt.com and
+  // strips the referrer on others — either signal counts, each session once).
+  aiSessions: number;
   daysRead: number;
   // Count of raw events in the window flagged `internal` (qa_mode cookie) and
   // therefore excluded from everything above. Surfaced so the exclusion is
   // visible on the dashboard rather than a silent drop — see
   // docs/review-notes.md point 2.
   internalExcluded: number;
+}
+
+// Hosts of AI assistants / answer engines (2026-11-08). Matched as the host
+// itself or any subdomain of it. A list, not a heuristic: an unknown assistant
+// simply shows up as its own row in the referrer table and can be added here.
+const AI_HOSTS = [
+  'chatgpt.com',
+  'chat.openai.com',
+  'perplexity.ai',
+  'gemini.google.com',
+  'bard.google.com',
+  'copilot.microsoft.com',
+  'copilot.cloud.microsoft',
+  'claude.ai',
+  'chat.mistral.ai',
+  'chat.deepseek.com',
+  'meta.ai',
+  'grok.com',
+  'you.com',
+  'phind.com',
+  'poe.com',
+];
+export function isAiHost(host: string): boolean {
+  const h = host.toLowerCase();
+  return !!h && AI_HOSTS.some((a) => h === a || h.endsWith('.' + a));
+}
+
+// Our own hosts: an internal hop says nothing about where a visit came from.
+const OWN_HOSTS = ['shortlistbuddy.com', 'auswahlbuddy.de', 'piccurate.vercel.app', 'localhost'];
+
+/** Normalised table key for a referrer host prop. */
+function referrerKey(raw: unknown): string {
+  const h = typeof raw === 'string' ? raw.trim().toLowerCase().replace(/^www\./, '') : '';
+  if (!h) return '(keine Angabe)';
+  if (OWN_HOSTS.some((o) => h === o || h.endsWith('.' + o))) return '(eigene Seite)';
+  return h;
 }
 
 /**
@@ -259,6 +309,8 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
     byDeviceClass: {},
     byCampaign: {},
     byCreative: {},
+    byReferrer: {},
+    aiSessions: 0,
     daysRead: 0,
     internalExcluded: 0,
   };
@@ -310,6 +362,10 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
     });
     const byCampaign: Record<string, Attributed> = {};
     const byCreative: Record<string, Attributed> = {};
+    type RefRow = EventSignals['byReferrer'][string];
+    const byReferrer: Record<string, RefRow> = {};
+    const refSessions = new Map<string, Set<string>>();
+    const aiSessionIds = new Set<string>();
     let internalExcluded = 0;
     for (const e of events) {
       // Own test traffic (docs/review-notes.md point 2): counted separately,
@@ -320,6 +376,17 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
         continue;
       }
       counts.set(e.name, (counts.get(e.name) || 0) + 1);
+      if (e.name === 'landing_view' || e.name === 'content_view' || e.name === 'sample_demo_intro_view') {
+        const host = referrerKey(e.props?.referrer_domain);
+        const ai = isAiHost(host) || isAiHost(String(e.traffic_source || ''));
+        byReferrer[host] ??= { sessions: 0, landing_view: 0, content_view: 0, sample_demo_intro_view: 0, ai: isAiHost(host) };
+        byReferrer[host][e.name]++;
+        const sid = e.session_id || `${e.ts}-${host}`;
+        const set = refSessions.get(host) ?? new Set<string>();
+        set.add(sid);
+        refSessions.set(host, set);
+        if (ai) aiSessionIds.add(sid);
+      }
       if (e.name === 'demo_start' || e.name === 'picker_opened' || e.name === 'files_selected') {
         const dc = e.device_class || 'other';
         byDevice[dc] ??= { demo_start: 0, picker_opened: 0, files_selected: 0 };
@@ -347,6 +414,8 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
       }
     }
 
+    for (const [host, set] of refSessions) byReferrer[host].sessions = set.size;
+
     const totals = Array.from(ALLOWED_EVENTS).map((name) => ({ name, total: counts.get(name) || 0 }));
     const demoStart = counts.get('demo_start') || 0;
     const pickerOpened = counts.get('picker_opened') || 0;
@@ -370,6 +439,8 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
       byDeviceClass: byDevice,
       byCampaign,
       byCreative,
+      byReferrer,
+      aiSessions: aiSessionIds.size,
       daysRead: days,
       internalExcluded,
     };

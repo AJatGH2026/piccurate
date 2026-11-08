@@ -38,7 +38,7 @@ function GermanBody() {
   return (
     <>
       <h1>Datenschutzerklärung</h1>
-      <p>Stand: 20. September 2026</p>
+      <p>Stand: 8. November 2026</p>
       <h2>1. Verantwortlicher</h2>
       <p>Verantwortlicher im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:</p>
       <p>AJ GmbH</p>
@@ -115,7 +115,7 @@ function GermanBody() {
       <p>Wir verwenden technisch erforderliche Cookies oder ähnliche Speicherzugriffe nur, soweit sie für die von dir ausdrücklich gewünschte Funktion erforderlich sind. Rechtsgrundlage für den Zugriff auf dein Endgerät ist § 25 Abs. 2 TDDDG; die anschließende Verarbeitung personenbezogener Daten stützen wir auf Art. 6 Abs. 1 Buchst. b oder f DSGVO.</p>
       <h3>9.1 Eigene Nutzungs- und Kampagnenmessung</h3>
       <p>Um zu verstehen, an welcher Stelle der Dienst verständlich ist und wo Nutzer abbrechen, erfassen wir eigene Ereignisse — etwa den Aufruf der Startseite, den Beginn einer Fotoauswahl, den Abschluss oder Fehlschlag einer Analyse und den Download des Ergebnisses. Die Ereignisse werden ausschließlich an unseren eigenen Endpunkt auf derselben Domain gesendet und bei unserem Dienstleister Upstash in der EU gespeichert. Wir binden dafür keine Zähl-Pixel, Tags oder Skripte Dritter ein.</p>
-      <p>Zu einem Ereignis speichern wir eine zufällige Sitzungskennung, Geräteklasse (Mobil, Tablet, Desktop), Betriebssystem- und Browserfamilie, die Sprachfassung, eine grobe Größenklasse der ausgewählten Fotomenge sowie — wenn du über eine von uns geschaltete Anzeige gekommen bist — die Kampagnenkennzeichen aus der aufgerufenen Adresse (die sogenannten UTM-Parameter). <strong>Nicht</strong> gespeichert werden Dateinamen, Bildinhalte, Standortdaten und E-Mail-Adressen.</p>
+      <p>Zu einem Ereignis speichern wir eine zufällige Sitzungskennung, Geräteklasse (Mobil, Tablet, Desktop), Betriebssystem- und Browserfamilie, die Sprachfassung, eine grobe Größenklasse der ausgewählten Fotomenge, beim Aufruf der Startseite, eines Ratgebers, der Presseseite oder der Beispiel-Demo die Domain der Seite, von der du gekommen bist (etwa einer Suchmaschine oder eines KI-Assistenten — nur die Domain, ohne Pfad und ohne Suchbegriffe), sowie — wenn du über eine von uns geschaltete Anzeige gekommen bist — die Kampagnenkennzeichen aus der aufgerufenen Adresse (die sogenannten UTM-Parameter). <strong>Nicht</strong> gespeichert werden Dateinamen, Bildinhalte, Standortdaten und E-Mail-Adressen.</p>
       <p>Für diese Messung greifen wir nicht auf dein Endgerät zu. Die Sitzungskennung besteht nur im Arbeitsspeicher deines Browsers und endet, wenn du die Seite schließt; sie wird weder in einem Cookie noch im lokalen Speicher deines Browsers abgelegt. Deshalb ist hierfür weder eine Einwilligung nach § 25 TDDDG noch ein Cookie-Banner erforderlich. Der Preis dieser Zurückhaltung ist, dass wir wiederkehrende Besucher nicht wiedererkennen — das ist beabsichtigt.</p>
       <p>Von Werbenetzwerken vergebene Klick-Kennungen (etwa <span className="font-mono">gclid</span> oder <span className="font-mono">fbclid</span>), die beim Aufruf über eine Anzeige an der Adresse hängen können, speichern wir nicht und werten wir nicht aus.</p>
       <p>Wenn du in deinem Nutzerkonto angemeldet bist, ordnen wir diese Ereignisse zusätzlich einer aus deiner Konto-Kennung abgeleiteten Pseudonymkennung zu. Nur dadurch können wir erkennen, ob der Dienst ein zweites Mal genutzt wird. Diese Zuordnung erfolgt nicht, solange du nicht angemeldet bist.</p>
@@ -201,7 +201,7 @@ function EnglishBody() {
     <>
       <h1>Privacy Policy</h1>
       <EnglishNotice />
-      <p>Last updated: 20 September 2026</p>
+      <p>Last updated: 8 November 2026</p>
       <h2>1. Controller</h2>
       <p>The controller within the meaning of the General Data Protection Regulation (GDPR) is:</p>
       <p>AJ GmbH</p>
@@ -274,7 +274,7 @@ function EnglishBody() {
       <p>We use technically necessary cookies or similar storage access only where required for a function expressly requested by you. The legal basis for access to your terminal equipment is section 25(2) TDDDG; subsequent processing of personal data is based on Article 6(1)(b) or (f) GDPR.</p>
       <h3>9.1 Our own usage and campaign measurement</h3>
       <p>To understand where the service is intelligible and where users drop out, we record our own events — for example opening the home page, starting a photo selection, completion or failure of an analysis, and downloading the result. The events are sent exclusively to our own endpoint on the same domain and stored with our provider Upstash in the EU. We do not embed any third-party counting pixels, tags or scripts for this.</p>
-      <p>With an event we store a random session identifier, the device class (mobile, tablet, desktop), operating-system and browser family, the language version, a coarse size band for the number of photos selected, and — if you arrived through an advertisement we placed — the campaign markers contained in the address you called up (the so-called UTM parameters). We do <strong>not</strong> store file names, image content, location data or email addresses.</p>
+      <p>With an event we store a random session identifier, the device class (mobile, tablet, desktop), operating-system and browser family, the language version, a coarse size band for the number of photos selected, when you open the home page, a guide, the press page or the sample demo the domain of the page you came from (for example a search engine or an AI assistant — the domain only, without path or search terms), and — if you arrived through an advertisement we placed — the campaign markers contained in the address you called up (the so-called UTM parameters). We do <strong>not</strong> store file names, image content, location data or email addresses.</p>
       <p>This measurement does not access your terminal equipment. The session identifier exists only in your browser’s memory and ends when you close the page; it is stored neither in a cookie nor in your browser’s local storage. No consent under section 25 TDDDG and no cookie banner is therefore required. The price of this restraint is that we cannot recognise returning visitors — which is intended.</p>
       <p>Click identifiers assigned by advertising networks (such as <span className="font-mono">gclid</span> or <span className="font-mono">fbclid</span>), which may be attached to the address when you arrive through an advertisement, are neither stored nor evaluated by us.</p>
       <p>If you are signed in to your user account, we additionally associate these events with a pseudonymous identifier derived from your account identifier. This is the only way for us to see whether the service is used a second time. No such association is made while you are not signed in.</p>

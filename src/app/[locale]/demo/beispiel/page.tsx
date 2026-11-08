@@ -27,7 +27,7 @@ import { runSelection, detectSeries, type ProcessedPhoto } from '@/hooks/usePhot
 import { DEFAULT_CRITERIA, type CriteriaConfig } from '@/types/criteria';
 import { ReviewPhotoCard } from '@/components/review/ReviewPhotoCard';
 import { Lightbox } from '@/components/review/Lightbox';
-import { trackEv } from '@/lib/events-client';
+import { referrerDomain, trackEv } from '@/lib/events-client';
 import { SAMPLE_FIXTURE_URL, toProcessedPhotos, type SampleFixture } from '@/lib/sample-demo';
 
 type MotifKey = 'preferFaces' | 'preferAnimals' | 'preferLandscapes' | 'preferArchitecture' | 'preferFood';
@@ -72,7 +72,7 @@ export default function SampleDemoPage() {
       .then((fixture) => {
         if (cancelled) return;
         setBase(toProcessedPhotos(fixture));
-        trackEv('sample_demo_intro_view', locale, { photo_count: fixture.photos.length });
+        trackEv('sample_demo_intro_view', locale, { photo_count: fixture.photos.length, referrer_domain: referrerDomain() });
       })
       .catch(() => !cancelled && setLoadError(true));
     return () => {

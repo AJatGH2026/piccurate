@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { trackEv } from '@/lib/events-client';
+import { referrerDomain, trackEv } from '@/lib/events-client';
 
 /**
  * Fires `landing_view` (Event-Spezifikation §3) on mount. A separate client
@@ -11,13 +11,7 @@ import { trackEv } from '@/lib/events-client';
  */
 export function TrackLandingView({ locale }: { locale: string }) {
   useEffect(() => {
-    let referrer_domain = '';
-    try {
-      referrer_domain = document.referrer ? new URL(document.referrer).hostname : '';
-    } catch {
-      /* ignore */
-    }
-    trackEv('landing_view', locale, { referrer_domain });
+    trackEv('landing_view', locale, { referrer_domain: referrerDomain() });
   }, [locale]);
 
   return null;

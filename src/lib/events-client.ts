@@ -61,6 +61,24 @@ export function getCampaign(): Campaign {
   return campaign;
 }
 
+/**
+ * Host of the page the visitor came from — `chatgpt.com`, `www.google.com` —
+ * or '' when the browser sends none. Only the host, never path or query: the
+ * path of a search or chat page can carry what someone typed, and the host is
+ * all the question "which assistant or search engine sends people" needs
+ * (privacy policy § 9.1). Note that a client-side navigation inside the app
+ * leaves `document.referrer` at the value of the first page load, so a
+ * session's later events repeat its entry host; the dashboard therefore counts
+ * sessions per host, not events.
+ */
+export function referrerDomain(): string {
+  try {
+    return typeof document !== 'undefined' && document.referrer ? new URL(document.referrer).hostname : '';
+  } catch {
+    return '';
+  }
+}
+
 // Named timestamps for the spec's duration_since_* properties (e.g.
 // demo_start → files_selected, files_selected → file_transfer_ready).
 const marks = new Map<string, number>();

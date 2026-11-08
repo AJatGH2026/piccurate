@@ -4,6 +4,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 import { GUIDES } from '@/content/guides';
 import { routing } from '../../../../i18n/routing';
+import { TrackContentView } from '@/components/analytics/TrackContentView';
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -32,6 +33,7 @@ export default async function GuidesIndex({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950">
+      <TrackContentView locale={locale} page="guides" />
       <header className="border-b border-zinc-200 dark:border-zinc-800">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href={`/${locale}`} className="text-xl font-bold text-indigo-600">{brandName(locale)}</Link>
