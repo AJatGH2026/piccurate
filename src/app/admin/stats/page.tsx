@@ -810,7 +810,7 @@ function Card({
         <Row
           label="Input-Tokens"
           value={fmt(stats.inputTokens)}
-          hint="An Gemini gesendete Tokens (Bilder + Prompt), Grundlage der Kostenschätzung. Kein Zielwert an sich — wichtig ist Tokens/Foto stabil zu halten; ein Anstieg zeigt teurere Prompts oder mehr Custom-Kriterien."
+          hint="An Gemini gesendete Tokens (Bilder + Prompt), Grundlage der Kostenschätzung. Kein Zielwert an sich — wichtig ist Tokens/Foto stabil zu halten; ein Anstieg zeigt teurere Prompts oder mehr Custom-Kriterien. Ausnahme: Der Sprung ab 10.11.2026 (rund 330 → 1.170 Tokens/Foto) kommt vom Modellwechsel auf Gemini 3.5 Flash-Lite, das Bilder in mehr Tokens zerlegt."
         />
         <Row
           label="Output-Tokens"
