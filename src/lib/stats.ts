@@ -189,7 +189,8 @@ export interface StatsSnapshot {
   internalToday: StatsBucket;
 }
 
-// Gemini 2.5 Flash pricing (input $0.30 / output $2.50 per 1M) — matches the
+// Gemini 3.5 Flash-Lite pricing (input $0.30 / output $2.50 per 1M, same as
+// the former 2.5 Flash; aistudio.google.com/docs/latest-model, 2026-11-10) — matches the
 // production model in /api/analyze-demo. Used only for the est. cost column
 // on the /admin/stats dashboard. EUR fudge factor ≈ 0.92.
 const USD_PER_M_INPUT = 0.30;

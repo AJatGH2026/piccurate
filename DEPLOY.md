@@ -61,7 +61,7 @@ In Vercel: **Project → Settings → Environment Variables**. Diese eintragen
 | Name | Wert | Pflicht? | Geheim? |
 |------|------|----------|---------|
 | `GEMINI_API_KEY` | dein Google-AI-Studio-Key (aistudio.google.com/app/apikey) | **ja** | **geheim** |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | optional (Default vorhanden) | nein |
+| `GEMINI_MODEL` | `gemini-3.5-flash-lite` | optional (Default vorhanden) | nein |
 | `NEXT_PUBLIC_APP_URL` | die Vercel-URL (nach 1. Deploy bekannt — siehe Schritt 5) | **ja** | nein |
 | `NEXT_PUBLIC_DROPBOX_APP_KEY` | dein Dropbox-App-Key | nur für Cloud-Import/-Export | nein (öffentlich) |
 | `SITE_USER` | z. B. `demo` | für das Zugangs-Gate | nein |
@@ -82,8 +82,8 @@ In Vercel: **Project → Settings → Environment Variables**. Diese eintragen
 
 ## Schritt 4 — Kostendeckel bei Google setzen (wichtig!)
 
-Der Analyse-Endpoint kostet pro Nutzung Google-Cloud-Guthaben (Gemini 2.5
-Flash: ~$0.30 Input / $2.50 Output pro 1M Tokens — für AuswahlBuddy ca. $0.0005
+Der Analyse-Endpoint kostet pro Nutzung Google-Cloud-Guthaben (Gemini 3.5
+Flash-Lite: ~$0.30 Input / $2.50 Output pro 1M Tokens — für AuswahlBuddy ca. $0.0005
 pro Foto). Auch mit Passwort-Gate gilt: **Budget-Alarm setzen** als harte
 Obergrenze.
 

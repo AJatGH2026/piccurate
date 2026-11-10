@@ -31,7 +31,7 @@ small curated keeper set to review and download / export to a photo book.
 - Next.js 15/16 App Router, TypeScript, Tailwind CSS
 - next-intl (DE/EN); German UI uses "du" form and real umlauts/ß
 - Zustand store (`usePhotoStore`)
-- **Analysis engine: Google Gemini 2.5 Flash** via `/api/analyze-demo`
+- **Analysis engine: Google Gemini 3.5 Flash-Lite** (since 2026-11-10, before: 2.5 Flash — Google redirects 2.5 from 2026-12-01) via `/api/analyze-demo`
   (`@google/genai`, `GEMINI_API_KEY`) — won a 381-photo eval vs. Sonnet 4.6 at ~1/6 cost
 - Client-side EXIF + 512px thumbnailing; HEIC via `heic-to` (browser) / vips/sharp (server)
 

@@ -122,7 +122,7 @@ export default async function AdminStatsPage({
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-10">
         <h1 className="text-2xl font-bold">Usage</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          Analysierte Fotos und API-Tokens. Kostenschätzung auf Gemini-2.5-Flash-Preisen (Input $0,30 / Output $2,50 pro 1 M).
+          Analysierte Fotos und API-Tokens. Kostenschätzung auf Gemini-3.5-Flash-Lite-Preisen (gleich wie zuvor 2.5 Flash) (Input $0,30 / Output $2,50 pro 1 M).
         </p>
         <p className="mt-1 text-xs text-zinc-400">
           Vor einem eigenen Testlauf:{' '}
@@ -820,7 +820,7 @@ function Card({
         <Row
           label="Geschätzte Kosten"
           value={fmtEur(stats.estCostEur)}
-          hint="Schätzung auf Gemini-2.5-Flash-Listenpreisen, nicht die tatsächliche Rechnung. Solange nur der Gratis-Tarif läuft, ist dies reine Ausgabe ohne Gegenposition — beobachten (pro Foto niedrig halten), kein Zielwert per se."
+          hint="Schätzung auf Gemini-3.5-Flash-Lite-Listenpreisen, nicht die tatsächliche Rechnung. Solange nur der Gratis-Tarif läuft, ist dies reine Ausgabe ohne Gegenposition — beobachten (pro Foto niedrig halten), kein Zielwert per se."
           divider
           strong
         />

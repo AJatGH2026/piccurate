@@ -51,7 +51,7 @@ npm run dev                  # http://localhost:3000
 - Node: use a current LTS (18+). No `engines` pin; package manager is **npm**
   (`package-lock.json`).
 - Minimum to run the live analysis flow locally: `GEMINI_API_KEY`
-  (+ `GEMINI_MODEL`, default `gemini-2.5-flash`). Everything else is optional
+  (+ `GEMINI_MODEL`, default `gemini-3.5-flash-lite`). Everything else is optional
   and its feature simply stays off when its key is absent.
 - `SITE_PASSWORD` only matters for the shared-prototype auth gate and is read
   from the **host env** (Edge runtime ignores `.env.local`) — irrelevant for
@@ -110,6 +110,6 @@ continue:
   designed behaviour, not a broken route. If `ADMIN_TOKEN` is unset the
   dashboard is disabled entirely. `ADMIN_TOKEN` is set in Vercel for Production
   and Preview.
-- **Analysis engine:** Google Gemini 2.5 Flash via `/api/analyze-demo`
+- **Analysis engine:** Google Gemini 3.5 Flash-Lite (since 2026-11-10; before: 2.5 Flash) via `/api/analyze-demo`
   (won a 381-photo eval vs. Sonnet 4.6 / GPT-4.1 mini at ~1/6 the cost).
   The eval harness in `scripts/` still supports multiple providers.

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { ANALYSIS_SYSTEM_PROMPT } from '@/lib/anthropic/prompts';
+import { geminiThinkingConfig } from '@/lib/gemini-thinking';
 import { parseAnalysisResponse } from '@/lib/anthropic/parser';
 import { checkRateLimit, clientIp } from '@/lib/rate-limit';
 import { trackAnalyze, getTodayPhotos, reserveIpDailyPhotos, estCostEur } from '@/lib/stats';
@@ -319,7 +320,10 @@ export async function POST(request: NextRequest) {
     }
 
     const client = new GoogleGenAI({ apiKey });
-    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    // gemini-3.5-flash-lite since 2026-11-10 (product-owner decision): Google
+    // redirects gemini-2.5-flash to it from 2026-12-01 anyway; switched ahead of
+    // the redirect after a test against the hand-labelled set.
+    const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 
     // Build user content — INTERLEAVED text+image. Every image is preceded
     // by a text label ("Reference 1: Peter" / "Photo 3, taken 2024-05-15")
@@ -399,11 +403,11 @@ export async function POST(request: NextRequest) {
           contents: [{ role: 'user', parts }],
           config: {
             systemInstruction: ANALYSIS_SYSTEM_PROMPT,
-            // Gemini 2.5 Flash has "thinking" enabled by default — thinking tokens
-            // count against maxOutputTokens and can starve the actual JSON output,
-            // causing "Unterminated string in JSON …" errors. We want plain
-            // structured output, no chain-of-thought needed → disable thinking.
-            thinkingConfig: { thinkingBudget: 0 },
+            // Thinking tokens count against maxOutputTokens and can starve the
+            // JSON output ("Unterminated string in JSON …"). 2.5: budget 0 (off);
+            // 3.x: level MINIMAL (cannot be switched off; budget → HTTP 400 risk).
+            // See src/lib/gemini-thinking.ts.
+            thinkingConfig: geminiThinkingConfig(model),
             // Comfortable ceiling for a 20-photo batch: ~150-200 tokens per photo
             // × 20 ≈ 4k, plus headroom for edge cases.
             maxOutputTokens: 16384,
