@@ -220,7 +220,7 @@ export interface EventSignals {
   // could not be read for paid traffic at all.
   byCampaign: Record<
     string,
-    { landing_view: number; sample_demo_intro_view: number; demo_start: number; picker_opened: number; files_selected: number; analysis_started: number }
+    { landing_view: number; sample_demo_intro_view: number; sample_demo_results_view: number; sample_demo_to_upload: number; demo_start: number; picker_opened: number; files_selected: number; analysis_started: number }
   >;
   // One level deeper than byCampaign: `campaign > ad_group > keyword`, i.e.
   // utm_campaign/utm_content/utm_term. On Meta that separates one creative
@@ -231,7 +231,7 @@ export interface EventSignals {
   // not to rely on.
   byCreative: Record<
     string,
-    { landing_view: number; sample_demo_intro_view: number; demo_start: number; picker_opened: number; files_selected: number; analysis_started: number }
+    { landing_view: number; sample_demo_intro_view: number; sample_demo_results_view: number; sample_demo_to_upload: number; demo_start: number; picker_opened: number; files_selected: number; analysis_started: number }
   >;
   // Sessions by the host of the page they came from (2026-11-08, GEO,
   // product-pipeline §8.9). Built from the `referrer_domain` prop on
@@ -346,9 +346,15 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
     // campaign has to be judged on both — "opened the example" counts as
     // engaging just like "went to upload". The intro view, not the button
     // click, so a visitor who lands directly on the demo page is counted too.
+    // results_view and to_upload since 2026-11-13: a Meta test sends its ads
+    // straight to the example (phones cannot hand over thousands of photos
+    // easily), so the campaign is judged on whether visitors watch the
+    // example to the end and then go on to their own photos.
     type Attributed = {
       landing_view: number;
       sample_demo_intro_view: number;
+      sample_demo_results_view: number;
+      sample_demo_to_upload: number;
       demo_start: number;
       picker_opened: number;
       files_selected: number;
@@ -357,6 +363,8 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
     const blank = (): Attributed => ({
       landing_view: 0,
       sample_demo_intro_view: 0,
+      sample_demo_results_view: 0,
+      sample_demo_to_upload: 0,
       demo_start: 0,
       picker_opened: 0,
       files_selected: 0,
@@ -397,6 +405,8 @@ export async function readEventSignals(days = 7): Promise<EventSignals> {
       if (
         e.name === 'landing_view' ||
         e.name === 'sample_demo_intro_view' ||
+        e.name === 'sample_demo_results_view' ||
+        e.name === 'sample_demo_to_upload' ||
         e.name === 'demo_start' ||
         e.name === 'picker_opened' ||
         e.name === 'files_selected' ||

@@ -465,18 +465,18 @@ export default async function AdminStatsPage({
               {Object.keys(events.byCampaign).length > 0 && (
                 <div className="mt-4 border-t border-zinc-100 dark:border-zinc-800 pt-4">
                   <p className="text-sm text-zinc-500 mb-2">
-                    Trichter je Kampagnen-Attribution (traffic_source &gt; campaign): landing → beispiel | demo → picker → files → analysis
+                    Trichter je Kampagnen-Attribution (traffic_source &gt; campaign): landing → beispiel (→ ergebnis → zum upload) | demo → picker → files → analysis
                   </p>
                   <table className="w-full text-sm">
                     <tbody>
                       {Object.entries(events.byCampaign)
-                        .sort((a, b) => b[1].landing_view - a[1].landing_view)
+                        .sort((a, b) => b[1].landing_view + b[1].sample_demo_intro_view - (a[1].landing_view + a[1].sample_demo_intro_view))
                         .map(([key, v]) => (
                           <tr key={key} className="border-b border-zinc-100 dark:border-zinc-800 last:border-0">
                             <td className="py-1 text-zinc-500">{key}</td>
                             <td className="py-1 text-right tabular-nums">{fmt(v.landing_view)}</td>
                             <td className="py-1 text-right tabular-nums text-xs text-zinc-400">
-                              ({fmt(v.sample_demo_intro_view)} beispiel · {fmt(v.demo_start)} demo · {fmt(v.picker_opened)} picker · {fmt(v.files_selected)} files ·{' '}
+                              ({fmt(v.sample_demo_intro_view)} beispiel → {fmt(v.sample_demo_results_view)} ergebnis → {fmt(v.sample_demo_to_upload)} zum upload · {fmt(v.demo_start)} demo · {fmt(v.picker_opened)} picker · {fmt(v.files_selected)} files ·{' '}
                               <b>{fmt(v.analysis_started)} analysis</b>)
                             </td>
                           </tr>
@@ -533,15 +533,15 @@ export default async function AdminStatsPage({
                   <table className="w-full text-sm">
                     <tbody>
                       {Object.entries(events.byCreative)
-                        .sort((a, b) => b[1].landing_view - a[1].landing_view)
+                        .sort((a, b) => b[1].landing_view + b[1].sample_demo_intro_view - (a[1].landing_view + a[1].sample_demo_intro_view))
                         .slice(0, 20)
                         .map(([key, v]) => (
                           <tr key={key} className="border-b border-zinc-100 dark:border-zinc-800 last:border-0">
                             <td className="py-1 text-zinc-500">{key}</td>
                             <td className="py-1 text-right tabular-nums">{fmt(v.landing_view)}</td>
                             <td className="py-1 text-right tabular-nums text-xs text-zinc-400">
-                              ({fmt(v.sample_demo_intro_view)} beispiel · {fmt(v.demo_start)} demo_start · <b>{fmt(v.analysis_started)} analysis_started</b>
-                              {v.landing_view > 0 ? ` · ${Math.round((v.demo_start / v.landing_view) * 100)}%` : ''})
+                              ({fmt(v.sample_demo_intro_view)} beispiel → {fmt(v.sample_demo_results_view)} ergebnis → {fmt(v.sample_demo_to_upload)} zum upload · {fmt(v.demo_start)} demo_start · <b>{fmt(v.analysis_started)} analysis_started</b>
+                              {v.landing_view + v.sample_demo_intro_view > 0 ? ` · ${Math.round((v.demo_start / (v.landing_view + v.sample_demo_intro_view)) * 100)}%` : ''})
                             </td>
                           </tr>
                         ))}
