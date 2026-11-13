@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { brandName } from '@/lib/brand';
 import { useUpload } from '@/hooks/useUpload';
+import { useLeaveGuard } from '@/hooks/useLeaveGuard';
 import { DropZone } from '@/components/upload/DropZone';
 import { UploadProgress } from '@/components/upload/UploadProgress';
 import { PhotoGrid } from '@/components/upload/PhotoGrid';
@@ -102,14 +103,14 @@ export default function UploadPage() {
           // Analysis is open; only the download will ask. Say so up front.
           setDownloadNeedsAccount(true);
         }
-        if (!registered) return;
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('beta_grant_tier')
-          .eq('id', user.id)
-          .maybeSingle();
-        const granted = profile?.beta_grant_tier as Tier | null | undefined;
-        if (!cancelled && granted && PRICING_PLANS.some((p) => p.tier === granted)) {
+        // The tier comes from the ACTIVE grant only. Until 2026-11-13 it was read
+        // from profiles.beta_grant_tier, which keeps its value after the 30 days
+        // run out: the page then accepted 298 photos for a "large" grant that
+        // had expired, the server (lib/grant.ts) rightly saw no grant, created
+        // an unpaid job and refused the analysis with 402. Same source as the
+        // server now, so both sides agree on the limit.
+        const granted = policy?.grant?.tier as Tier | null | undefined;
+        if (!cancelled && registered && granted && PRICING_PLANS.some((p) => p.tier === granted)) {
           setCurrentTier(granted);
         }
       } catch {
@@ -136,6 +137,8 @@ export default function UploadPage() {
 
   const { photos, isProcessing, processedCount, totalCount, addFiles, removePhoto, retryFailed, failedCount, clearAll, error } =
     useUpload({ maxPhotos, locale });
+  // Photos exist only in this tab: ask before a reload/close throws them away.
+  useLeaveGuard(totalCount > 0 || photos.length > 0);
   // Only for the background notice below — this does NOT gate "Weiter". The
   // embeddings survive the navigation (they write back through the store) and
   // only have to be complete before the analysis runs, so the wait sits on

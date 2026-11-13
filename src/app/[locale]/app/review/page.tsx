@@ -11,6 +11,7 @@ import { usePhotoStore } from '@/hooks/usePhotoStore';
 import { useCriteria } from '@/hooks/useCriteria';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { useLeaveGuard } from '@/hooks/useLeaveGuard';
 import { trackEv, aiScoreBucket } from '@/lib/events-client';
 
 export default function ReviewPage() {
@@ -23,6 +24,8 @@ export default function ReviewPage() {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const photos = usePhotoStore((s) => s.photos);
+  // Photos exist only in this tab: ask before a reload/close throws them away.
+  useLeaveGuard(photos.length > 0);
   const skippedNew = usePhotoStore((s) => s.skippedNew);
   const [skippedCopied, setSkippedCopied] = useState(false);
   const { criteria } = useCriteria();

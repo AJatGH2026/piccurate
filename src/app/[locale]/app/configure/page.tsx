@@ -11,13 +11,14 @@ import Link from 'next/link';
 import { LegalModal } from '@/components/legal/LegalModal';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { useLeaveGuard } from '@/hooks/useLeaveGuard';
 import { logBeta, logBetaOnce } from '@/lib/beta-client';
 // `trackEvent` above is the dormant GA4/Ads tag (lib/analytics.ts) — kept for
 // the Ads conversion pixel once one is configured. `trackEv` here is the
 // separate first-party funnel (Event-Spezifikation.md), always on.
 import { trackEv, mark, msSince, nextRunIndex, sealAttribution } from '@/lib/events-client';
 import { createClient } from '@/lib/supabase/client';
-import { getTierForPhotoCount, MAX_TIER_PHOTOS } from '@/types/pricing';
+import { getPlan, getTierForPhotoCount, MAX_TIER_PHOTOS } from '@/types/pricing';
 import { estimateRemainingMs, formatEtaDuration } from '@/utils/eta';
 import { ContractConfirmation } from '@/components/legal/ContractConfirmation';
 
@@ -105,6 +106,10 @@ function classifyAnalysisError(err: unknown, message: string): AnalysisErrorClas
 // The server's two 402 refusals arrive as raw English sentences ("This job has
 // not been paid for yet.", "This job has reached its photo limit."), which a
 // German visitor saw verbatim on 2026-09-30. Map them to translated ones.
+// Without an active grant (or payment) this is what one run may hold — the
+// number the 402 text names, so the visitor knows how far to cut back.
+const FREE_PHOTO_LIMIT = getPlan('free').photoLimit;
+
 function paymentKey(err: unknown, message: string): 'analysisJobExhausted' | 'analysisPayment' | null {
   if (!(err instanceof HttpError) || err.status !== 402) return null;
   return /photo limit/i.test(message) ? 'analysisJobExhausted' : 'analysisPayment';
@@ -189,6 +194,8 @@ export default function ConfigurePage() {
     delete sliderStartRef.current[criterion];
   };
   const photos = usePhotoStore((s) => s.photos);
+  // Photos exist only in this tab: ask before a reload/close throws them away.
+  useLeaveGuard(photos.length > 0);
   const activeJobId = usePhotoStore((s) => s.activeJobId);
   const setActiveJobId = usePhotoStore((s) => s.setActiveJobId);
   const contract = usePhotoStore((s) => s.contract);
@@ -1460,7 +1467,7 @@ export default function ConfigurePage() {
                   alert(t('analysisPartial', {
                     done: analysedIds.length,
                     total: toAnalyze.length,
-                    error: failKey ? t(failKey) : failure,
+                    error: failKey ? t(failKey, { max: FREE_PHOTO_LIMIT }) : failure,
                   }));
                 }
                 // Photos the provider refused get NO pop-up: the review page
@@ -1485,7 +1492,7 @@ export default function ConfigurePage() {
                     : errorClass === 'upstream'
                       ? t('analysisUpstream')
                       : payKey
-                        ? t(payKey)
+                        ? t(payKey, { max: FREE_PHOTO_LIMIT })
                         : t('analysisFailed', { error: message })
                 );
               } finally {

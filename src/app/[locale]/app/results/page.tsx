@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { brandName } from '@/lib/brand';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLeaveGuard } from '@/hooks/useLeaveGuard';
 import { usePhotoStore, type ProcessedPhoto } from '@/hooks/usePhotoStore';
 import { enabledCloudProviders, type CloudProvider } from '@/lib/cloud';
 import { dominantPlace, placeFolder } from '@/utils/geo';
@@ -160,6 +161,8 @@ export default function ResultsPage() {
   const cloudProviders = enabledCloudProviders();
 
   const photos = usePhotoStore((s) => s.photos);
+  // Photos exist only in this tab: ask before a reload/close throws them away.
+  useLeaveGuard(photos.length > 0);
   const contract = usePhotoStore((s) => s.contract);
   const selectedPhotos = photos.filter((p) => p.selected);
   const selectedCount = selectedPhotos.length;

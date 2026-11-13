@@ -181,7 +181,7 @@
     "accountRequired": "You need an account to run an analysis — including on the free plan. Please log in or sign up; you can carry on here afterwards.",
     "jobCreateFailed": "The analysis could not be started — that is on us, not on your photos. Please try again in a moment. If it keeps happening, drop us a line and we will check the logs.",
     "contractMailNotice": "Starting the analysis forms the contract for the free photo selection. We show you the confirmation the law requires right here — and email it to you as well once an address is held in your account.",
-    "analysisPayment": "Neither a payment nor an unlock is on record for this job. Please reload the page and try again. If it keeps happening, drop us a line.",
+    "analysisPayment": "Without a valid beta unlock we analyse up to {max} photos at a time – yours has expired or is missing. Go back to the upload step and remove photos until no more than {max} are left.",
     "analysisJobExhausted": "The photo allowance of this job is used up.",
     "analysisPartial": "{done} of {total} photos were analysed. The rest could not be processed: {error} You'll see the analysed ones now — the others can follow later.",
     "budgetExceeded": "You can analyse about {remaining} more photos today, but {requested} are selected. Reduce the selection or try again tomorrow.",

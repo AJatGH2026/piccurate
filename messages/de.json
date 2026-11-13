@@ -181,7 +181,7 @@
     "accountRequired": "Für die Analyse brauchst du ein Konto — auch im kostenlosen Tarif. Bitte melde dich an oder registriere dich; danach kannst du hier weitermachen.",
     "jobCreateFailed": "Die Analyse konnte nicht gestartet werden — das liegt an uns, nicht an deinen Fotos. Bitte versuch es in einem Moment noch einmal. Bleibt es dabei, schreib uns kurz; wir sehen dann im Protokoll nach.",
     "contractMailNotice": "Mit dem Start der Analyse kommt der Vertrag über die kostenlose Fotoauswahl zustande. Die gesetzlich vorgeschriebene Bestätigung dazu zeigen wir dir direkt hier an — und schicken sie dir zusätzlich per E-Mail, sobald zu deinem Konto eine Adresse hinterlegt ist.",
-    "analysisPayment": "Für diesen Vorgang ist weder eine Zahlung noch eine Freischaltung hinterlegt. Bitte lade die Seite neu und versuch es noch einmal. Bleibt es dabei, schreib uns kurz.",
+    "analysisPayment": "Ohne gültige Beta-Freischaltung analysieren wir bis zu {max} Fotos auf einmal – deine Freischaltung ist abgelaufen oder fehlt. Geh zurück zum Hochladen und entferne Fotos, bis höchstens {max} übrig sind.",
     "analysisJobExhausted": "Das Fotokontingent dieses Vorgangs ist aufgebraucht.",
     "analysisPartial": "{done} von {total} Fotos wurden analysiert. Der Rest konnte nicht mehr verarbeitet werden: {error} Die bereits analysierten Fotos siehst du gleich — die übrigen kannst du später nachholen.",
     "budgetExceeded": "Für heute kannst du noch etwa {remaining} Fotos analysieren, ausgewählt sind {requested}. Reduziere die Auswahl oder versuch es morgen noch einmal.",
