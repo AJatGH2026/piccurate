@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { authErrorKey } from '@/lib/auth-errors';
 
 /**
  * Landing page for the password-reset link.
@@ -86,7 +87,8 @@ export default function ResetPasswordPage() {
     const { error: updateError } = await supabase.auth.updateUser({ password });
 
     if (updateError) {
-      setError(updateError.message);
+      console.warn('[reset-password]', updateError.message);
+      setError(t(authErrorKey(updateError)));
       setStage('ready');
       return;
     }

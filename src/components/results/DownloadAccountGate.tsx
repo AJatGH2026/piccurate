@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 import { clientConfig } from '@/lib/config';
+import { authErrorKey } from '@/lib/auth-errors';
 import { Honeypot, useBotSignals } from '@/components/forms/Honeypot';
 
 const POLL_INTERVAL_MS = 4_000;
@@ -133,7 +134,7 @@ export function DownloadAccountGate({
         }
 
         const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-        if (err) throw new Error(err.message);
+        if (err) throw err;
 
         if (jobId && claimToken) {
           // Awaited, unlike the confirmation POST below: onUnlocked() fires
@@ -176,12 +177,20 @@ export function DownloadAccountGate({
         // that route's comment for why it skips the login page for this one.
         { emailRedirectTo: `${clientConfig.appUrl}/${locale}/auth/callback?source=download-gate` }
       );
-      if (err) throw new Error(err.message);
+      if (err) throw err;
       // Address accepted and mail sent — not unlocked yet, see the file doc comment above.
       setPendingEmail(email);
       setAwaitingConfirmation(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : ta('registerFailed'));
+      // Supabase errors carry a `code` and get a translated sentence (raw
+      // GoTrue text is English — lib/auth-errors.ts). The bot-filter throw
+      // above has no code and already carries the translated registerFailed.
+      if (err && typeof err === 'object' && 'code' in err) {
+        console.warn('[download-gate]', (err as { message?: unknown }).message);
+        setError(ta(authErrorKey(err)));
+      } else {
+        setError(err instanceof Error ? err.message : ta('registerFailed'));
+      }
     } finally {
       setBusy(false);
     }

@@ -23,6 +23,43 @@ import { ContractConfirmation } from '@/components/legal/ContractConfirmation';
 
 const BATCH_SIZE = 20;
 
+// How long a FINISHED analysis may wait for the last CLIP embeddings before
+// the selection runs without them (2026-11-13, see canAnalyze). One minute:
+// long enough that a normal machine finishes (the CLIP pass has been running
+// since the upload and through the whole Gemini run), short enough that a slow
+// one is not left staring at a spinner after its result is already in.
+const EMBEDDING_GRACE_MS = 60_000;
+
+/**
+ * Resolve once no CLIP embedding is pending, or after `maxMs`. Reports
+ * progress through `onProgress` while it waits. Returns how long it waited
+ * and how many were still pending at the end (0 = complete).
+ */
+function waitForEmbeddings(
+  maxMs: number,
+  onProgress: (pending: number) => void
+): Promise<{ waitedMs: number; pendingAfter: number }> {
+  const t0 = Date.now();
+  const pendingNow = () => usePhotoStore.getState().embeddingsPending;
+  if (pendingNow() === 0) return Promise.resolve({ waitedMs: 0, pendingAfter: 0 });
+  onProgress(pendingNow());
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      unsubscribe();
+      clearTimeout(timer);
+      resolve({ waitedMs: Date.now() - t0, pendingAfter: pendingNow() });
+    };
+    const unsubscribe = usePhotoStore.subscribe((s) => {
+      onProgress(s.embeddingsPending);
+      if (s.embeddingsPending === 0) finish();
+    });
+    const timer = setTimeout(finish, maxMs);
+  });
+}
+
 // Event-Spezifikation §4: `analysis_failed.error_class`. Best-effort — most
 // thrown errors here are already user-facing German/English sentences
 // (ensureJob's t(...) calls), not machine-readable codes, so this classifies
@@ -189,14 +226,53 @@ export default function ConfigurePage() {
   // No separate person confirmation any more — see the note further down where
   // the checkbox used to be. Analysis is gated on age + terms only.
   // Dedup (detectSeries rule 3) reads photo.embedding, and applyAnalysisResults
-  // below is the first thing that runs it — so this is the last moment the CLIP
-  // pass has to be complete, and the right place to wait for it. By now most of
-  // it is usually done: it kept running across the navigation from /upload and
-  // through the time spent on the criteria here. Waiting on /upload instead
-  // (which is what shipped this morning) just spent that time idle.
+  // is the first thing that runs it. Until 2026-11-13 the button waited here for
+  // the whole CLIP pass; now the analysis may start at once and the wait moved
+  // to the END of the analysis (waitForEmbeddings below), where the minutes
+  // Gemini takes have already paid most of it off — and that wait is capped.
+  // Why: a visitor uploaded 250 photos on 11.11. and never analysed; the
+  // button stayed locked behind a CLIP pass that, on a slow machine, runs for
+  // many minutes (main-thread WASM, utils/embedding.ts). Photos whose
+  // embedding is still missing when the cap runs out fall back to pHash, as
+  // they always have for a failed embedding (cosineSim → 0); a later re-run of
+  // the selection (slider, criteria) picks up embeddings that arrived since.
   const embeddingsPending = usePhotoStore((s) => s.embeddingsPending);
-  const canAnalyze = ageAccepted && termsAccepted && embeddingsPending === 0;
+  const canAnalyze = ageAccepted && termsAccepted;
+  // Set while the finished analysis waits for the last CLIP embeddings.
+  const [dedupFinishing, setDedupFinishing] = useState<{ done: number; total: number } | null>(null);
   useEffect(() => { logBeta('configure'); }, []);
+  // `configure_left` (added 2026-11-13): the criteria page left WITHOUT an
+  // analysis being started from it. The funnel had no way to tell "gave up
+  // here" from "never got here"; the props say how far the duplicate scan was
+  // and whether the consent boxes were ticked — the two candidate blockers.
+  // Pre-contract by definition (no analysis started), so it carries the usual
+  // attribution like every other pre-analysis event.
+  const analysisStartedHereRef = useRef(false);
+  const leaveStateRef = useRef({ mountedAt: Date.now(), photos: 0, pending: 0, consent: false });
+  leaveStateRef.current.photos = photos.length;
+  leaveStateRef.current.pending = embeddingsPending;
+  leaveStateRef.current.consent = ageAccepted && termsAccepted;
+  useEffect(() => {
+    let fired = false;
+    const fireIfLeft = () => {
+      if (fired || analysisStartedHereRef.current) return;
+      const s = leaveStateRef.current;
+      if (s.photos === 0) return;
+      fired = true;
+      // Percentages, not photo counts: privacy policy § 9.1 promises only a
+      // coarse size class of the photo set (that bucket rides on every event).
+      trackEv('configure_left', locale, {
+        embeddings_done_pct: Math.round((Math.max(0, s.photos - s.pending) / s.photos) * 100),
+        consent_given: s.consent,
+        ms_on_page: Date.now() - s.mountedAt,
+      });
+    };
+    window.addEventListener('pagehide', fireIfLeft);
+    return () => {
+      window.removeEventListener('pagehide', fireIfLeft);
+      fireIfLeft();
+    };
+  }, [locale]);
   // Event-Spezifikation §4: `analysis_abandoned` — page left mid-analysis.
   // pagehide covers a hard navigation/tab close; the effect cleanup covers a
   // client-side (SPA) navigation away, which never fires pagehide/beforeunload.
@@ -979,6 +1055,21 @@ export default function ConfigurePage() {
             onClick={async () => {
               // A3: record the terms confirmation (date-keyed) before processing.
               logBetaOnce('terms_accepted');
+              analysisStartedHereRef.current = true;
+              // Waits (capped) for the CLIP pass before any selection run —
+              // see EMBEDDING_GRACE_MS and canAnalyze.
+              const pendingPct = (pending = usePhotoStore.getState().embeddingsPending) => {
+                const total = usePhotoStore.getState().photos.length;
+                return total > 0 ? Math.round((Math.min(pending, total) / total) * 100) : 0;
+              };
+              const settleEmbeddings = async () => {
+                const total = usePhotoStore.getState().photos.length;
+                const r = await waitForEmbeddings(EMBEDDING_GRACE_MS, (pending) =>
+                  setDedupFinishing({ done: Math.max(0, total - pending), total })
+                );
+                setDedupFinishing(null);
+                return r;
+              };
               // `persons_confirmed` was removed on 2026-08-14. It told the server
               // "a person search is happening in this session" — harmless-looking
               // as a counter, but § 5.4 lists exactly that as a NO-GO: the server
@@ -1038,6 +1129,7 @@ export default function ConfigurePage() {
                 if (toAnalyze.length === 0) {
                   // Nothing is sent to the AI, so there is nothing new to report.
                   usePhotoStore.getState().setSkippedNew([]);
+                  await settleEmbeddings();
                   setProgress(t('progressRecomputing'));
                   trackEv('reselect_run', locale, { run_index: nextRunIndex() });
                   rerunSelection(criteria);
@@ -1047,7 +1139,13 @@ export default function ConfigurePage() {
 
                 // The conversion we want to count — the last event that may
                 // carry campaign attribution.
-                trackEv('analysis_started', locale, { photo_count: toAnalyze.length });
+                trackEv('analysis_started', locale, {
+                  photo_count: toAnalyze.length,
+                  // Share of CLIP embeddings still running at the click — since
+                  // 2026-11-13 the button no longer waits for them. A share,
+                  // not a count (privacy policy § 9.1: size class only).
+                  embeddings_pending_pct: pendingPct(),
+                });
                 // Same step, reported to Google Ads. Deliberately here and not
                 // at the download: the download is behind the account gate at
                 // the end of the funnel, and optimising bidding on a step that
@@ -1317,6 +1415,7 @@ export default function ConfigurePage() {
                         ...skipped.filter((s) => !seen.has(s.id)),
                       ]);
                       usePhotoStore.getState().setSkippedNew(skipped);
+                      await settleEmbeddings();
                       rerunSelection(criteria);
                       router.push(`/${locale}/app/review`);
                       return;
@@ -1328,6 +1427,7 @@ export default function ConfigurePage() {
 
                 // No label→name mapping any more: the model is not asked about
                 // people at all, and the store ignores any `persons` it returns.
+                const dedupWait = await settleEmbeddings();
                 applyAnalysisResults(flatResults, criteria, analysedIds);
                 // Keep the ones from earlier runs of this photo set: they are
                 // still not in the analysis, and the review page lists them.
@@ -1350,6 +1450,8 @@ export default function ConfigurePage() {
                 trackEv('analysis_completed', locale, {
                   duration_ms: msSince('analysis_started'),
                   selected_count: usePhotoStore.getState().photos.filter((p) => p.selected).length,
+                  dedup_wait_ms: dedupWait.waitedMs,
+                  embeddings_pending_after_pct: pendingPct(dedupWait.pendingAfter),
                 });
                 // Say what happened before showing the result, so nobody wonders
                 // why some photos are missing from the review.
@@ -1393,13 +1495,7 @@ export default function ConfigurePage() {
               }
             }}
             disabled={analyzing || !canAnalyze}
-            title={
-              !canAnalyze
-                ? embeddingsPending > 0 && ageAccepted && termsAccepted
-                  ? t('waitingForDuplicateScan')
-                  : t('confirmRequired')
-                : undefined
-            }
+            title={!canAnalyze ? t('confirmRequired') : undefined}
             className={`rounded-full px-8 py-3 text-sm font-semibold transition-colors ${
               analyzing || !canAnalyze
                 ? 'bg-zinc-300 text-zinc-500 cursor-not-allowed dark:bg-zinc-700'
@@ -1427,7 +1523,15 @@ export default function ConfigurePage() {
             fraction={photos.length > 0 ? (photos.length - embeddingsPending) / photos.length : null}
           />
         )}
-        {analyzing && (
+        {analyzing && dedupFinishing && (
+          <WaitPanel
+            title={t('waitPanelDedupFinishTitle')}
+            body={t('waitPanelDedupFinishBody', { done: dedupFinishing.done, total: dedupFinishing.total })}
+            note={t('waitPanelKeepOpen')}
+            fraction={dedupFinishing.total > 0 ? dedupFinishing.done / dedupFinishing.total : null}
+          />
+        )}
+        {analyzing && !dedupFinishing && (
           <WaitPanel
             title={batchProgress ? t('waitPanelAnalysisTitle') : progress || t('progressPreparing')}
             body={[

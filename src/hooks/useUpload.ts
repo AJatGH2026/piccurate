@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { v4 as uuidv4 } from 'uuid';
 import type { ClientPhoto } from '@/types/photo';
 import { extractEXIF } from '@/utils/exif';
@@ -67,6 +68,9 @@ interface UseUploadReturn {
 }
 
 export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadReturn {
+  // Translated since 2026-11-13 — these three messages were hard-coded English,
+  // and the 250-photo free-tier cap is exactly where a German visitor met one.
+  const t = useTranslations('upload');
   const [photos, setPhotos] = useState<ClientPhoto[]>([]);
   const [error, setError] = useState<string | null>(null);
   const processingQueue = useRef<ClientPhoto[]>([]);
@@ -308,7 +312,7 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
       });
 
       if (validFiles.length === 0) {
-        setError('No supported image files found. Supported formats: JPEG, PNG, HEIC, WebP.');
+        setError(t('errorNoSupportedFiles'));
         return;
       }
 
@@ -320,14 +324,18 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
       const currentCount = acceptedCount.current;
       const available = maxPhotos - currentCount;
       if (available <= 0) {
-        setError(`Maximum of ${maxPhotos} photos reached.`);
+        setError(t('errorLimitReached', { max: maxPhotos.toLocaleString(locale) }));
         return;
       }
 
       const filesToAdd = validFiles.slice(0, available);
       if (filesToAdd.length < validFiles.length) {
         setError(
-          `Only ${filesToAdd.length} of ${validFiles.length} files added (limit: ${maxPhotos}).`
+          t('errorLimitPartial', {
+            added: filesToAdd.length.toLocaleString(locale),
+            total: validFiles.length.toLocaleString(locale),
+            max: maxPhotos.toLocaleString(locale),
+          })
         );
       }
 
@@ -384,7 +392,7 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
         processNext();
       }
     },
-    [maxPhotos, processNext]
+    [maxPhotos, processNext, t, locale]
   );
 
   // Re-process only the photos that failed (e.g. a flaky HEIC conversion).

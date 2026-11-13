@@ -84,6 +84,8 @@ export const ALLOWED_EVENTS = new Set([
   'content_view',
   'files_selected',
   'file_transfer_ready',
+  // Criteria page left without starting an analysis (2026-11-13).
+  'configure_left',
   'cloud_intent_click',
   // Stufe 2
   'analysis_started',
@@ -531,7 +533,7 @@ export async function readUploadTimings(limit = 12, days = 3): Promise<UploadTim
 /** One analysis-stage event with the props that say how it ended. */
 export interface AnalysisOutcome {
   ts: string;
-  name: 'analysis_started' | 'analysis_completed' | 'analysis_failed' | 'analysis_abandoned';
+  name: 'analysis_started' | 'analysis_completed' | 'analysis_failed' | 'analysis_abandoned' | 'configure_left';
   deviceClass: string;
   trafficSource: string | null;
   keyword: string | null;
@@ -545,6 +547,21 @@ export interface AnalysisOutcome {
   pctAtExit: number | null;
   /** `analysis_completed.duration_ms` or `analysis_abandoned.elapsed_ms`, else null. */
   elapsedMs: number | null;
+  /**
+   * Added 2026-11-13, when the analysis stopped waiting for the CLIP pass:
+   * `analysis_started.embeddings_pending_pct` (share still running at the
+   * click), `analysis_completed.dedup_wait_ms` / `embeddings_pending_after_pct`
+   * (the capped wait at the end, and the share still missing when it gave up),
+   * and the `configure_left` props (share embedded, consent ticked, time on
+   * the page). Shares, not counts — privacy policy § 9.1 promises only a coarse
+   * size class of the photo set. Null where the event does not carry them.
+   */
+  embeddingsPendingPct: number | null;
+  dedupWaitMs: number | null;
+  pendingAfterPct: number | null;
+  embeddingsDonePct: number | null;
+  consentGiven: boolean | null;
+  msOnPage: number | null;
 }
 
 /**
@@ -560,7 +577,7 @@ export interface AnalysisOutcome {
 export async function readAnalysisOutcomes(limit = 20, days = 7): Promise<AnalysisOutcome[]> {
   const r = getClient();
   if (!r) return [];
-  const wanted = new Set(['analysis_started', 'analysis_completed', 'analysis_failed', 'analysis_abandoned']);
+  const wanted = new Set(['analysis_started', 'analysis_completed', 'analysis_failed', 'analysis_abandoned', 'configure_left']);
   try {
     const dayKeys = Array.from({ length: days }, (_, i) => {
       const d = new Date();
@@ -591,6 +608,12 @@ export async function readAnalysisOutcomes(limit = 20, days = 7): Promise<Analys
         errorClass: typeof p.error_class === 'string' ? p.error_class : null,
         pctAtExit: num(p.pct_at_exit),
         elapsedMs: num(p.duration_ms) ?? num(p.elapsed_ms),
+        embeddingsPendingPct: num(p.embeddings_pending_pct),
+        dedupWaitMs: num(p.dedup_wait_ms),
+        pendingAfterPct: num(p.embeddings_pending_after_pct),
+        embeddingsDonePct: num(p.embeddings_done_pct),
+        consentGiven: typeof p.consent_given === 'boolean' ? p.consent_given : null,
+        msOnPage: num(p.ms_on_page),
       });
     }
     out.sort((a, b) => (a.ts < b.ts ? 1 : -1));

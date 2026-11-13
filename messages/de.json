@@ -122,7 +122,10 @@
     "cloudIntentComingSoon": "in Arbeit — sag uns Bescheid, wenn du das brauchst",
     "cloudIntentThanks": "Danke, notiert! Wir melden uns, sobald es verfügbar ist.",
     "etaDependencyNote": "Die Upload-Dauer hängt von deiner Internetverbindung, deinem Gerät und dem Dateiformat deiner Fotos ab (HEIC dauert länger als JPEG).",
-    "downloadNeedsAccountNote": "Analysieren und das Ergebnis ansehen kannst du ohne Konto. <strong>Für den Download als ZIP brauchst du ein kostenloses Konto — das legst du direkt auf der Ergebnisseite an, ohne deine Auswahl zu verlieren.</strong>"
+    "downloadNeedsAccountNote": "Analysieren und das Ergebnis ansehen kannst du ohne Konto. <strong>Für den Download als ZIP brauchst du ein kostenloses Konto — das legst du direkt auf der Ergebnisseite an, ohne deine Auswahl zu verlieren.</strong>",
+    "errorNoSupportedFiles": "Keine unterstützten Bilddateien gefunden. Unterstützt werden JPEG, PNG, HEIC und WebP.",
+    "errorLimitReached": "Die Grenze von {max} Fotos ist erreicht.",
+    "errorLimitPartial": "Nur {added} von {total} Fotos übernommen – die Grenze liegt bei {max} Fotos."
   },
   "criteria": {
     "title": "Auswahlkriterien konfigurieren",
@@ -190,7 +193,6 @@
     "personsConfirmRequired": "Bitte zuerst bestätigen.",
     "personsInfoLink": "Hinweise zur Personensuche",
     "confirmRequired": "Bitte Altersbestätigung setzen, um fortzufahren.",
-    "waitingForDuplicateScan": "Der Ähnlichkeitsvergleich für die Dublettenerkennung läuft noch — gleich geht es los.",
     "analysisEtaDependencyNote": "Die Analyse-Dauer hängt von der Gesamtzahl deiner Fotos und der Serverlast ab.",
     "dedup": "Duplikaterkennung",
     "dedupDesc": "Wie aggressiv ähnliche Fotos entfernt werden",
@@ -199,7 +201,7 @@
     "analyzing": "Fotos werden analysiert...",
     "progressPreparing": "Fotos werden vorbereitet…",
     "waitPanelDuplicatesTitle": "Dubletten werden erkannt…",
-    "waitPanelDuplicatesBody": "{done} von {total} Fotos verglichen — danach wird der Analyse-Button aktiv.",
+    "waitPanelDuplicatesBody": "{done} von {total} Fotos verglichen – du kannst die Analyse schon starten, der Vergleich läuft nebenher weiter.",
     "waitPanelDuplicatesBodyPlain": "{done} von {total} Fotos verglichen — läuft im Hintergrund, du kannst währenddessen die Kriterien einstellen.",
     "waitPanelAnalysisTitle": "Deine Fotos werden analysiert…",
     "waitPanelBatches": "Stapel {done} von {total}",
@@ -230,7 +232,9 @@
     "personThresholdLoose": "großzügig",
     "personThresholdHint": "Gilt für alle hinterlegten Personen gemeinsam — wie genau ein Gesicht erkannt werden muss, um überhaupt als Treffer zu zählen. Streng: weniger Fotos werden gefunden, dafür stimmen die Treffer meistens. Großzügig: mehr Fotos werden gefunden, dafür sind mehr falsche dabei.",
     "personWeightHint": "Wie stark Fotos mit {name} in der Auswahl bevorzugt werden — unabhängig davon, ob und wie genau das Gesicht erkannt wurde. Das stellst du weiter unten für alle Personen gemeinsam ein.",
-    "aiNoticePrivacy": "Datenschutz"
+    "aiNoticePrivacy": "Datenschutz",
+    "waitPanelDedupFinishTitle": "Dubletten werden abgeglichen…",
+    "waitPanelDedupFinishBody": "{done} von {total} Fotos verglichen – höchstens noch eine Minute, dann kommt dein Ergebnis."
   },
   "review": {
     "title": "Deine Auswahl prüfen",
@@ -367,7 +371,14 @@
     "downloadConfirmedBody": "Du kannst dieses Fenster jetzt schließen und zu dem Tab zurückkehren, in dem du deinen Download gestartet hast — er läuft dort automatisch weiter, meist innerhalb weniger Sekunden.",
     "downloadConfirmedFallback": "Ist dieser Tab nicht mehr offen? Dann lade deine Fotos einfach erneut hoch — dein Konto ist jetzt bereit, eine erneute Registrierung brauchst du nicht mehr:",
     "downloadConfirmErrorTitle": "Link ungültig oder abgelaufen",
-    "downloadConfirmErrorBody": "Geh zurück zu dem Tab, in dem du deinen Download gestartet hast, und klick dort auf „Mail erneut senden“."
+    "downloadConfirmErrorBody": "Geh zurück zu dem Tab, in dem du deinen Download gestartet hast, und klick dort auf „Mail erneut senden“.",
+    "errInvalidCredentials": "E-Mail-Adresse oder Passwort stimmt nicht. Noch kein Konto? Dann registriere dich zuerst.",
+    "errEmailNotConfirmed": "Deine E-Mail-Adresse ist noch nicht bestätigt. Bitte klick zuerst auf den Link in unserer Bestätigungsmail – schau auch im Spam-Ordner nach.",
+    "errEmailTaken": "Für diese E-Mail-Adresse gibt es schon ein Konto. Bitte melde dich an.",
+    "errWeakPassword": "Dieses Passwort ist zu schwach. Bitte wähle ein längeres oder weniger leicht zu erratendes.",
+    "errSamePassword": "Das neue Passwort muss sich vom bisherigen unterscheiden.",
+    "errRateLimit": "Zu viele Versuche in kurzer Zeit. Bitte warte ein paar Minuten und versuch es dann noch einmal.",
+    "errGeneric": "Das hat nicht geklappt. Bitte versuch es gleich noch einmal."
   },
   "common": {
     "loading": "Wird geladen...",

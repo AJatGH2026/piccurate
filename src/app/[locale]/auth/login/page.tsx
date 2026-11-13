@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { authErrorKey } from '@/lib/auth-errors';
 import { readNextParam } from '@/lib/auth/next-path';
 
 export default function LoginPage() {
@@ -39,7 +40,8 @@ export default function LoginPage() {
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (authError) {
-      setError(authError.message);
+      console.warn('[login]', authError.message);
+      setError(t(authErrorKey(authError)));
       setLoading(false);
     } else {
       // Back to whatever sent them here — the pricing page, typically, which

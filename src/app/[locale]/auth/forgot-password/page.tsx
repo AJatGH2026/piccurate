@@ -6,6 +6,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { authErrorKey } from '@/lib/auth-errors';
 import { clientConfig } from '@/lib/config';
 
 export default function ForgotPasswordPage() {
@@ -41,7 +42,8 @@ export default function ForgotPasswordPage() {
     });
 
     if (resetError) {
-      setError(resetError.message);
+      console.warn('[forgot-password]', resetError.message);
+      setError(t(authErrorKey(resetError)));
       setLoading(false);
     } else {
       setEmailSent(true);
@@ -68,6 +70,15 @@ export default function ForgotPasswordPage() {
           <p className="mt-6 text-sm text-zinc-500">
             <Link href={`/${locale}/auth/login`} className="text-indigo-600 hover:text-indigo-700 font-medium">
               {t('backToLogin')}
+            </Link>
+          </p>
+          {/* Added 2026-11-13: a visitor asked for five resets in five days for
+              an address with no account (auth logs 08.–12.11.) — the text above
+              already says "we send nothing" in that case, but offered no way on. */}
+          <p className="mt-2 text-sm text-zinc-500">
+            {t('noAccount')}{' '}
+            <Link href={`/${locale}/auth/register`} className="text-indigo-600 hover:text-indigo-700 font-medium">
+              {t('registerCta')}
             </Link>
           </p>
         </div>

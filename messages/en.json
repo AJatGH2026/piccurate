@@ -122,7 +122,10 @@
     "cloudIntentComingSoon": "coming soon — let us know if you need this",
     "cloudIntentThanks": "Thanks, noted! We'll let you know once it's available.",
     "etaDependencyNote": "Upload time depends on your internet connection, your device, and your photos' file format (HEIC takes longer than JPEG).",
-    "downloadNeedsAccountNote": "Analysing your photos and viewing the result needs no account. <strong>Downloading the selection as a ZIP needs a free account — you create it right on the results page, without losing your selection.</strong>"
+    "downloadNeedsAccountNote": "Analysing your photos and viewing the result needs no account. <strong>Downloading the selection as a ZIP needs a free account — you create it right on the results page, without losing your selection.</strong>",
+    "errorNoSupportedFiles": "No supported image files found. Supported formats: JPEG, PNG, HEIC and WebP.",
+    "errorLimitReached": "The limit of {max} photos has been reached.",
+    "errorLimitPartial": "Only {added} of {total} photos added – the limit is {max} photos."
   },
   "criteria": {
     "title": "Configure selection criteria",
@@ -190,7 +193,6 @@
     "personsConfirmRequired": "Please confirm first.",
     "personsInfoLink": "Information on the person search",
     "confirmRequired": "Please tick the age confirmation to continue.",
-    "waitingForDuplicateScan": "The similarity comparison for duplicate detection is still running — just a moment.",
     "analysisEtaDependencyNote": "Analysis time depends on your total number of photos and server load.",
     "dedup": "Duplicate removal",
     "dedupDesc": "How aggressively to remove similar photos",
@@ -199,7 +201,7 @@
     "analyzing": "Analysing photos...",
     "progressPreparing": "Preparing photos…",
     "waitPanelDuplicatesTitle": "Detecting duplicates…",
-    "waitPanelDuplicatesBody": "{done} of {total} photos compared — the analyse button unlocks after this.",
+    "waitPanelDuplicatesBody": "{done} of {total} photos compared – you can start the analysis now; the comparison keeps running alongside.",
     "waitPanelDuplicatesBodyPlain": "{done} of {total} photos compared — runs in the background; you can set your criteria meanwhile.",
     "waitPanelAnalysisTitle": "Your photos are being analysed…",
     "waitPanelBatches": "Batch {done} of {total}",
@@ -230,7 +232,9 @@
     "personThresholdLoose": "generous",
     "personThresholdHint": "Applies to all your reference persons together — how closely a face must match to count as a hit at all. Strict: fewer photos are found, but the matches are usually right. Generous: more photos are found, but more of them are wrong.",
     "personWeightHint": "How strongly photos with {name} are favoured in the selection — regardless of whether or how confidently the face was recognised. You set that below, for all persons together.",
-    "aiNoticePrivacy": "Privacy Policy"
+    "aiNoticePrivacy": "Privacy Policy",
+    "waitPanelDedupFinishTitle": "Matching duplicates…",
+    "waitPanelDedupFinishBody": "{done} of {total} photos compared – at most another minute, then your result is ready."
   },
   "review": {
     "title": "Review your selection",
@@ -367,7 +371,14 @@
     "downloadConfirmedBody": "You can close this window now and go back to the tab where you started your download — it will carry on there automatically, usually within a few seconds.",
     "downloadConfirmedFallback": "Is that tab no longer open? Just upload your photos again — your account is ready now, no need to sign up again:",
     "downloadConfirmErrorTitle": "This link is invalid or has expired",
-    "downloadConfirmErrorBody": "Go back to the tab where you started your download and click \"Resend email\" there."
+    "downloadConfirmErrorBody": "Go back to the tab where you started your download and click \"Resend email\" there.",
+    "errInvalidCredentials": "Email address or password is incorrect. No account yet? Please sign up first.",
+    "errEmailNotConfirmed": "Your email address is not confirmed yet. Please click the link in our confirmation email first – check your spam folder too.",
+    "errEmailTaken": "There is already an account for this email address. Please log in.",
+    "errWeakPassword": "This password is too weak. Please choose a longer or less guessable one.",
+    "errSamePassword": "The new password must differ from the old one.",
+    "errRateLimit": "Too many attempts in a short time. Please wait a few minutes and try again.",
+    "errGeneric": "That didn't work. Please try again in a moment."
   },
   "common": {
     "loading": "Loading...",

@@ -636,7 +636,19 @@ export default async function AdminStatsPage({
                       </td>
                       {uploadPhaseCols.map((p) => (
                         <td key={p} className="py-1 pr-3 text-zinc-600 dark:text-zinc-300">
-                          {run.phases[p] ? fmt(run.phases[p].avgMs) : '·'}
+                          {run.phases[p] ? (
+                            // n and max added 2026-11-13: an average alone could
+                            // not say whether 36 s clip_run meant every photo or
+                            // one cold model load over three photos.
+                            <>
+                              {fmt(run.phases[p].avgMs)}
+                              <span className="block text-[10px] text-zinc-400 whitespace-nowrap">
+                                n {fmt(run.phases[p].n)} · max {fmt(run.phases[p].maxMs)}
+                              </span>
+                            </>
+                          ) : (
+                            '·'
+                          )}
                         </td>
                       ))}
                     </tr>
@@ -662,7 +674,11 @@ export default async function AdminStatsPage({
             <code>completed</code> die Dauer. „Sitzung“ und „Quelle“ stehen nur am <code>started</code> — ab dem
             Vertragsschluss tragen Ereignisse per Attributions-Firewall (§ 312 Abs. 1a, <code>lib/events-client.ts</code>)
             weder Sitzungskennung noch Kampagne; Start und Ende lassen sich nur über die Zeit zuordnen. Eigene Läufe
-            (QA-Modus) sind markiert, nicht ausgeblendet.
+            (QA-Modus) sind markiert, nicht ausgeblendet. Seit 13.11.2026 zusätzlich: „Kriterien verlassen“ = Kriterien-Seite
+            ohne Analyse-Start verlassen (wie viel Prozent des CLIP-Abgleichs fertig war, ob die Häkchen gesetzt waren, Verweildauer);
+            am <code>started</code> „CLIP offen“ = Abgleich lief beim Klick noch; am <code>completed</code> das
+            Dubletten-Warten am Ende (höchstens 60 s) und welcher Anteil der Fotos danach ohne CLIP-Abgleich blieb.
+            Anteile statt Fotozahlen, weil § 9.1 der Datenschutzerklärung nur eine grobe Größenklasse zusagt.
           </Hint>
           {Object.keys(failedByClass).length > 0 && (
             <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
@@ -694,7 +710,7 @@ export default async function AdminStatsPage({
                     <tr key={i} className="border-t border-zinc-100 dark:border-zinc-800">
                       <td className="py-1 pr-3 whitespace-nowrap text-zinc-500">{o.ts.slice(5, 16).replace('T', ' ')}</td>
                       <td className="py-1 pr-3 whitespace-nowrap">
-                        {o.name.replace('analysis_', '')}
+                        {o.name === 'configure_left' ? 'Kriterien verlassen' : o.name.replace('analysis_', '')}
                         {o.internal && <span className="text-zinc-400" title="QA-Modus"> (eigen)</span>}
                       </td>
                       <td className="py-1 pr-3 whitespace-nowrap text-zinc-500">{o.deviceClass || '–'}</td>
@@ -708,8 +724,16 @@ export default async function AdminStatsPage({
                         {o.name === 'analysis_failed' && (o.errorClass ?? '–')}
                         {o.name === 'analysis_abandoned' &&
                           `${o.pctAtExit != null ? `${o.pctAtExit} %` : '–'}${o.elapsedMs != null ? ` nach ${Math.round(o.elapsedMs / 1000)} s` : ''}`}
-                        {o.name === 'analysis_completed' && (o.elapsedMs != null ? `${Math.round(o.elapsedMs / 1000)} s` : '–')}
-                        {o.name === 'analysis_started' && ''}
+                        {o.name === 'analysis_completed' &&
+                          `${o.elapsedMs != null ? `${Math.round(o.elapsedMs / 1000)} s` : '–'}${
+                            o.dedupWaitMs ? ` · Dubletten-Warten ${Math.round(o.dedupWaitMs / 1000)} s` : ''
+                          }${o.pendingAfterPct ? ` · ${o.pendingAfterPct} % ohne CLIP` : ''}`}
+                        {o.name === 'analysis_started' &&
+                          (o.embeddingsPendingPct ? `CLIP offen: ${o.embeddingsPendingPct} %` : '')}
+                        {o.name === 'configure_left' &&
+                          `CLIP ${o.embeddingsDonePct != null ? `${o.embeddingsDonePct} %` : '–'} · Häkchen ${
+                            o.consentGiven == null ? '–' : o.consentGiven ? 'ja' : 'nein'
+                          } · ${o.msOnPage != null ? `${Math.round(o.msOnPage / 1000)} s` : '–'}`}
                       </td>
                     </tr>
                   ))}
