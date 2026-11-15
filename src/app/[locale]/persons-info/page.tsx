@@ -44,7 +44,7 @@ function GermanBody() {
       <h1>Hinweise zur Personensuche</h1>
       <p>Diese Information kann der Nutzer der abgebildeten Person vor der Verwendung zeigen oder zusenden. Eine Unterschrift, ein Formular oder die Übermittlung eines Nachweises an AuswahlBuddy ist nicht erforderlich.</p>
       <h2>Wer bietet die technische Verarbeitung an?</h2>
-      <p>AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Deutschland. Datenschutzkontakt: privacy@auswahlbuddy.de. AJ GmbH stellt für die Personensuche ausschließlich die technische Software bereit (siehe unten) und ist an der konkreten Verarbeitung deiner Daten nicht beteiligt.</p>
+      <p>AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Deutschland. Datenschutzkontakt und Datenschutzbeauftragte (Alexandra Jahnke): privacy@auswahlbuddy.de. AJ GmbH stellt für die Personensuche ausschließlich die technische Software bereit (siehe unten) und ist an der konkreten Verarbeitung deiner Daten nicht beteiligt.</p>
       <h2>Wie funktioniert die Personensuche?</h2>
       <p>Ein volljähriger Nutzer verwendet ein privates Foto von dir als Referenz, um dich in seinen eigenen privaten Fotos wiederzufinden. Die gesamte Verarbeitung — das Erkennen deines Gesichts auf dem Referenzfoto, der Abgleich mit den durchsuchten Fotos und das Ergebnis — läuft ausschließlich auf dem Gerät des Nutzers, in dessen Browser. Dein Referenzfoto, davon abgeleitete Gesichtsmerkmale und das Ergebnis werden zu keinem Zeitpunkt an AJ GmbH, Google oder einen anderen Anbieter übermittelt.</p>
       <h2>Welche Daten werden verarbeitet, und von wem?</h2>
@@ -70,7 +70,7 @@ function EnglishBody() {
       <h1>Information on the person search</h1>
       <p>The user may show or send this information to the person shown before use. No signature, form or submission of evidence to ShortlistBuddy is required.</p>
       <h2>Who provides the technical processing?</h2>
-      <p>AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Germany. Privacy contact: privacy@shortlistbuddy.com. AJ GmbH provides only the technical software for the person search (see below) and is not involved in the specific processing of your data.</p>
+      <p>AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Germany. Privacy contact and data protection officer (Alexandra Jahnke): privacy@shortlistbuddy.com. AJ GmbH provides only the technical software for the person search (see below) and is not involved in the specific processing of your data.</p>
       <h2>How does the person search work?</h2>
       <p>An adult user uses a private photo of you as a reference in order to find you in their own private photos. The entire process — recognising your face in the reference photo, comparing it with the photos being searched, and the result — runs exclusively on the user’s device, in their browser. Your reference photo, facial features derived from it, and the result are never transmitted to AJ GmbH, Google or any other provider.</p>
       <h2>Which data are processed, and by whom?</h2>

@@ -38,7 +38,7 @@ function GermanBody() {
   return (
     <>
       <h1>Datenschutzerklärung</h1>
-      <p>Stand: 8. November 2026</p>
+      <p>Stand: 15. November 2026</p>
       <h2>1. Verantwortlicher</h2>
       <p>Verantwortlicher im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:</p>
       <p>AJ GmbH</p>
@@ -47,6 +47,7 @@ function GermanBody() {
       <p>Deutschland</p>
       <p>Vertreten durch: Dr. Andreas Jahnke</p>
       <p>Datenschutzkontakt: privacy@auswahlbuddy.de</p>
+      <p>Datenschutzbeauftragte: Alexandra Jahnke, erreichbar unter privacy@auswahlbuddy.de</p>
       <h2>2. Geltungsbereich und Mindestalter</h2>
       <p>Diese Datenschutzerklärung gilt für die Website und den Fotoauswahldienst AuswahlBuddy. Der Dienst ist für die persönliche, private oder familiäre Fotoverwaltung bestimmt.</p>
       <p>Die Nutzung setzt ein Mindestalter von 18 Jahren voraus. Der Dienst wird ausschließlich volljährigen Nutzern angeboten — auch dort, wo Art. 8 DSGVO eine eigene Einwilligung schon ab 16 Jahren zuließe: Die Bedingungen des von uns eingesetzten KI-Anbieters untersagen Anwendungen, die sich an Minderjährige richten oder voraussichtlich von ihnen genutzt werden. Dein Alter bestätigst du selbst; wir erheben zur Altersprüfung keine weiteren Daten. Minderjährige dürfen auf privaten Fotos und Referenzfotos abgebildet sein.</p>
@@ -201,7 +202,7 @@ function EnglishBody() {
     <>
       <h1>Privacy Policy</h1>
       <EnglishNotice />
-      <p>Last updated: 8 November 2026</p>
+      <p>Last updated: 15 November 2026</p>
       <h2>1. Controller</h2>
       <p>The controller within the meaning of the General Data Protection Regulation (GDPR) is:</p>
       <p>AJ GmbH</p>
@@ -210,6 +211,7 @@ function EnglishBody() {
       <p>Germany</p>
       <p>Represented by: Dr Andreas Jahnke</p>
       <p>Privacy contact: privacy@shortlistbuddy.com</p>
+      <p>Data protection officer: Alexandra Jahnke, reachable at privacy@shortlistbuddy.com</p>
       <h2>2. Scope and minimum age</h2>
       <p>This Privacy Policy applies to the website and the ShortlistBuddy photo-selection service. The service is intended for personal, private or family photo management.</p>
       <p>Use requires a minimum age of 18. The service is offered to adult users only — including where Article 8 GDPR would already allow a person to consent for themselves from the age of 16: the terms of the AI provider we use prohibit applications directed at minors or likely to be used by them. You confirm your age yourself; we collect no further data for age verification. Minors may appear in private photos and reference photos.</p>
