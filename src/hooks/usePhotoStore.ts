@@ -386,7 +386,17 @@ function computeScore(photo: ProcessedPhoto, criteria: CriteriaConfig, persons: 
 
   // Sharpness is a frame parameter (no toggle in the UI, like size + dedup):
   // always applied; strength controlled by the slider weight.
-  score += photo.sharpnessScore * criteria.preferSharpness.weight * 0.5;
+  //
+  // Steeper above the default since 2026-11-15: at weight × 0.5 the top step
+  // added at most +5 on a 0–10 base, so a 4/10-sharp photo was only 2.5 points
+  // behind a 9/10 one and still got picked at slider 10 (product owner: "the
+  // sharpness slider has almost no effect — make it harder"). Up to the
+  // default (0.5) the factor is unchanged, so default selections stay as
+  // validated; from there it rises to 1.0 at slider 10 (gap 4/10 vs 9/10 =
+  // 5 points, twice the old one).
+  const w = criteria.preferSharpness.weight;
+  const sharpFactor = w <= 0.5 ? w * 0.5 : 0.25 + (w - 0.5) * 1.5;
+  score += photo.sharpnessScore * sharpFactor;
 
   // Motif bias: a matching photo gets a STRONG, weight-scaled bonus
   // (weight 0.1–1.0 → +1…+10 on a 0–10 base), so the sliders move the
@@ -683,11 +693,18 @@ export function runSelection(
     // measured and left out: his series are bursts the detector already
     // merges, so it added little. Reference-set cost of the lower threshold:
     // 21 of 3,240 pairs he kept both of would be affected (8 at 0.84).
+    //
+    // Eased to 0.82 at 10 (9 ≈ 0.845) on 2026-11-15: with 0.80 a 250-photo set
+    // came down to 6 photos at slider 10 (69 at 1, 35 at 5) — "a bit harsh",
+    // product owner. The step skips without refilling, so on a uniform set a
+    // low threshold empties the selection. Between the 0.84 that left ~8 %
+    // "too similar" and the 0.80 that was too harsh. Not re-measured on the
+    // reference set.
     const strictness = Math.max(1, Math.min(10, criteria.dedupSensitivity || 8));
     const diversityTau =
       strictness <= 8
         ? 0.97 - ((strictness - 1) * (0.97 - 0.869)) / 7
-        : 0.869 - ((strictness - 8) * (0.869 - 0.8)) / 2;
+        : 0.869 - ((strictness - 8) * (0.869 - 0.82)) / 2;
     const chosen: ProcessedPhoto[] = photos.filter((p) => p.saved && p.embedding);
     const picked: ProcessedPhoto[] = [];
     for (const p of reps) {
