@@ -180,7 +180,7 @@ export default function SampleDemoPage() {
       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{t('ctaBody')}</p>
       <Link
         href={`/${locale}/demo`}
-        onClick={() => trackEv('sample_demo_to_upload', locale, { selected_count: selectedCount })}
+        onClick={() => trackEv('sample_demo_to_upload', locale, { selected_count: selectedCount, placement: 'bottom' })}
         className="mt-4 block w-full rounded-full bg-indigo-600 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
       >
         {t('ctaButton')}
@@ -199,7 +199,10 @@ export default function SampleDemoPage() {
           <p className="mt-2 max-w-3xl text-zinc-600 dark:text-zinc-400">
             {t('introText', { total: base?.length ?? 101 })}
           </p>
-          {provenance}
+          {/* Provenance moved below the button (2026-11-15): 7 of 10 visitors in
+              a week never pressed "select"; on a phone the note pushed the
+              button towards the fold. It stays on the page, right under it. */}
+          {!base && provenance}
 
           {loadError && <p className="mt-8 text-red-600">{t('loadError')}</p>}
           {!base && !loadError && <p className="mt-8 text-zinc-500">{t('loading')}</p>}
@@ -216,6 +219,7 @@ export default function SampleDemoPage() {
                 </button>
                 <span className="text-sm text-zinc-500">{t('selectHint')}</span>
               </div>
+              {provenance}
 
               {groups.map(([date, group]) => (
                 <div key={date} className="mt-4">
@@ -406,6 +410,18 @@ export default function SampleDemoPage() {
             {t('statSelected', { count: selectedCount })}
           </span>
         </div>
+        {/* P1 (2026-11-15): the way on to one's own photos, visible without
+            scrolling. In a week 3 visitors saw the result and none went on —
+            the only CTA sat after all photos (phone) or under every slider
+            (desktop). The full card below stays as the closing step. */}
+        <Link
+          href={`/${locale}/demo`}
+          onClick={() => trackEv('sample_demo_to_upload', locale, { selected_count: selectedCount, placement: 'top' })}
+          className="mt-4 inline-block rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-colors"
+        >
+          {t('ctaButton')} →
+        </Link>
+        <span className="ml-3 text-xs text-zinc-500">{t('ctaTopHint')}</span>
 
         {/* Phone: a slim bar that stays on top while scrolling — count + size
             slider, so the effect is visible on the photos right away, and a jump
