@@ -4,7 +4,15 @@ import { ANALYSIS_SYSTEM_PROMPT } from '@/lib/anthropic/prompts';
 import { geminiThinkingConfig } from '@/lib/gemini-thinking';
 import { parseAnalysisResponse } from '@/lib/anthropic/parser';
 import { checkRateLimit, clientIp } from '@/lib/rate-limit';
-import { trackAnalyze, getTodayPhotos, reserveIpDailyPhotos, estCostEur } from '@/lib/stats';
+import {
+  trackAnalyze,
+  getTodayPhotos,
+  getTodayInputTokens,
+  reserveIpDailyPhotos,
+  statsConfigured,
+  estCostEur,
+} from '@/lib/stats';
+import { sniffImage } from '@/lib/image-sniff';
 import { logEvent } from '@/lib/events';
 import { isQaRequest } from '@/lib/qa-mode';
 import { classifyUserAgent } from '@/lib/userAgent';
@@ -14,8 +22,9 @@ import {
   analysisRequiresAccount,
   ACCESS_ERRORS,
   BETA_MAX_PHOTOS_PER_REQUEST,
-  BETA_DAILY_PHOTO_CAP,
+  BETA_DAILY_INPUT_TOKEN_CAP,
   BETA_IP_DAILY_PHOTO_CAP,
+  dailyPhotoCapFor,
 } from '@/lib/access';
 
 // Strip control characters and cap length on any user-supplied string that
@@ -53,6 +62,35 @@ class UpstreamError extends Error {
     super(message);
     this.status = status;
   }
+}
+
+// What one "photo" may be. The browser sends 512 px JPEG thumbnails of a few
+// dozen KB (utils/image.ts); the caps below count photos, so a photo has to
+// stay that small for them to mean anything. Generous against the real client,
+// tight against a hand-built request.
+const MAX_THUMBNAIL_BYTES = 400 * 1024;
+const MAX_THUMBNAIL_EDGE = 1024;
+// The per-photo context for a full batch is a few KB; this is far above it.
+const MAX_METADATA_CHARS = 200_000;
+const MAX_CUSTOM_TERMS = 30;
+
+// The capture date as it goes into the prompt: a plain calendar date or
+// nothing. The value comes from the request, so it is matched, never passed on.
+function promptDate(v: unknown): string | null {
+  if (typeof v !== 'string') return null;
+  const m = v.match(/^(\d{4})[-:](\d{2})[-:](\d{2})/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
+}
+
+// The counter store did not answer although it is configured. The caps cannot
+// be checked then, and letting the run through would switch them off exactly
+// when someone has an interest in that. Grant jobs are not refused here: their
+// own allowance is kept in the database and still applies.
+function capsUnavailable() {
+  return NextResponse.json(
+    { error: 'Analysis is temporarily unavailable. Please try again in a few minutes.' },
+    { status: 503, headers: { 'Retry-After': '120' } }
+  );
 }
 
 function sleep(ms: number): Promise<void> {
@@ -154,8 +192,11 @@ export async function POST(request: NextRequest) {
     const files = formData.getAll('thumbnails') as File[];
     const metaStr = formData.get('metadata') as string;
 
-    if (!files.length || !metaStr) {
+    if (!files.length || typeof metaStr !== 'string' || !metaStr) {
       return NextResponse.json({ error: 'Missing thumbnails or metadata' }, { status: 400 });
+    }
+    if (metaStr.length > MAX_METADATA_CHARS) {
+      return NextResponse.json({ error: 'Metadata too large' }, { status: 413 });
     }
 
     // Consent attestation — server-side enforcement of the client-side 18+/terms
@@ -224,11 +265,61 @@ export async function POST(request: NextRequest) {
         { status: 413 }
       );
     }
-    // Global daily photo cap — protects the free-beta budget from runaway/bot
-    // traffic. No-op until Upstash is configured (getTodayPhotos returns null).
-    if (BETA_DAILY_PHOTO_CAP > 0) {
-      const todayPhotos = await getTodayPhotos();
-      if (todayPhotos != null && todayPhotos >= BETA_DAILY_PHOTO_CAP) {
+    // Every file must be what the caps assume it is: one small JPEG/PNG. Checked
+    // on the bytes, before anything is counted or charged. 422 on purpose — the
+    // client isolates a 422 batch down to the single photo and skips it, so one
+    // odd file costs that photo rather than the run.
+    const images: { data: Buffer; mimeType: string }[] = [];
+    for (const file of files) {
+      if (typeof file === 'string' || file.size > MAX_THUMBNAIL_BYTES) {
+        return NextResponse.json({ error: 'Unsupported image in this batch' }, { status: 422 });
+      }
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const info = sniffImage(buffer);
+      if (!info || info.width > MAX_THUMBNAIL_EDGE || info.height > MAX_THUMBNAIL_EDGE) {
+        return NextResponse.json({ error: 'Unsupported image in this batch' }, { status: 422 });
+      }
+      images.push({ data: buffer, mimeType: info.type === 'png' ? 'image/png' : 'image/jpeg' });
+    }
+
+    // Parsed here rather than after the charge: a malformed request is refused
+    // without costing the job anything.
+    let metadata: {
+      dateTaken?: unknown;
+      cameraModel?: unknown;
+      lat?: unknown;
+      lon?: unknown;
+    }[];
+    try {
+      const parsed = JSON.parse(metaStr);
+      if (!Array.isArray(parsed)) throw new Error('not an array');
+      metadata = parsed;
+    } catch {
+      return NextResponse.json({ error: 'Invalid metadata' }, { status: 400 });
+    }
+
+    // Global daily caps — protect the free-beta budget from runaway/bot traffic.
+    // Photos first, then input tokens as the second line behind them. A job
+    // without a grant may only use its share of the day (lib/access.ts).
+    // Without a configured store (local development) none of this applies.
+    const storeConfigured = statsConfigured();
+    const isGrantJob = !!job.beta_grant;
+    const dailyCap = dailyPhotoCapFor(isGrantJob);
+    if (dailyCap > 0) {
+      let todayPhotos = await getTodayPhotos();
+      // One immediate second try: a single dropped read should not end a run.
+      if (todayPhotos == null && storeConfigured) todayPhotos = await getTodayPhotos();
+      if (todayPhotos == null && storeConfigured && !isGrantJob) return capsUnavailable();
+      if (todayPhotos != null && todayPhotos >= dailyCap) {
+        return NextResponse.json(
+          { error: 'Daily beta capacity reached. Please try again tomorrow.' },
+          { status: 503, headers: { 'Retry-After': '3600' } }
+        );
+      }
+    }
+    if (BETA_DAILY_INPUT_TOKEN_CAP > 0) {
+      const todayTokens = await getTodayInputTokens();
+      if (todayTokens != null && todayTokens >= BETA_DAILY_INPUT_TOKEN_CAP) {
         return NextResponse.json(
           { error: 'Daily beta capacity reached. Please try again tomorrow.' },
           { status: 503, headers: { 'Retry-After': '3600' } }
@@ -243,8 +334,9 @@ export async function POST(request: NextRequest) {
     // its own allowance — one job per account, 30 days, charged atomically
     // below — is the limit, and the global daily cap above still applies. The
     // per-connection cap is for everything else, i.e. anonymous and free runs.
-    if (!job.beta_grant && BETA_IP_DAILY_PHOTO_CAP > 0) {
+    if (!isGrantJob && BETA_IP_DAILY_PHOTO_CAP > 0) {
       const ipTotal = await reserveIpDailyPhotos(ip, files.length);
+      if (ipTotal == null && storeConfigured) return capsUnavailable();
       if (ipTotal != null && ipTotal - files.length >= BETA_IP_DAILY_PHOTO_CAP) {
         return NextResponse.json(
           { error: 'Daily limit reached for this connection. Please try again tomorrow.' },
@@ -289,21 +381,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const metadata: {
-      filename: string;
-      dateTaken: string | null;
-      cameraModel: string | null;
-      lat?: number | null;
-      lon?: number | null;
-    }[] = JSON.parse(metaStr);
-
     // Optional user-defined terms to additionally tag (feature 5a).
     let customTerms: string[] = [];
     const customStr = formData.get('customTerms') as string | null;
     if (customStr) {
       try {
         const arr = JSON.parse(customStr);
-        if (Array.isArray(arr)) customTerms = arr.map((t) => sanitizePromptField(t, 60)).filter(Boolean);
+        if (Array.isArray(arr)) {
+          customTerms = arr
+            .slice(0, MAX_CUSTOM_TERMS)
+            .map((t) => sanitizePromptField(t, 60))
+            .filter(Boolean);
+        }
       } catch {
         /* ignore */
       }
@@ -314,7 +403,7 @@ export async function POST(request: NextRequest) {
       // Neutral log — no key length / environment details (data minimisation).
       console.error('[Demo Analyze] GEMINI_API_KEY not configured on the server.');
       return NextResponse.json(
-        { error: 'GEMINI_API_KEY is not configured on the server. Check Vercel → Settings → Environment Variables (Production).' },
+        { error: 'Analysis is not available right now.' },
         { status: 500 }
       );
     }
@@ -343,9 +432,11 @@ export async function POST(request: NextRequest) {
     // pixels — no ambiguity about which JSON entry belongs to which image.
     let anyCoords = false;
     for (let i = 0; i < files.length; i++) {
-      const m = metadata[i] || {};
+      const entry = metadata[i];
+      const m = entry && typeof entry === 'object' ? entry : {};
       const bits = [`Photo ${i}`];
-      if (m.dateTaken) bits.push(`taken ${m.dateTaken.split('T')[0]}`);
+      const taken = promptDate(m.dateTaken);
+      if (taken) bits.push(`taken ${taken}`);
       if (m.cameraModel) bits.push(sanitizePromptField(m.cameraModel, 60));
       // Coordinates arrive already coarsened by the client (~1.1 km, see
       // utils/geo.ts). Re-clamp here anyway: the client is not a trust
@@ -358,9 +449,8 @@ export async function POST(request: NextRequest) {
         anyCoords = true;
       }
       parts.push({ text: `[${bits.join(', ')}]` });
-      const buffer = Buffer.from(await files[i].arrayBuffer());
       parts.push({
-        inlineData: { mimeType: 'image/jpeg', data: buffer.toString('base64') },
+        inlineData: { mimeType: images[i].mimeType, data: images[i].data.toString('base64') },
       });
     }
 
@@ -488,7 +578,7 @@ export async function POST(request: NextRequest) {
       session_id: '',
       user_hash: null,
       ...classifyUserAgent(request.headers.get('user-agent')),
-      locale: String(formData.get('locale') || ''),
+      locale: formData.get('locale') === 'de' ? 'de' : formData.get('locale') === 'en' ? 'en' : '',
       traffic_source: null,
       campaign: null,
       ad_group: null,
@@ -516,8 +606,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, results });
   } catch (err) {
     console.error('[Demo Analyze] Error:', err);
+    // Only our own two upstream verdicts go back as text. Anything else is an
+    // exception whose message may name internals (provider errors, quotas,
+    // paths) — that belongs in the log above, not in the response.
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Analysis failed' },
+      { error: err instanceof UpstreamError ? err.message : 'Analysis failed' },
       { status: err instanceof UpstreamError ? err.status : 500 }
     );
   }

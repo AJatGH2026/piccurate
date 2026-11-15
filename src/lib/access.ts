@@ -60,6 +60,29 @@ export const BETA_DAILY_PHOTO_CAP = Number(process.env.BETA_DAILY_PHOTO_CAP ?? '
 // counted here at all — its own allowance is the limit (see lib/grant.ts).
 export const BETA_IP_DAILY_PHOTO_CAP = Number(process.env.BETA_IP_DAILY_PHOTO_CAP ?? '2500');
 
+// Share of the daily photo budget that runs WITHOUT a beta grant (anonymous and
+// free runs) may use; the rest stays reserved for grant jobs. Without it, one
+// script creating anonymous sessions could use up the whole day and lock out
+// the invited testers along with everyone else. 1 switches the reserve off.
+const anonShareRaw = Number(process.env.BETA_DAILY_ANON_SHARE ?? '0.8');
+export const BETA_DAILY_ANON_SHARE =
+  Number.isFinite(anonShareRaw) && anonShareRaw > 0 && anonShareRaw <= 1 ? anonShareRaw : 0.8;
+
+/** The daily photo cap that applies to this kind of job (0 = no cap). */
+export function dailyPhotoCapFor(grant: boolean): number {
+  if (BETA_DAILY_PHOTO_CAP <= 0) return 0;
+  return grant ? BETA_DAILY_PHOTO_CAP : Math.floor(BETA_DAILY_PHOTO_CAP * BETA_DAILY_ANON_SHARE);
+}
+
+// Second line behind the photo caps: input tokens per day. The photo caps
+// assume a photo is one small image; the analysis route enforces that, and this
+// bounds the spend should a request ever carry more than it looks like.
+// Default: the photo cap times a per-photo ceiling well above a normal
+// thumbnail's share. 0 switches it off.
+export const BETA_DAILY_INPUT_TOKEN_CAP = Number(
+  process.env.BETA_DAILY_INPUT_TOKEN_CAP ?? String(BETA_DAILY_PHOTO_CAP * 5000)
+);
+
 /**
  * How many photos this caller may still analyse today, or `null` when no cap
  * applies (Upstash unconfigured, or both caps switched off).
@@ -82,9 +105,11 @@ export async function remainingPhotoBudget(
     const used = await getIpDailyPhotos(ip);
     if (used != null) limits.push(Math.max(0, BETA_IP_DAILY_PHOTO_CAP - used));
   }
-  if (BETA_DAILY_PHOTO_CAP > 0) {
+  // `skipIp` marks a grant job, which may use the whole daily budget.
+  const dailyCap = dailyPhotoCapFor(!!opts.skipIp);
+  if (dailyCap > 0) {
     const used = await getTodayPhotos();
-    if (used != null) limits.push(Math.max(0, BETA_DAILY_PHOTO_CAP - used));
+    if (used != null) limits.push(Math.max(0, dailyCap - used));
   }
   return limits.length ? Math.min(...limits) : null;
 }

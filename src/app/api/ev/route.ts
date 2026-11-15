@@ -4,6 +4,29 @@ import { logEvent, ALLOWED_EVENTS } from '@/lib/events';
 import { isQaRequest } from '@/lib/qa-mode';
 import { classifyUserAgent } from '@/lib/userAgent';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkRateLimit, clientIp } from '@/lib/rate-limit';
+
+// Bounds on what one event may carry. Real events are a few hundred bytes; the
+// limits only exist so the endpoint cannot be used to fill the event store or
+// to push arbitrary text into the dashboard that campaign decisions are read
+// from.
+const MAX_BODY_CHARS = 8_000;
+const MAX_PROPS_CHARS = 2_000;
+// Per connection. A long analysis reports progress per batch and a review
+// session reports every add/remove, so this sits well above a busy visitor.
+const EV_RL_LIMIT = 300;
+const EV_RL_WINDOW_MS = 60_000;
+
+/** A caller-supplied label: a single line, bounded, or null when empty. */
+function label(v: unknown, max: number): string | null {
+  if (typeof v !== 'string' && typeof v !== 'number') return null;
+  // Control characters become spaces (by char code, to keep this source plain ASCII).
+  const s = Array.from(String(v), (ch) => (ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127 ? ' ' : ch))
+    .join('')
+    .trim()
+    .slice(0, max);
+  return s || null;
+}
 
 /**
  * POST /api/ev — first-party funnel events for the marketing measurement
@@ -12,14 +35,20 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
  * "Erstanbieter-Zugriff" the concept's no-cookie-banner argument depends on,
  * so it must never forward anything to Google/Meta itself.
  *
- * No rate limit, same reasoning as the 'event' branch of /api/beta: cheap,
- * fire-and-forget, and restricted to a whitelisted set of names so an
- * unbounded client cannot write arbitrary keys.
+ * Restricted to a whitelisted set of names, bounded in size and rate-limited
+ * per connection (since 2026-11-15): cheap for a visitor, but no longer an
+ * open tap into the event store.
  */
 export async function POST(request: NextRequest) {
   let body: Record<string, unknown>;
   try {
-    body = (await request.json()) as Record<string, unknown>;
+    const raw = await request.text();
+    if (raw.length > MAX_BODY_CHARS) {
+      return NextResponse.json({ error: 'Body too large' }, { status: 413 });
+    }
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('not an object');
+    body = parsed as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
   }
@@ -28,6 +57,28 @@ export async function POST(request: NextRequest) {
   if (!ALLOWED_EVENTS.has(name)) {
     // Not an error worth surfacing to a fire-and-forget beacon — just dropped.
     return NextResponse.json({ ok: false });
+  }
+
+  const rl = await checkRateLimit(`ev:${clientIp(request)}`, EV_RL_LIMIT, EV_RL_WINDOW_MS);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { ok: false, error: 'rate_limited' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } }
+    );
+  }
+
+  // `props` is free-form by design (each event has its own), so it is bounded
+  // as a whole rather than field by field. Oversized props are dropped, the
+  // event itself still counts.
+  let props: Record<string, unknown> = {};
+  if (body.props && typeof body.props === 'object' && !Array.isArray(body.props)) {
+    try {
+      if (JSON.stringify(body.props).length <= MAX_PROPS_CHARS) {
+        props = body.props as Record<string, unknown>;
+      }
+    } catch {
+      /* not serialisable — dropped */
+    }
   }
 
   const { device_class, os_family, browser_family } = classifyUserAgent(
@@ -56,20 +107,20 @@ export async function POST(request: NextRequest) {
   await logEvent({
     name,
     ts: new Date().toISOString(),
-    session_id: String(body.session_id || ''),
+    session_id: label(body.session_id, 64) ?? '',
     user_hash: userHash,
     device_class,
     os_family,
     browser_family,
-    locale: String(body.locale || ''),
-    traffic_source: body.traffic_source ? String(body.traffic_source) : null,
-    campaign: body.campaign ? String(body.campaign) : null,
-    ad_group: body.ad_group ? String(body.ad_group) : null,
-    keyword: body.keyword ? String(body.keyword) : null,
-    photo_count_bucket: body.photo_count_bucket ? String(body.photo_count_bucket) : null,
+    locale: label(body.locale, 8) ?? '',
+    traffic_source: label(body.traffic_source, 120),
+    campaign: label(body.campaign, 120),
+    ad_group: label(body.ad_group, 120),
+    keyword: label(body.keyword, 120),
+    photo_count_bucket: label(body.photo_count_bucket, 24),
     ab_variant: body.ab_variant === 'pricing_a' || body.ab_variant === 'pricing_b' ? body.ab_variant : null,
     internal: isQaRequest(request),
-    props: body.props && typeof body.props === 'object' ? (body.props as Record<string, unknown>) : {},
+    props,
   });
 
   return NextResponse.json({ ok: true });

@@ -109,6 +109,28 @@ export async function getTodayPhotos(): Promise<number | null> {
 }
 
 /**
+ * Whether the shared counter store is configured at all. Lets a caller tell
+ * "no store, so no caps" (local development) from "the store did not answer"
+ * — which must not quietly switch the caps off.
+ */
+export function statsConfigured(): boolean {
+  return getClient() !== null;
+}
+
+/** Input tokens sent to the model today, or null (unconfigured / unreachable). */
+export async function getTodayInputTokens(): Promise<number | null> {
+  const r = getClient();
+  if (!r) return null;
+  try {
+    const v = await r.get(`stats:tokens:input:${todayKey()}`);
+    return v == null ? 0 : Number(v);
+  } catch (err) {
+    console.warn('[stats] getTodayInputTokens failed:', err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+/**
  * Read this IP's daily photo counter without reserving anything. Used to refuse
  * a run *before* it starts — reserving here would burn budget on a check.
  */

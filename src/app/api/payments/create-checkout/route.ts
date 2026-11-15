@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     console.error('POST /api/payments/create-checkout error:', err);
     return NextResponse.json<ApiResponse>(
-      { success: false, error: err instanceof Error ? err.message : 'Checkout creation failed' },
+      { success: false, error: 'Checkout creation failed' },
       { status: 500 }
     );
   }

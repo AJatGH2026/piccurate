@@ -6,6 +6,10 @@ import { isQaRequest } from '@/lib/qa-mode';
 import { emailConfigured, sendFeedbackEmail } from '@/lib/email';
 import { saveFeedbackToDb, markFeedbackEmailed } from '@/lib/feedback';
 
+// The longest legitimate body is a feedback message (stored up to 5,000 chars).
+const MAX_BODY_CHARS = 20_000;
+const MAX_FINALIZE_COUNT = 5_000;
+
 /**
  * POST /api/beta — beta signals: funnel events, feedback, email capture.
  * Body: { type: 'event' | 'feedback' | 'email', ... }. All no-op without Upstash.
@@ -13,15 +17,30 @@ import { saveFeedbackToDb, markFeedbackEmailed } from '@/lib/feedback';
 export async function POST(request: NextRequest) {
   let body: Record<string, unknown>;
   try {
-    body = (await request.json()) as Record<string, unknown>;
+    const raw = await request.text();
+    if (raw.length > MAX_BODY_CHARS) {
+      return NextResponse.json({ error: 'Body too large' }, { status: 413 });
+    }
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('not an object');
+    body = parsed as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
   }
 
   const type = String(body.type || '');
 
-  // Funnel events: cheap, fire-and-forget, no rate limit (whitelisted keys only).
+  // Funnel events: cheap and fire-and-forget, whitelisted keys only. Limited
+  // per connection since 2026-11-15 — generously, a visitor never gets near it —
+  // because these counters are what the dashboard's funnel is read from.
   if (type === 'event') {
+    const evRl = await checkRateLimit(`beta-ev:${clientIp(request)}`, 300, 60_000);
+    if (!evRl.ok) {
+      return NextResponse.json(
+        { ok: false, error: 'rate_limited' },
+        { status: 429, headers: { 'Retry-After': String(evRl.retryAfter) } }
+      );
+    }
     // Own test traffic (docs/review-notes.md point 2, qa_mode cookie —
     // lib/qa-mode.ts): this legacy counter has no per-event record to flag,
     // so the only option is to not increment it at all. Counted separately
@@ -33,8 +52,9 @@ export async function POST(request: NextRequest) {
     const step = String(body.step || '');
     await logFunnel(step);
     if (step === 'finalize') {
-      const added = Number(body.added || 0);
-      const removed = Number(body.removed || 0);
+      // Counts of photos in one review, so bounded by the largest job.
+      const added = Math.min(Math.floor(Number(body.added || 0)), MAX_FINALIZE_COUNT);
+      const removed = Math.min(Math.floor(Number(body.removed || 0)), MAX_FINALIZE_COUNT);
       if (added > 0) await logFunnel('added', added);
       if (removed > 0) await logFunnel('removed', removed);
     }

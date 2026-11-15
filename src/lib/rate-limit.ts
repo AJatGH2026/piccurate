@@ -59,8 +59,42 @@ export async function checkRateLimit(
  */
 export function clientIp(req: Request): string {
   const real = req.headers.get('x-real-ip');
-  if (real) return real.trim();
+  if (real) return normalizeIp(real);
   const xff = req.headers.get('x-forwarded-for');
-  if (xff) return xff.split(',')[0].trim();
+  if (xff) return normalizeIp(xff.split(',')[0]);
   return 'unknown';
+}
+
+/**
+ * The address a limit should be counted against.
+ *
+ * IPv4 stays as it is. An IPv6 address is cut to its /64 prefix: one home or
+ * mobile connection is handed a whole /64, so counting the full address gives
+ * every caller as many separate allowances as they care to pick addresses.
+ * Anything that does not parse is returned unchanged (and length-capped, since
+ * the value ends up in a storage key).
+ */
+export function normalizeIp(raw: string): string {
+  let ip = raw.trim().toLowerCase();
+  if (ip.startsWith('[')) ip = ip.slice(1).split(']')[0];
+  const zone = ip.indexOf('%');
+  if (zone >= 0) ip = ip.slice(0, zone);
+  ip = ip.slice(0, 64);
+  if (!ip.includes(':')) return ip || 'unknown';
+
+  // IPv4 reached over an IPv6 socket.
+  const mapped = ip.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (mapped) return mapped[1];
+
+  const halves = ip.split('::');
+  if (halves.length > 2) return ip;
+  const head = halves[0] ? halves[0].split(':') : [];
+  const tail = halves.length === 2 && halves[1] ? halves[1].split(':') : [];
+  const groups =
+    halves.length === 2
+      ? [...head, ...Array(Math.max(0, 8 - head.length - tail.length)).fill('0'), ...tail]
+      : head;
+  const prefix = groups.slice(0, 4);
+  if (prefix.length < 4 || prefix.some((g) => !/^[0-9a-f]{1,4}$/.test(g))) return ip;
+  return prefix.map((g) => g.replace(/^0+(?=.)/, '')).join(':') + '::/64';
 }

@@ -214,29 +214,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-/** GET /api/jobs — List user's jobs */
-export async function GET() {
-  try {
-    const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const jobManager = new JobManager(supabase);
-    const jobs = await jobManager.listJobs(user.id);
-
-    return NextResponse.json<ApiResponse>({ success: true, data: jobs });
-  } catch (err) {
-    console.error('GET /api/jobs error:', err);
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}

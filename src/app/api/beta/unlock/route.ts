@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/server';
-import { rateLimit, clientIp } from '@/lib/rate-limit';
+import { checkRateLimit, clientIp } from '@/lib/rate-limit';
 import { TIER_CONFIGS } from '@/lib/stripe/prices';
 import { saveFeedbackToDb } from '@/lib/feedback';
 import { saveFeedback, logFunnel } from '@/lib/beta';
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 });
   }
 
-  const rl = rateLimit(`unlock:${clientIp(request)}`, 20, 60 * 60_000);
+  const rl = await checkRateLimit(`unlock:${clientIp(request)}`, 20, 60 * 60_000);
   if (!rl.ok) {
     return NextResponse.json(
       { error: 'rate_limited' },
