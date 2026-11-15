@@ -28,7 +28,12 @@ const PICKER_PENDING_TIMEOUT_MS = 90_000;
 // instant, so the same warning there would predict minutes for something that
 // takes a second — which is why the notice is gated on the phone check below
 // rather than shown to everyone.
-const PICKER_HANDOFF_MS_PER_PHOTO = 110;
+//
+// Raised to 230 on 2026-11-15: in the installed app (PWA) the product owner
+// waited about a minute for 263 photos — twice the earlier rate. Quoting the
+// longer figure costs nothing; quoting too short a wait is what makes people
+// tap again or give up.
+const PICKER_HANDOFF_MS_PER_PHOTO = 230;
 
 // A coarse pointer alone is not enough: a touchscreen laptop reports one while
 // still picking files from a local disk in about a second. Requiring `hover:
@@ -51,6 +56,11 @@ export function DropZone({ onFiles, maxPhotos, disabled = false }: DropZoneProps
   const tc = useTranslations('common');
   const [isDragging, setIsDragging] = useState(false);
   const [pickerPending, setPickerPending] = useState(false);
+  // Phone only: a notice BEFORE the OS picker opens (2026-11-15). Once the
+  // picker is up, iOS covers this page until the photos are handed over, so
+  // nothing we show during that minute can be seen — the one-line hint under
+  // the drop zone was not enough (product owner: "no feedback at all").
+  const [hintOpen, setHintOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // A media query rather than a user-agent string: this is about the input
@@ -86,9 +96,17 @@ export function DropZone({ onFiles, maxPhotos, disabled = false }: DropZoneProps
     [onFiles, disabled]
   );
 
-  const handleClick = useCallback(() => {
-    if (disabled) return;
+  // Opens the OS picker. Must run inside a user gesture (a tap), which both
+  // callers are: the drop zone itself on a computer, the notice's button on a
+  // phone.
+  const openPicker = useCallback(() => {
+    setHintOpen(false);
     setPickerPending(true);
+    inputRef.current?.click();
+  }, []);
+
+  const handleClick = useCallback(() => {
+    if (disabled || hintOpen) return;
     // Start of the OS handoff — the gap between confirming a selection and the
     // browser receiving it. Measured 2026-08-29 on iPhone: 11 s for 100 photos,
     // 28 s for 250, i.e. ~110 ms per photo and linear, all of it inside iOS
@@ -106,8 +124,14 @@ export function DropZone({ onFiles, maxPhotos, disabled = false }: DropZoneProps
     trackEv('picker_opened', locale, {
       duration_since_demo_start_ms: msSince('demo_start'),
     });
-    inputRef.current?.click();
-  }, [disabled, locale]);
+    // Still counted on the tap, before the notice, so `picker_opened` keeps
+    // meaning "tapped the drop zone" and stays comparable with earlier weeks.
+    if (isPhoneLike) {
+      setHintOpen(true);
+      return;
+    }
+    openPicker();
+  }, [disabled, hintOpen, isPhoneLike, locale, openPicker]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,6 +193,56 @@ export function DropZone({ onFiles, maxPhotos, disabled = false }: DropZoneProps
         className="hidden"
         disabled={disabled}
       />
+      {hintOpen && (
+        // Clicks inside must not bubble to the drop zone, which would reopen
+        // this notice instead of the picker.
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4 cursor-default"
+          onClick={(e) => {
+            e.stopPropagation();
+            setHintOpen(false);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="picker-hint-title"
+            className="w-full max-w-sm rounded-2xl bg-white dark:bg-zinc-900 p-6 text-left shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="picker-hint-title" className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              {t('pickerHintTitle')}
+            </h2>
+            <p className="mt-3 text-sm text-zinc-700 dark:text-zinc-300">
+              {t('pickerHintBody', {
+                photos: maxPhotos.toLocaleString(locale),
+                duration: formatEtaDuration(maxPhotos * PICKER_HANDOFF_MS_PER_PHOTO, tc),
+              })}
+            </p>
+            <p className="mt-2 text-sm text-zinc-500">{t('pickerHintComputer')}</p>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                openPicker();
+              }}
+              className="mt-5 w-full rounded-full bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700"
+            >
+              {t('pickerHintConfirm')}
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setHintOpen(false);
+              }}
+              className="mt-2 w-full rounded-full px-5 py-2 text-sm text-zinc-500 hover:text-zinc-700"
+            >
+              {t('pickerHintCancel')}
+            </button>
+          </div>
+        </div>
+      )}
       {pickerPending ? (
         <>
           <div className="text-4xl mb-4 animate-pulse">⏳</div>

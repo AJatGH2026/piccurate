@@ -178,7 +178,6 @@ export default function UploadPage() {
           <Link href="/" className="text-lg font-bold text-indigo-600">
             {brandName(locale)}
           </Link>
-          <span className="text-sm text-zinc-500">{tNav('dashboard')}</span>
         </div>
       </header>
 
