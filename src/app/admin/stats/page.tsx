@@ -1,5 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { notFound } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { QA_COOKIE } from '@/lib/qa-mode';
 import { adminTokenOk, parseDays } from '@/lib/admin-auth';
 import { readStats } from '@/lib/stats';
 import { readBetaSignals } from '@/lib/beta';
@@ -61,6 +63,12 @@ export default async function AdminStatsPage({
   // dashboard used to read 7 regardless, so three weeks of history — including
   // whole campaign runs — sat in Upstash unread. Now selectable via ?days=.
   const days = parseDays(daysRaw, 7);
+
+  // Whether THIS device/browser carries the QA cookie (2026-11-15). The
+  // installed iPhone app keeps its own cookie store, and a phone run on
+  // 15.11. went unmarked although the cookie had been set there — with this
+  // line the operator can check on the device itself, right before a test.
+  const qaOn = (await cookies()).get(QA_COOKIE)?.value === '1';
 
   const [stats, beta, events, db, uploadRuns, analysisOutcomes] = await Promise.all([
     readStats(days),
@@ -134,6 +142,15 @@ export default async function AdminStatsPage({
             aus
           </a>
           ). Siehe docs/review-notes.md Punkt 2.
+        </p>
+        <p
+          className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-semibold ${
+            qaOn
+              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
+              : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200'
+          }`}
+        >
+          QA-Modus auf diesem Gerät: {qaOn ? 'AN — eigene Läufe werden markiert' : 'AUS — eigene Läufe zählen als Besucher'}
         </p>
 
         {/* Range switcher + archive export. The key is already in this page's
