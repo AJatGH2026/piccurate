@@ -174,6 +174,10 @@ export default function SampleDemoPage() {
     </p>
   );
 
+  // Both "try with your photos" buttons are green, not the page's indigo
+  // (product owner, 2026-11-15): every other control here is indigo, so the
+  // one step that leaves the demo has to stand apart. emerald-700 keeps white
+  // text readable.
   const cta = (
     <div className="rounded-2xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50 dark:bg-indigo-950/30 p-5">
       <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{t('ctaTitle')}</h2>
@@ -181,7 +185,7 @@ export default function SampleDemoPage() {
       <Link
         href={`/${locale}/demo`}
         onClick={() => trackEv('sample_demo_to_upload', locale, { selected_count: selectedCount, placement: 'bottom' })}
-        className="mt-4 block w-full rounded-full bg-indigo-600 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
+        className="mt-4 block w-full rounded-full bg-emerald-700 px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-emerald-700/20 hover:bg-emerald-800 transition-colors"
       >
         {t('ctaButton')}
       </Link>
@@ -417,7 +421,7 @@ export default function SampleDemoPage() {
         <Link
           href={`/${locale}/demo`}
           onClick={() => trackEv('sample_demo_to_upload', locale, { selected_count: selectedCount, placement: 'top' })}
-          className="mt-4 inline-block rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-colors"
+          className="mt-4 inline-block rounded-full bg-emerald-700 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-700/20 hover:bg-emerald-800 transition-colors"
         >
           {t('ctaButton')} →
         </Link>
