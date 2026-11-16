@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/server';
 import { JobManager } from '@/services/job-manager';
 import type { ApiResponse } from '@/types/api';
 
@@ -14,10 +14,14 @@ type Params = { params: Promise<{ jobId: string }> };
  * single-use token. Redeem it after the session switches via
  * POST /api/jobs/[jobId]/claim.
  *
- * Deliberately the user-scoped client, not the admin one: ownership here is
- * enforced by the same RLS policy (`auth.uid() = user_id`) every other job
- * read/write in this app relies on, not by a manual check that could drift
- * from it.
+ * Ownership is established with the user-scoped client — the same RLS policy
+ * (`auth.uid() = user_id`) every other job read relies on. Only the token
+ * itself is written with the service-role client (migration 011: the token
+ * columns are no longer writable by the user).
+ *
+ * Anonymous sessions only: the handshake carries a job from an anonymous
+ * session into the account its visitor then signs in to. A signed-in account
+ * has nothing to hand over.
  */
 export async function POST(request: NextRequest, { params }: Params) {
   try {
@@ -31,7 +35,9 @@ export async function POST(request: NextRequest, { params }: Params) {
       return NextResponse.json<ApiResponse>({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = await new JobManager(supabase).issueClaimToken(jobId, user.id);
+    const token = user.is_anonymous
+      ? await new JobManager(supabase).issueClaimToken(jobId, user.id, createAdminClient())
+      : null;
     if (!token) {
       // Either no such job, or the caller does not own it — same response
       // either way, matching /confirmation's reasoning: this id travels

@@ -187,17 +187,31 @@ export class JobManager {
    * `this.db` is the user-scoped client; do not call this with an admin
    * client, or the ownership check silently stops applying.
    */
-  async issueClaimToken(jobId: string, userId: string): Promise<string | null> {
-    const job = await this.getJob(jobId);
-    if (!job || job.userId !== userId) return null;
+  async issueClaimToken(
+    jobId: string,
+    userId: string,
+    writer: SupabaseClient = this.db
+  ): Promise<string | null> {
+    // Ownership is read through `this.db` — the user-scoped client, so the RLS
+    // policy decides it. A job that carries a beta grant is never handed over:
+    // the grant belongs to the account that unlocked it.
+    const { data: row, error: readError } = await this.db
+      .from('jobs')
+      .select('id, user_id, beta_grant')
+      .eq('id', jobId)
+      .maybeSingle();
+    if (readError || !row || row.user_id !== userId || row.beta_grant) return null;
 
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min: covers filling in the login form, not much more
 
-    const { error } = await this.db
+    // Written through `writer` — the service-role client since migration 011,
+    // which takes the token columns out of what a user may write directly.
+    const { error } = await writer
       .from('jobs')
       .update({ claim_token: token, claim_token_expires_at: expiresAt })
-      .eq('id', jobId);
+      .eq('id', jobId)
+      .eq('user_id', userId);
     if (error) return null;
     return token;
   }
@@ -214,10 +228,31 @@ export class JobManager {
    */
   async redeemClaimToken(jobId: string, token: string, newUserId: string): Promise<boolean> {
     if (!token) return false;
+
+    // The handshake exists for one case only: a job run in an anonymous session
+    // whose visitor then signs in to an existing account. So the job must still
+    // belong to an anonymous profile, and must not carry a beta grant. Checked
+    // here as well as at issue time, so the rule does not rest on who was able
+    // to set the token.
+    const { data: job } = await this.db
+      .from('jobs')
+      .select('user_id, beta_grant')
+      .eq('id', jobId)
+      .maybeSingle();
+    if (!job || job.beta_grant || job.user_id === newUserId) return false;
+    const { data: owner } = await this.db
+      .from('profiles')
+      .select('is_anonymous')
+      .eq('id', job.user_id)
+      .maybeSingle();
+    if (!owner?.is_anonymous) return false;
+
     const { data, error } = await this.db
       .from('jobs')
       .update({ user_id: newUserId, claim_token: null, claim_token_expires_at: null })
       .eq('id', jobId)
+      .eq('user_id', job.user_id)
+      .eq('beta_grant', false)
       .eq('claim_token', token)
       .gt('claim_token_expires_at', new Date().toISOString())
       .select('id');

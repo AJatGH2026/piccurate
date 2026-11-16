@@ -5,10 +5,14 @@ import type { CreateJobRequest, CreateJobResponse, ApiResponse } from '@/types/a
 import type { Tier } from '@/types/job';
 import { analysisRequiresAccount, remainingPhotoBudget, ACCESS_ERRORS } from '@/lib/access';
 import { getGrantStatus } from '@/lib/grant';
-import { clientIp } from '@/lib/rate-limit';
+import { checkRateLimit, clientIp } from '@/lib/rate-limit';
 import { sendContractConfirmationOnce } from '@/lib/send-contract-confirmation';
 
 const VALID_TIERS: Tier[] = ['free', 'small', 'medium', 'large'];
+
+// Per connection. See the note at the check below.
+const JOBS_RL_LIMIT = 60;
+const JOBS_RL_WINDOW_MS = 60 * 60_000;
 
 /** POST /api/jobs — Create a new curation job */
 export async function POST(request: NextRequest) {
@@ -32,6 +36,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json<ApiResponse>(
         { success: false, error: ACCESS_ERRORS.accountRequired },
         { status: 401 }
+      );
+    }
+
+    // A job is one row plus, for a registered user, a confirmation mail. A
+    // visitor needs one per run; this leaves room for a shared office address
+    // and still ends a loop that only creates rows.
+    const rl = await checkRateLimit(`jobs:${clientIp(request)}`, JOBS_RL_LIMIT, JOBS_RL_WINDOW_MS);
+    if (!rl.ok) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } }
       );
     }
 
