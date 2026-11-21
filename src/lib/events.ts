@@ -472,7 +472,15 @@ export interface UploadTimingRun {
   partial: boolean;
   totalMs: number | null;
   /** Phase name → { n, avgMs, maxMs }, from utils/upload-timing.ts. */
-  phases: Record<string, { n: number; avgMs: number; maxMs: number }>;
+  phases: Record<string, { n: number; avgMs: number; maxMs: number }>;  /**
+   * Since 2026-11-21: failed photos by phase (`fail_<phase>_n`, `photo` = per-
+   * photo total, `face` = person-search pass) and by error name (`err_<Name>_n`).
+   * Empty for runs recorded before then.
+   */
+  failures: Record<string, number>;
+  /** Since 2026-11-21: ms the page was hidden during the run, and how often. Null before. */
+  hiddenMs: number | null;
+  hiddenN: number | null;
 }
 
 /**
@@ -530,6 +538,13 @@ export async function readUploadTimings(limit = 12, days = 3): Promise<UploadTim
             ? props.duration_since_files_selected_ms
             : null,
         phases,
+        failures: Object.fromEntries(
+          Object.entries(props)
+            .filter(([k, v]) => /^(fail|err)_.+_n$/.test(k) && typeof v === 'number')
+            .map(([k, v]) => [k, v as number])
+        ),
+        hiddenMs: typeof props.hidden_ms === 'number' ? props.hidden_ms : null,
+        hiddenN: typeof props.hidden_n === 'number' ? props.hidden_n : null,
       });
     }
     runs.sort((a, b) => (a.ts < b.ts ? 1 : -1));

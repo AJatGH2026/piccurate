@@ -22,8 +22,104 @@ type Agg = { n: number; totalMs: number; maxMs: number };
 
 const phases = new Map<string, Agg>();
 
+// Failures and time-in-background, added 2026-11-21: large runs were seen
+// where, past ~1,400 photos, every new photo failed within ~30 ms, and where
+// the shared model queue stood still for minutes. Neither could be explained,
+// because a failed photo left no trace in the event and nobody knew whether
+// the tab had been in the background.
+//
+// What is recorded is deliberately coarse: the phase a photo failed in and the
+// error's NAME from a fixed list (RangeError, EncodingError …) — never its
+// message, which can carry a file name (privacy policy § 9.1 promises none).
+const failures = new Map<string, number>();
+const KNOWN_ERROR_NAMES = new Set([
+  'Error',
+  'RangeError',
+  'TypeError',
+  'EncodingError',
+  'InvalidStateError',
+  'NotReadableError',
+  'NotFoundError',
+  'QuotaExceededError',
+  'AbortError',
+  'SecurityError',
+  'DataError',
+  'OperationError',
+]);
+
+function errorName(err: unknown): string {
+  const name =
+    err && typeof err === 'object' && 'name' in err && typeof (err as { name: unknown }).name === 'string'
+      ? (err as { name: string }).name
+      : typeof err === 'string'
+        ? 'String'
+        : 'Unknown';
+  return KNOWN_ERROR_NAMES.has(name) || name === 'String' || name === 'Unknown' ? name : 'Other';
+}
+
+/**
+ * Count one failure. `phase` says where (exif, convert_face, decode, … or
+ * `photo` for the per-photo total, `face` for the person-search pass); the
+ * per-photo total additionally counts the error name.
+ */
+export function recordFailure(phase: string, err: unknown): void {
+  hookVisibility();
+  if (phases.size === 0 && failures.size === 0) resetRunCounters();
+  failures.set(`fail_${phase}_n`, (failures.get(`fail_${phase}_n`) ?? 0) + 1);
+  if (phase === 'photo') {
+    const key = `err_${errorName(err)}_n`;
+    failures.set(key, (failures.get(key) ?? 0) + 1);
+  }
+}
+
+// Time the page spent hidden during the run (another tab, minimised window,
+// screen locked). Browsers throttle hidden pages hard, which is the leading
+// explanation for the minute-long queue stalls — this turns it into a number.
+let hiddenMs = 0;
+let hiddenCount = 0;
+let hiddenSince: number | null = null;
+let visibilityHooked = false;
+
+function hookVisibility(): void {
+  if (visibilityHooked || typeof document === 'undefined') return;
+  visibilityHooked = true;
+  if (document.visibilityState === 'hidden') hiddenSince = Date.now();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      if (hiddenSince === null) {
+        hiddenSince = Date.now();
+        hiddenCount++;
+      }
+    } else if (hiddenSince !== null) {
+      hiddenMs += Date.now() - hiddenSince;
+      hiddenSince = null;
+    }
+  });
+}
+
+function resetRunCounters(): void {
+  failures.clear();
+  hiddenMs = 0;
+  hiddenCount = 0;
+  // A page that is hidden right now stays counted from this moment on.
+  if (hiddenSince !== null) hiddenSince = Date.now();
+}
+
+function runExtras(): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [k, v] of failures) out[k] = v;
+  const openHidden = hiddenSince !== null ? Date.now() - hiddenSince : 0;
+  out.hidden_ms = hiddenMs + openHidden;
+  out.hidden_n = hiddenCount;
+  return out;
+}
+
 /** Record one observation for a phase. */
 export function recordPhase(phase: string, ms: number): void {
+  hookVisibility();
+  // First observation of a new run: start its failure and background counts
+  // fresh. (takeTimingSummary clears the phases at the end of each run.)
+  if (phases.size === 0 && failures.size === 0) resetRunCounters();
   const a = phases.get(phase);
   if (a) {
     a.n++;
@@ -39,6 +135,9 @@ export async function timePhase<T>(phase: string, fn: () => Promise<T>): Promise
   const t0 = Date.now();
   try {
     return await fn();
+  } catch (err) {
+    recordFailure(phase, err);
+    throw err;
   } finally {
     recordPhase(phase, Date.now() - t0);
   }
@@ -59,7 +158,7 @@ export function logTimingProgress(done: number): void {
 }
 
 function summarize(): Record<string, number> {
-  const out: Record<string, number> = {};
+  const out: Record<string, number> = runExtras();
   for (const [phase, a] of phases) {
     out[`${phase}_n`] = a.n;
     out[`${phase}_avg_ms`] = Math.round(a.totalMs / a.n);
@@ -86,12 +185,8 @@ export function peekTimingSummary(): Record<string, number> | null {
  */
 export function takeTimingSummary(): Record<string, number> | null {
   if (phases.size === 0) return null;
-  const out: Record<string, number> = {};
-  for (const [phase, a] of phases) {
-    out[`${phase}_n`] = a.n;
-    out[`${phase}_avg_ms`] = Math.round(a.totalMs / a.n);
-    out[`${phase}_max_ms`] = a.maxMs;
-  }
+  const out = summarize();
   phases.clear();
+  resetRunCounters();
   return out;
 }

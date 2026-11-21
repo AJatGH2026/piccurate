@@ -17,6 +17,7 @@ import {
   takeTimingSummary,
   logTimingProgress,
   peekTimingSummary,
+  recordFailure,
 } from '@/utils/upload-timing';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'image/webp'];
@@ -263,6 +264,7 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
           // only the person search is unavailable for it. Leaving faceEmbeddings
           // at null marks exactly that, and is distinct from "no faces found".
           console.warn(`[upload] face pass failed for ${photo.filename}:`, err);
+          recordFailure('face', err);
         } finally {
           faceBitmap.close();
         }
@@ -275,6 +277,9 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
             ? err
             : `Processing failed (${photo.filename.split('.').pop()?.toUpperCase()} format may not be supported in this browser)`;
       console.error(`Failed to process ${photo.filename}:`, err);
+      // Counted per run (phase + error name, never the message) so a run where
+      // photos fail shows up in /admin/stats — see utils/upload-timing.ts.
+      recordFailure('photo', err);
       updatePhoto(photo.id, {
         status: 'error',
         error: message,
