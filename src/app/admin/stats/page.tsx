@@ -618,6 +618,9 @@ export default async function AdminStatsPage({
             Fehlertyp, nie die Meldung selbst; „face“ = nur die Personensuche fiel aus, das Foto blieb);
             <b> im Hintergrund</b> = wie lange die Seite während des Laufs verdeckt war (anderer Tab,
             Fenster minimiert, Bildschirm gesperrt) — der Browser bremst die Verarbeitung dann stark.
+            Seit 22.11.2026: <b>HEIC-Weg</b> = wie viele HEIC der Server umgewandelt hat und wie viele
+            im langsameren Browser-Weg landeten (browser_big = über 4 MB, browser_off = Server-Weg für die
+            Sitzung abgeschaltet, fallback_net/http/empty = Server versucht, dann Browser).
             Achtung: ms/Foto teilt die Dauer seit der letzten Dateiauswahl durch die Gesamtzahl der Fotos;
             bei nachgelegten Fotos ist der Wert deshalb zu niedrig.
           </Hint>
@@ -637,6 +640,7 @@ export default async function AdminStatsPage({
                     <th className="py-1 pr-3 font-medium">ms/Foto</th>
                     <th className="py-1 pr-3 font-medium">Fehler</th>
                     <th className="py-1 pr-3 font-medium whitespace-nowrap">im Hintergrund</th>
+                    <th className="py-1 pr-3 font-medium whitespace-nowrap">HEIC-Weg</th>
                     {uploadPhaseCols.map((p) => (
                       <th key={p} className="py-1 pr-3 font-medium whitespace-nowrap">{p}</th>
                     ))}
@@ -671,7 +675,7 @@ export default async function AdminStatsPage({
                             {Object.keys(run.failures).length > 0 && (
                               <span className="block text-[10px] text-zinc-400 whitespace-nowrap">
                                 {Object.entries(run.failures)
-                                  .filter(([k]) => k !== 'fail_photo_n')
+                                  .filter(([k]) => k !== 'fail_photo_n' && !k.startsWith('conv_'))
                                   .map(([k, v]) => `${k.replace(/^(fail|err)_/, '').replace(/_n$/, '')} ${v}`)
                                   .join(' · ')}
                               </span>
@@ -688,6 +692,24 @@ export default async function AdminStatsPage({
                         {run.hiddenN ? (
                           <span className="block text-[10px] text-zinc-400">{run.hiddenN}× weg</span>
                         ) : null}
+                      </td>
+                      <td className="py-1 pr-3 whitespace-nowrap">
+                        {/* Since 2026-11-22: server = converted by /api/convert; browser = went
+                            straight to the browser (big = over the size cap, off = server path
+                            switched off for the session); fallback = server tried, then browser. */}
+                        {Object.keys(run.failures).some((k) => k.startsWith('conv_')) ? (
+                          <>
+                            Server {fmt(run.failures.conv_server_n ?? 0)}
+                            <span className="block text-[10px] text-zinc-400">
+                              {Object.entries(run.failures)
+                                .filter(([k]) => k.startsWith('conv_') && k !== 'conv_server_n')
+                                .map(([k, v]) => `${k.replace(/^conv_/, '').replace(/_n$/, '')} ${v}`)
+                                .join(' · ') || 'kein Browser-Weg'}
+                            </span>
+                          </>
+                        ) : (
+                          '–'
+                        )}
                       </td>
                       {uploadPhaseCols.map((p) => (
                         <td key={p} className="py-1 pr-3 text-zinc-600 dark:text-zinc-300">

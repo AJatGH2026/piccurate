@@ -29,9 +29,47 @@ let chain: Promise<unknown> = Promise.resolve();
 // finally drains, rather than filling in as photos actually finish. This
 // does not shorten total inference time — it only lets the UI (and touch
 // input) catch up between calls, which is what "frozen, then jumps" needs.
+//
+// BUT a hidden page gets no frames at all: requestAnimationFrame simply does
+// not fire in a background tab, a minimised window or behind a locked screen.
+// Measured 2026-11-20/21: the whole chain stood still for 104 s, 290 s, 476 s
+// and 575 s — exactly as long as the tab was hidden — and a 10-minute absence
+// processed ~80 photos instead of ~200. Nobody sees the UI while it is hidden,
+// so there is nothing to yield to: hand over through a MessageChannel instead,
+// which (unlike setTimeout) is not subject to background timer throttling. A
+// frame wait that is already pending when the page goes hidden is released by
+// the visibilitychange listener rather than left hanging until the user returns.
+function yieldViaMessage(): Promise<void> {
+  if (typeof MessageChannel === 'undefined') return Promise.resolve();
+  return new Promise((resolve) => {
+    const ch = new MessageChannel();
+    ch.port1.onmessage = () => {
+      ch.port1.close();
+      resolve();
+    };
+    ch.port2.postMessage(null);
+  });
+}
+
 function yieldToMain(): Promise<void> {
-  if (typeof requestAnimationFrame === 'function') {
-    return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+    return yieldViaMessage();
+  }
+  if (typeof requestAnimationFrame === 'function' && typeof document !== 'undefined') {
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        document.removeEventListener('visibilitychange', onVisibility);
+        resolve();
+      };
+      const onVisibility = () => {
+        if (document.visibilityState === 'hidden') finish();
+      };
+      document.addEventListener('visibilitychange', onVisibility);
+      requestAnimationFrame(finish);
+    });
   }
   return new Promise((resolve) => setTimeout(resolve, 0));
 }

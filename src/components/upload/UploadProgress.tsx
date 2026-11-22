@@ -10,18 +10,24 @@ interface UploadProgressProps {
   isProcessing: boolean;
   /** CLIP embeddings still finishing in the background — see useUpload.ts. */
   pendingEmbeddings: number;
+  /** Photos that failed — finished, but not "processed". */
+  failedCount?: number;
 }
 
-// Below this many finished photos, or this little elapsed time, the measured
-// rate is too noisy to show — a handful of small/cached files finishing in
-// one burst looks far faster than the batch really is.
-const MIN_SAMPLES_FOR_ETA = 3;
-const MIN_ELAPSED_FOR_ETA_MS = 750;
-// Once shown, the estimate is allowed to change at most this often. It keeps
-// using the full cumulative average since the run started (so it still
-// self-corrects if later photos turn out slower — HEIC vs. JPEG, say), but
-// throttling how often that new number reaches the screen is what stops it
-// from visibly flickering on every single finished photo.
+// Time left, from the rate over the LAST few minutes (product-owner decision, 2026-11-22).
+// Until then the bar showed a projected TOTAL from the average since the run
+// started, which went wrong three ways in real runs: "50 min" at 95 % was read
+// as time left; a stall while the tab was hidden kept inflating the figure long
+// after the run had recovered (303 min); and photos added mid-run were
+// projected across the whole list including the ones already done (158 min).
+// A sliding window forgets a stall once it has scrolled out, and "remaining"
+// counts only what is still to do.
+const WINDOW_MS = 3 * 60 * 1000;
+// Below this much evidence inside the window the rate is noise — a handful of
+// small files finishing in one burst looks far faster than the batch really is.
+const MIN_WINDOW_SPAN_MS = 20 * 1000;
+const MIN_WINDOW_DONE = 3;
+// The text may change at most this often, so it does not flicker per photo.
 const RECALC_INTERVAL_MS = 3000;
 
 export function UploadProgress({
@@ -29,6 +35,7 @@ export function UploadProgress({
   totalCount,
   isProcessing,
   pendingEmbeddings,
+  failedCount = 0,
 }: UploadProgressProps) {
   const t = useTranslations('upload');
   const tc = useTranslations('common');
@@ -40,45 +47,46 @@ export function UploadProgress({
   // a blocked-looking state: the photos really are ready to go on with.
   const finalizing = !isProcessing && pendingEmbeddings > 0;
 
-  // Rate is the cumulative average since the run started (not a one-shot
-  // calibration, and not a sliding window) — an early lucky burst of fast
-  // files gets pulled back toward reality as more, possibly slower, photos
-  // complete. Re-armed on an idle -> active edge, or if more files are
-  // dropped in mid-run (totalCount grows), since that is a genuinely
-  // different total to estimate.
-  const sessionRef = useRef<{ time: number; processed: number; total: number } | null>(null);
-  // 0 = no estimate shown yet. Otherwise the timestamp of the last update,
-  // used only to throttle how often the displayed text is allowed to change.
+  // (time, finished) samples inside the window; finished = processed + failed.
+  const samplesRef = useRef<Array<{ t: number; done: number }>>([]);
+  // 0 = no estimate shown yet; otherwise when the text last changed.
   const lastShownAtRef = useRef(0);
   const [etaText, setEtaText] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isProcessing) {
-      sessionRef.current = null;
+      samplesRef.current = [];
       lastShownAtRef.current = 0;
       setEtaText(null);
       return;
     }
-    if (!sessionRef.current || sessionRef.current.total !== totalCount) {
-      sessionRef.current = { time: Date.now(), processed: processedCount, total: totalCount };
-      lastShownAtRef.current = 0;
-      setEtaText(null);
-    }
-
-    const done = processedCount - sessionRef.current.processed;
-    const elapsedMs = Date.now() - sessionRef.current.time;
-    if (done < MIN_SAMPLES_FOR_ETA || elapsedMs < MIN_ELAPSED_FOR_ETA_MS) return;
-
     const now = Date.now();
+    const done = processedCount + failedCount;
+    const samples = samplesRef.current;
+    samples.push({ t: now, done });
+    // Forget everything older than the window — including the sample from
+    // before a stall, so a recovered run is estimated from its current pace.
+    while (samples.length > 1 && now - samples[0].t > WINDOW_MS) samples.shift();
+
     if (lastShownAtRef.current !== 0 && now - lastShownAtRef.current < RECALC_INTERVAL_MS) return;
 
-    // Projected across ALL photos (not just the ones still pending), since
-    // the goal is the total run time, not a moving "time left" countdown.
-    const totalMs = estimateRemainingMs(elapsedMs, done, totalCount);
-    if (totalMs == null) return;
+    const first = samples[0];
+    const spanMs = now - first.t;
+    const doneInWindow = done - first.done;
+    const remaining = Math.max(0, totalCount - done);
+    if (spanMs < MIN_WINDOW_SPAN_MS || doneInWindow < MIN_WINDOW_DONE) {
+      if (lastShownAtRef.current === 0) return; // still calculating
+      // Too little progress in the window (a stall): show "calculating" rather
+      // than a figure built on almost nothing.
+      lastShownAtRef.current = now;
+      setEtaText(null);
+      return;
+    }
+    const remainingMs = estimateRemainingMs(spanMs, doneInWindow, remaining);
+    if (remainingMs == null) return;
     lastShownAtRef.current = now;
-    setEtaText(formatEtaDuration(totalMs, tc));
-  }, [processedCount, totalCount, isProcessing, tc]);
+    setEtaText(formatEtaDuration(remainingMs, tc));
+  }, [processedCount, failedCount, totalCount, isProcessing, tc]);
 
   if (totalCount === 0) return null;
 
@@ -102,7 +110,7 @@ export function UploadProgress({
       </div>
       {isProcessing && (
         <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-          {etaText ? tc('etaTotal', { time: etaText }) : tc('etaCalculating')}
+          {etaText ? tc('etaRemaining', { time: etaText }) : tc('etaCalculating')}
           {' — '}
           {t('etaDependencyNote')}
         </p>

@@ -72,6 +72,19 @@ export function recordFailure(phase: string, err: unknown): void {
   }
 }
 
+/**
+ * Count one occurrence of something that is neither a timing nor a failure —
+ * since 2026-11-22 which way each HEIC took (`conv_server_n`,
+ * `conv_browser_<why>_n`, `conv_fallback_<why>_n`), so the 4.7 s per HEIC
+ * measured in the browser can be split into "server was slow" and "the slow
+ * browser path ran instead". Rides in the same per-run map as the failures.
+ */
+export function countEvent(key: string): void {
+  hookVisibility();
+  if (phases.size === 0 && failures.size === 0) resetRunCounters();
+  failures.set(key, (failures.get(key) ?? 0) + 1);
+}
+
 // Time the page spent hidden during the run (another tab, minimised window,
 // screen locked). Browsers throttle hidden pages hard, which is the leading
 // explanation for the minute-long queue stalls — this turns it into a number.

@@ -3,6 +3,8 @@
  * Uses Canvas API for resizing images to 512x512 JPEG thumbnails.
  */
 
+import { countEvent } from './upload-timing';
+
 const THUMBNAIL_SIZE = 512;
 const THUMBNAIL_QUALITY = 0.6;
 
@@ -188,6 +190,7 @@ export async function convertHEICtoJPEG(
 ): Promise<Blob> {
   // Big HEICs go straight to the browser fallback — no wasted server round trip.
   if (file.size > VERCEL_BODY_LIMIT || serverConvertUnavailable) {
+    countEvent(serverConvertUnavailable ? 'conv_browser_off_n' : 'conv_browser_big_n');
     return convertHEICInBrowser(file, thumbnail, opts);
   }
 
@@ -212,11 +215,13 @@ export async function convertHEICtoJPEG(
   } catch {
     // Unreachable, not "this file failed" — every following photo would hit the
     // same wall, so stop paying the upload for it.
+    countEvent('conv_fallback_net_n');
     serverConvertUnavailable = true;
     return convertHEICInBrowser(file, thumbnail, opts);
   }
 
   if (!response.ok) {
+    countEvent('conv_fallback_http_n');
     // 5xx means the server itself cannot convert (503: it says so outright).
     // 413 and 429 are about THIS file or this moment — a smaller file or a
     // later one can still take the fast path, so those must not latch.
@@ -235,7 +240,11 @@ export async function convertHEICtoJPEG(
 
   const blob = await response.blob();
   // An empty body is a failed conversion too, and just as recoverable.
-  if (blob.size === 0) return convertHEICInBrowser(file, thumbnail, opts);
+  if (blob.size === 0) {
+    countEvent('conv_fallback_empty_n');
+    return convertHEICInBrowser(file, thumbnail, opts);
+  }
+  countEvent('conv_server_n');
   return blob;
 }
 

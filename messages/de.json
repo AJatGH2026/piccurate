@@ -130,6 +130,7 @@
     "downloadNeedsAccountNote": "Analysieren und das Ergebnis ansehen kannst du ohne Konto. <strong>Für den Download als ZIP brauchst du ein kostenloses Konto — das legst du direkt auf der Ergebnisseite an, ohne deine Auswahl zu verlieren.</strong>",
     "errorNoSupportedFiles": "Keine unterstützten Bilddateien gefunden. Unterstützt werden JPEG, PNG, HEIC und WebP.",
     "errorLimitReached": "Die Grenze von {max} Fotos ist erreicht.",
+    "duplicatesSkipped": "{count, plural, one {# doppelte Datei wurde} other {# doppelte Dateien wurden}} übersprungen (gleicher Name und gleiche Größe wie ein Foto, das schon in der Liste ist).",
     "errorLimitPartial": "Nur {added} von {total} Fotos übernommen – die Grenze liegt bei {max} Fotos."
   },
   "criteria": {
@@ -398,6 +399,7 @@
     "stepOf": "Schritt {current} von {total}",
     "optional": "optional",
     "etaCalculating": "Restzeit wird berechnet…",
+    "etaRemaining": "noch ca. {time}",
     "etaRemaining": "noch ca. {time}",
     "etaTotal": "geschätzte Gesamtdauer: ca. {time}",
     "etaSeconds": "{seconds, plural, one {# Sekunde} other {# Sekunden}}",

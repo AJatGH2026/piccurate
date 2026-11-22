@@ -130,6 +130,7 @@
     "downloadNeedsAccountNote": "Analysing your photos and viewing the result needs no account. <strong>Downloading the selection as a ZIP needs a free account — you create it right on the results page, without losing your selection.</strong>",
     "errorNoSupportedFiles": "No supported image files found. Supported formats: JPEG, PNG, HEIC and WebP.",
     "errorLimitReached": "The limit of {max} photos has been reached.",
+    "duplicatesSkipped": "{count, plural, one {# duplicate file was} other {# duplicate files were}} skipped (same name and size as a photo already in the list).",
     "errorLimitPartial": "Only {added} of {total} photos added – the limit is {max} photos."
   },
   "criteria": {
@@ -398,6 +399,7 @@
     "stepOf": "Step {current} of {total}",
     "optional": "optional",
     "etaCalculating": "Estimating time remaining…",
+    "etaRemaining": "about {time} left",
     "etaRemaining": "about {time} left",
     "etaTotal": "estimated total time: about {time}",
     "etaSeconds": "{seconds, plural, one {# second} other {# seconds}}",

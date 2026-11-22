@@ -66,6 +66,8 @@ interface UseUploadReturn {
   failedCount: number;
   clearAll: () => void;
   error: string | null;
+  /** Neutral information, e.g. duplicates skipped — not an error. */
+  notice: string | null;
 }
 
 export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadReturn {
@@ -74,6 +76,12 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
   const t = useTranslations('upload');
   const [photos, setPhotos] = useState<ClientPhoto[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  // name|size of every photo in the list, to skip the same file added twice —
+  // seen 2026-11-20/21: the same photo sat in two folders of one family set
+  // and was converted, embedded and charged against the allowance twice.
+  // Name AND size: two different photos sharing both is practically impossible.
+  const seenKeys = useRef<Set<string>>(new Set());
   const processingQueue = useRef<ClientPhoto[]>([]);
   const activeCount = useRef(0);
   // Photos accepted so far, kept in a ref so the tier limit is checked against
@@ -321,6 +329,20 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
         return;
       }
 
+      // Drop files already in the list (or twice in this selection) before the
+      // limit check, so duplicates never use up the allowance.
+      const fileKey = (f: File) => `${f.name}|${f.size}`;
+      const uniqueFiles: File[] = [];
+      for (const f of validFiles) {
+        const k = fileKey(f);
+        if (seenKeys.current.has(k)) continue;
+        seenKeys.current.add(k);
+        uniqueFiles.push(f);
+      }
+      const duplicates = validFiles.length - uniqueFiles.length;
+      setNotice(duplicates > 0 ? t('duplicatesSkipped', { count: duplicates }) : null);
+      if (uniqueFiles.length === 0) return;
+
       // Check limit against a synchronous counter, NOT against `photos.length`.
       // React state is one render behind, and the Dropbox import calls this
       // several times in a row before a re-render: every call then saw "0 so
@@ -329,16 +351,18 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
       const currentCount = acceptedCount.current;
       const available = maxPhotos - currentCount;
       if (available <= 0) {
+        for (const f of uniqueFiles) seenKeys.current.delete(fileKey(f));
         setError(t('errorLimitReached', { max: maxPhotos.toLocaleString(locale) }));
         return;
       }
 
-      const filesToAdd = validFiles.slice(0, available);
-      if (filesToAdd.length < validFiles.length) {
+      const filesToAdd = uniqueFiles.slice(0, available);
+      for (const f of uniqueFiles.slice(available)) seenKeys.current.delete(fileKey(f));
+      if (filesToAdd.length < uniqueFiles.length) {
         setError(
           t('errorLimitPartial', {
             added: filesToAdd.length.toLocaleString(locale),
-            total: validFiles.length.toLocaleString(locale),
+            total: uniqueFiles.length.toLocaleString(locale),
             max: maxPhotos.toLocaleString(locale),
           })
         );
@@ -424,6 +448,7 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
         URL.revokeObjectURL(photo.thumbnailUrl);
       }
       if (photo) acceptedCount.current = Math.max(0, acceptedCount.current - 1);
+      if (photo) seenKeys.current.delete(`${photo.file.name}|${photo.file.size}`);
       return prev.filter((p) => p.id !== id);
     });
     // Remove from queue if still pending
@@ -437,7 +462,9 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
     setPhotos([]);
     processingQueue.current = [];
     acceptedCount.current = 0;
+    seenKeys.current.clear();
     setError(null);
+    setNotice(null);
   }, [photos]);
 
   return {
@@ -451,5 +478,6 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
     failedCount,
     clearAll,
     error,
+    notice,
   };
 }
