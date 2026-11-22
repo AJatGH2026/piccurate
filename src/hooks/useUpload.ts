@@ -210,7 +210,13 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
   }, []);
 
   const processNext = useCallback(async () => {
-    const concurrencyLimit = wantFaceSearch() ? MAX_CONCURRENT_FACE_SEARCH : MAX_CONCURRENT;
+    // The halved limit is for phones only since 2026-11-22. It was added for
+    // iPhone Safari's tight per-tab memory (comment at the constant), but it
+    // applied on desktops too and made person search ~2.3× slower there
+    // (1,013 HEIC-heavy photos: 32 min vs 13:47 without person search). A
+    // desktop tab has far more headroom for four 1600 px bitmaps.
+    const concurrencyLimit =
+      wantFaceSearch() && isMobileDevice() ? MAX_CONCURRENT_FACE_SEARCH : MAX_CONCURRENT;
     if (activeCount.current >= concurrencyLimit || processingQueue.current.length === 0) return;
 
     activeCount.current++;
@@ -350,7 +356,7 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
           // still land. `isProcessing` goes false as soon as the last photo is
           // marked `ready` — which happens a few lines above, BEFORE this pass
           // — so "Weiter" is already clickable while up to
-          // MAX_CONCURRENT_FACE_SEARCH photos are still here. Without this,
+          // as many photos as run in parallel are still here. Without this,
           // those photos reached /configure with faceEmbeddings: null and were
           // permanently invisible to the person search. Same fix, same reason,
           // as noteEmbeddingSettled for the CLIP pass.
