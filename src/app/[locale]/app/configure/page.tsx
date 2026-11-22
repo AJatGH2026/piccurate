@@ -152,6 +152,26 @@ function WaitPanel({
   );
 }
 
+// Lets the browser paint before a long synchronous step. The selection run
+// (usePhotoStore.runSelection) can block the page for several seconds on a
+// few thousand photos; without this pause the "recomputing" text and the
+// disabled button were set but never drawn, so nothing seemed to happen and a
+// second click brought up Chrome's "page unresponsive" (product owner,
+// 2026-11-22, 4,554 photos). The timeout is the fallback for a hidden tab,
+// where requestAnimationFrame does not fire.
+function nextPaint(): Promise<void> {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      resolve();
+    };
+    requestAnimationFrame(() => setTimeout(finish, 0));
+    setTimeout(finish, 150);
+  });
+}
+
 export default function ConfigurePage() {
   const t = useTranslations('criteria');
   const tc = useTranslations('common');
@@ -1143,6 +1163,7 @@ export default function ConfigurePage() {
                   await settleEmbeddings();
                   setProgress(t('progressRecomputing'));
                   trackEv('reselect_run', locale, { run_index: nextRunIndex() });
+                  await nextPaint();
                   rerunSelection(criteria);
                   router.push(`/${locale}/app/review`);
                   return;
@@ -1427,6 +1448,9 @@ export default function ConfigurePage() {
                       ]);
                       usePhotoStore.getState().setSkippedNew(skipped);
                       await settleEmbeddings();
+                      setBatchProgress(null);
+                      setProgress(t('progressSelecting'));
+                      await nextPaint();
                       rerunSelection(criteria);
                       router.push(`/${locale}/app/review`);
                       return;
@@ -1439,6 +1463,11 @@ export default function ConfigurePage() {
                 // No label→name mapping any more: the model is not asked about
                 // people at all, and the store ignores any `persons` it returns.
                 const dedupWait = await settleEmbeddings();
+                // The panel title follows batchProgress; cleared so it reads
+                // "selecting" during the (possibly long) selection run.
+                setBatchProgress(null);
+                setProgress(t('progressSelecting'));
+                await nextPaint();
                 applyAnalysisResults(flatResults, criteria, analysedIds);
                 // Keep the ones from earlier runs of this photo set: they are
                 // still not in the analysis, and the review page lists them.

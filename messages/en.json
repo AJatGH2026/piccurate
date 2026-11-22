@@ -248,7 +248,7 @@
   "review": {
     "title": "Review your selection",
     "skippedTitle": "{count, plural, one {# photo was} other {# photos were}} not rated",
-    "skippedBody": "The AI service did not rate them and gave no reason, so they are not in the selection. You will find the photos among the rejected photos, though, and can add them back to the list manually.",
+    "skippedBody": "{count, plural, one {The AI service did not rate it and gave no reason, so it is not in the selection. You will find the photo among the rejected photos, though, and can add it back to the list manually.} other {The AI service did not rate them and gave no reason, so they are not in the selection. You will find the photos among the rejected photos, though, and can add them back to the list manually.}}",
     "skippedShow": "Show file names",
     "skippedCopy": "Copy list",
     "skippedCopied": "Copied",

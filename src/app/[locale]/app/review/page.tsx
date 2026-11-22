@@ -142,7 +142,7 @@ export default function ReviewPage() {
             {skippedNew.length > 0 && (
               <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
                 <p className="font-medium">{t('skippedTitle', { count: skippedNew.length })}</p>
-                <p className="mt-1">{t('skippedBody')}</p>
+                <p className="mt-1">{t('skippedBody', { count: skippedNew.length })}</p>
                 <details className="mt-2">
                   <summary className="cursor-pointer underline">{t('skippedShow')}</summary>
                   <ul className="mt-2 max-h-60 overflow-auto font-mono text-xs">

@@ -248,7 +248,7 @@
   "review": {
     "title": "Deine Auswahl prüfen",
     "skippedTitle": "{count, plural, one {# Foto wurde} other {# Fotos wurden}} nicht ausgewertet",
-    "skippedBody": "Der KI-Dienst hat sie ohne Begründung nicht bewertet, in der Auswahl sind sie daher nicht enthalten. Du findest die Fotos jedoch unter den abgelehnten Fotos und kannst sie manuell wieder zur Liste hinzufügen.",
+    "skippedBody": "{count, plural, one {Der KI-Dienst hat es ohne Begründung nicht bewertet, in der Auswahl ist es daher nicht enthalten. Du findest das Foto jedoch unter den abgelehnten Fotos und kannst es manuell wieder zur Liste hinzufügen.} other {Der KI-Dienst hat sie ohne Begründung nicht bewertet, in der Auswahl sind sie daher nicht enthalten. Du findest die Fotos jedoch unter den abgelehnten Fotos und kannst sie manuell wieder zur Liste hinzufügen.}}",
     "skippedShow": "Dateinamen anzeigen",
     "skippedCopy": "Liste kopieren",
     "skippedCopied": "Kopiert",

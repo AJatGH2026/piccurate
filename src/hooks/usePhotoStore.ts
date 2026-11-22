@@ -495,10 +495,7 @@ const VISUAL_DEDUP_MAX = 5000;
  *   Slider 8  → GAP_S = 47s, D = 14, Dv = 6, SIM ≈ 0.92  (default)
  *   Slider 10 → GAP_S = 60s, D = 16, Dv = 8, SIM ≈ 0.906 (aggressive)
  */
-// Exported for the sample demo (/demo/beispiel), which runs the real selection
-// on a frozen fixture without touching this store.
-export function detectSeries(photos: ProcessedPhoto[], criteria: CriteriaConfig): ProcessedPhoto[][] {
-  const s = Math.max(1, Math.min(10, criteria.dedupSensitivity || 8));
+function seriesParams(s: number) {
   const GAP_S = Math.round(((s - 1) * 60) / 9);
   const D = 6 + s;
   const Dv = Math.round(((s - 1) * 8) / 9);
@@ -513,6 +510,146 @@ export function detectSeries(photos: ProcessedPhoto[], criteria: CriteriaConfig)
   // demo set suggested, so a lower threshold merges too much. Do not lower it
   // again without re-running that measurement.
   const SIM = 0.97 - ((s - 1) * (0.97 - 0.906)) / 9;
+  return { GAP_S, D, Dv, SIM };
+}
+
+// Rules 2 and 3 per slider step, index 1…10 (index 0 unused).
+const SERIES_DV = [0, ...Array.from({ length: 10 }, (_, k) => seriesParams(k + 1).Dv)];
+const SERIES_SIM = [0, ...Array.from({ length: 10 }, (_, k) => seriesParams(k + 1).SIM)];
+
+/** A pHash hex string as 32-bit words (8 hex digits each), for a fast Hamming distance. */
+function phashWords(h: string | null): Uint32Array | null {
+  if (!h) return null;
+  const words = new Uint32Array(Math.ceil(h.length / 8));
+  for (let w = 0; w < words.length; w++) words[w] = parseInt(h.slice(w * 8, w * 8 + 8), 16) >>> 0;
+  return words;
+}
+
+function popcount32(x: number): number {
+  x -= (x >>> 1) & 0x55555555;
+  x = (x & 0x33333333) + ((x >>> 2) & 0x33333333);
+  return (((x + (x >>> 4)) & 0x0f0f0f0f) * 0x01010101) >>> 24;
+}
+
+interface SeriesEntry {
+  phash: string | null;
+  embedding: number[] | null;
+  words: Uint32Array | null;
+}
+
+/**
+ * Remembers which photo pairs the time-independent series rules (2 and 3 in
+ * detectSeries) join, and from which Duplicates-slider step on — added
+ * 2026-11-22. Before, every selection run compared every photo with every other
+ * on the main thread: 10.4 million pairs for a 4,554-photo set, about 20 s with
+ * the page frozen and no visible feedback (product owner's test; a second click
+ * brought up Chrome's "page unresponsive"). The pair result depends only on the
+ * two photos' pHash and embedding, not on criteria, exclusions or the slider —
+ * both rules only loosen as the slider rises — so it is computed once per pair
+ * and then reused: a re-run with other criteria or another slider position
+ * costs no pair comparisons at all. Only photos that are new or whose pHash or
+ * embedding changed (an embedding landing late) are compared again, against
+ * all others.
+ *
+ * The comparison itself is the old one: same hamming result (popcount of the
+ * XOR, per 8 hex digits instead of per digit) and the same cosine — same
+ * arithmetic in the same order as cosineSim, so borderline pairs land exactly
+ * as before. Measured with random data of the same shape: 21 s → about 7 s for
+ * a first run of 4,554 photos, ~0 s for a repeat.
+ */
+export class SeriesEdgeIndex {
+  private entries = new Map<string, SeriesEntry>();
+  // id → (other id → lowest slider step at which the pair is joined).
+  private edges = new Map<string, Map<string, number>>();
+
+  /** Bring the index in line with exactly this set of photos. */
+  update(photos: ProcessedPhoto[]): void {
+    const ids = new Set(photos.map((p) => p.id));
+    for (const id of [...this.entries.keys()]) if (!ids.has(id)) this.drop(id);
+
+    const changed: ProcessedPhoto[] = [];
+    for (const p of photos) {
+      const e = this.entries.get(p.id);
+      if (!e || e.phash !== p.phash || e.embedding !== p.embedding) changed.push(p);
+    }
+    if (changed.length === 0) return;
+    for (const p of changed) {
+      this.drop(p.id);
+      this.entries.set(p.id, { phash: p.phash, embedding: p.embedding, words: phashWords(p.phash) });
+    }
+
+    const done = new Set<string>();
+    for (const a of changed) {
+      const ea = this.entries.get(a.id)!;
+      for (const b of photos) {
+        if (b.id === a.id || done.has(b.id)) continue;
+        const s = this.pairStep(ea, this.entries.get(b.id)!);
+        if (s > 0) {
+          this.link(a.id, b.id, s);
+          this.link(b.id, a.id, s);
+        }
+      }
+      done.add(a.id);
+    }
+  }
+
+  covers(photos: ProcessedPhoto[]): boolean {
+    return photos.every((p) => {
+      const e = this.entries.get(p.id);
+      return !!e && e.phash === p.phash && e.embedding === p.embedding;
+    });
+  }
+
+  neighbours(id: string): Map<string, number> | undefined {
+    return this.edges.get(id);
+  }
+
+  // Lowest slider step 1…10 at which rule 2 or 3 joins the pair, 0 = never.
+  private pairStep(a: SeriesEntry, b: SeriesEntry): number {
+    let ham = 99;
+    if (a.phash && b.phash && a.phash.length === b.phash.length && a.words && b.words) {
+      ham = 0;
+      for (let w = 0; w < a.words.length; w++) ham += popcount32(a.words[w] ^ b.words[w]);
+    }
+    let cos = 0;
+    const ea = a.embedding, eb = b.embedding;
+    if (ea && eb && ea.length === eb.length) {
+      for (let i = 0; i < ea.length; i++) cos += ea[i] * eb[i];
+    }
+    if (ham > SERIES_DV[10] && cos < SERIES_SIM[10]) return 0;
+    for (let s = 1; s <= 10; s++) {
+      if ((SERIES_DV[s] > 0 && ham <= SERIES_DV[s]) || cos >= SERIES_SIM[s]) return s;
+    }
+    return 0;
+  }
+
+  private link(a: string, b: string, s: number) {
+    let m = this.edges.get(a);
+    if (!m) this.edges.set(a, (m = new Map()));
+    m.set(b, s);
+  }
+
+  private drop(id: string) {
+    const m = this.edges.get(id);
+    if (m) for (const other of m.keys()) this.edges.get(other)?.delete(id);
+    this.edges.delete(id);
+    this.entries.delete(id);
+  }
+}
+
+// The store's own index; lives as long as the page.
+const storeSeriesIndex = new SeriesEdgeIndex();
+
+// Series clustering — rules and thresholds in the comment above seriesParams.
+// Exported for the sample demo (/demo/beispiel), which runs the real selection
+// on a frozen fixture without touching this store.
+export function detectSeries(
+  photos: ProcessedPhoto[],
+  criteria: CriteriaConfig,
+  index?: SeriesEdgeIndex
+): ProcessedPhoto[][] {
+  const s = Math.max(1, Math.min(10, criteria.dedupSensitivity || 8));
+  const { GAP_S, D } = seriesParams(s);
 
   const sorted = [...photos].sort((a, b) => (a.dateTaken || '').localeCompare(b.dateTaken || ''));
   const n = sorted.length;
@@ -539,17 +676,23 @@ export function detectSeries(photos: ProcessedPhoto[], criteria: CriteriaConfig)
 
   // Rules 2 & 3 — time-independent, all pairs (capped): pHash for pixel-level
   // near-dups, embedding cosine for same-scene-different-camera.
+  // The pair results come from a SeriesEdgeIndex (see there); a pair missing an
+  // embedding is joined by pHash alone until the background embedding lands.
   if (n <= VISUAL_DEDUP_MAX) {
+    let idx = index;
+    if (!idx || !idx.covers(sorted)) {
+      idx = new SeriesEdgeIndex();
+      idx.update(sorted);
+    }
+    const pos = new Map<string, number>();
+    sorted.forEach((p, i) => pos.set(p.id, i));
     for (let i = 0; i < n; i++) {
-      const a = sorted[i];
-      for (let j = i + 1; j < n; j++) {
-        if (find(i) === find(j)) continue;
-        const b = sorted[j];
-        const pHashHit = Dv > 0 && !!a.phash && !!b.phash && hamming(a.phash, b.phash) <= Dv;
-        // cosineSim returns 0 when either embedding is missing, so this is a
-        // no-op until the background embedding lands.
-        const embHit = pHashHit || cosineSim(a.embedding, b.embedding) >= SIM;
-        if (embHit) union(i, j);
+      const nb = idx.neighbours(sorted[i].id);
+      if (!nb) continue;
+      for (const [otherId, step] of nb) {
+        if (step > s) continue;
+        const j = pos.get(otherId);
+        if (j !== undefined && j > i) union(i, j);
       }
     }
   }
@@ -579,7 +722,10 @@ export function runSelection(
   photos: ProcessedPhoto[],
   criteria: CriteriaConfig,
   persons: Person[],
-  excludeConfirmed: boolean
+  excludeConfirmed: boolean,
+  // The store passes its long-lived index; the sample demo passes none and
+  // gets a throw-away one per call (its 101 photos cost nothing).
+  seriesIndex: SeriesEdgeIndex | null = null
 ): ProcessedPhoto[] {
   // Split custom criteria into positive (bias/filter) and negative (hard
   // exclusion). Negatives are applied to the pool FIRST — they always win
@@ -627,7 +773,10 @@ export function runSelection(
   for (const p of pool) scored[p.id] = computeScore(p, criteria, persons);
 
   // One representative per series (best in-series quality), within the pool.
-  const clusters = detectSeries(pool, criteria);
+  // Index over ALL photos, not just the pool: then excluding a person or a
+  // term (a smaller pool) needs no new comparisons either.
+  if (seriesIndex && pool.length <= VISUAL_DEDUP_MAX) seriesIndex.update(photos);
+  const clusters = detectSeries(pool, criteria, seriesIndex ?? undefined);
   const repIds = new Set<string>();
   for (const cl of clusters) {
     const rep = cl.slice().sort((a, b) => inSeriesScore(b) - inSeriesScore(a))[0];
@@ -780,7 +929,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
   setExcludeConfirmed: (confirmed, criteria) => {
     set((state) => ({
       excludeConfirmed: confirmed,
-      photos: runSelection(state.photos, criteria, state.persons, confirmed),
+      photos: runSelection(state.photos, criteria, state.persons, confirmed, storeSeriesIndex),
     }));
   },
 
@@ -905,7 +1054,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       // the model so a later add/remove/rename triggers a re-analysis.
       const analyzedPersons = state.persons.map((p) => p.name.toLowerCase().trim()).filter(Boolean);
       return {
-        photos: runSelection(photos, criteria, state.persons, state.excludeConfirmed),
+        photos: runSelection(photos, criteria, state.persons, state.excludeConfirmed, storeSeriesIndex),
         analyzedCustomTerms,
         analyzedPersons,
       };
@@ -914,7 +1063,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
 
   rerunSelection: (criteria: CriteriaConfig) => {
     set((state) => ({
-      photos: runSelection(state.photos, criteria, state.persons, state.excludeConfirmed),
+      photos: runSelection(state.photos, criteria, state.persons, state.excludeConfirmed, storeSeriesIndex),
     }));
   },
 
