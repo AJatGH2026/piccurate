@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { v4 as uuidv4 } from 'uuid';
 import type { ClientPhoto } from '@/types/photo';
 import { extractEXIF } from '@/utils/exif';
-import { decodePhoto, convertHEICtoJPEG, sniffImageKind, withRealType } from '@/utils/image';
+import { decodePhoto, convertHEICtoJPEG, sniffImageKind, withRealType, type ImageKind } from '@/utils/image';
 import { computePHash } from '@/utils/phash';
 import { computeEmbedding } from '@/utils/embedding';
 import { detectFaces, preloadFaceDetector } from '@/utils/faceDetection';
@@ -18,6 +18,7 @@ import {
   logTimingProgress,
   peekTimingSummary,
   recordFailure,
+  recordPhase,
   countEvent,
 } from '@/utils/upload-timing';
 
@@ -47,6 +48,41 @@ const MAX_CONCURRENT_FACE_SEARCH = 2;
  * § 3 rule 1 ("der Nutzer aktiviert die Personensuche ausdrücklich selbst")
  * enforced in code rather than in prose.
  */
+// HEIC conversions are prepared ahead of the pipeline, this many at a time
+// (decision 2026-11-22). Measured 2026-11-21 on a desktop with 930 of 1,013
+// photos HEIC and person search on: the conversion was ~3/4 of the time per
+// photo (4.7 s, mostly waiting on the network/server), but only 2 photos were
+// in flight — the person-search cap below, which exists for MEMORY, not for
+// the conversion. Waiting costs no memory, so the conversions now run ahead
+// of the decode/face pipeline. Bounded: at most this many prepared-but-not-
+// yet-used results exist at once (~0.5 MB each). Phones keep the old
+// behaviour (0 = no prefetch): their per-tab memory ceiling is far tighter.
+const HEIC_PREFETCH_DESKTOP = 6;
+
+function isMobileDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  return /iPhone|iPad|iPod|Android/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+}
+
+interface Prepared {
+  kind: ImageKind;
+  /** The converted JPEG for a HEIF file; absent for every other kind. */
+  heicJpeg?: Blob;
+  /** Which conversion was made — the face pass needs the large frame. */
+  forFaceSearch: boolean;
+}
+
+/** Sniff the format and, for HEIF, convert — the part that can run ahead. */
+async function preparePhoto(file: File, forFaceSearch: boolean): Promise<Prepared> {
+  const kind = await timePhase('sniff', () => sniffImageKind(file));
+  if (kind !== 'heif') return { kind, forFaceSearch };
+  const heicJpeg = forFaceSearch
+    ? await timePhase('convert_face', () => convertHEICtoJPEG(file, false, { face: true }))
+    : await timePhase('convert', () => convertHEICtoJPEG(file, true));
+  return { kind, heicJpeg, forFaceSearch };
+}
+
 function wantFaceSearch(): boolean {
   return usePhotoStore.getState().persons.length > 0;
 }
@@ -89,6 +125,8 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
   // Name AND size: two different photos sharing both is practically impossible.
   const seenKeys = useRef<Set<string>>(new Set());
   const processingQueue = useRef<ClientPhoto[]>([]);
+  // Prepared (sniffed + HEIC-converted) results running ahead of the queue.
+  const prefetched = useRef<Map<string, Promise<Prepared>>>(new Map());
   const activeCount = useRef(0);
   // Photos accepted so far, kept in a ref so the tier limit is checked against
   // the real total even when several imports land within one render.
@@ -159,6 +197,22 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
     );
   }, []);
 
+  // Start preparing the next photos in the queue, up to the prefetch limit.
+  const pumpPrefetch = useCallback(() => {
+    const limit = isMobileDevice() ? 0 : HEIC_PREFETCH_DESKTOP;
+    if (limit === 0) return;
+    const faceSearch = wantFaceSearch();
+    for (const p of processingQueue.current) {
+      if (prefetched.current.size >= limit) break;
+      if (prefetched.current.has(p.id)) continue;
+      const pr = preparePhoto(p.file, faceSearch);
+      // Rejections are handled where the result is used (processNext); this
+      // only stops an early failure from surfacing as "unhandled".
+      pr.catch(() => {});
+      prefetched.current.set(p.id, pr);
+    }
+  }, []);
+
   const processNext = useCallback(async () => {
     const concurrencyLimit = wantFaceSearch() ? MAX_CONCURRENT_FACE_SEARCH : MAX_CONCURRENT;
     if (activeCount.current >= concurrencyLimit || processingQueue.current.length === 0) return;
@@ -171,7 +225,27 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
       // sniffImageKind. Not an image at all → take it off the list quietly
       // (counted and shown as "skipped", not as a failure) and give its slot
       // in the allowance back.
-      const kind = await timePhase('sniff', () => sniffImageKind(photo.file));
+      const faceSearchNow = wantFaceSearch();
+      const ahead = prefetched.current.get(photo.id);
+      prefetched.current.delete(photo.id);
+      pumpPrefetch();
+      let prepared: Prepared;
+      if (ahead) {
+        // How long the pipeline still had to wait for a conversion that was
+        // started ahead — near 0 means the conversion is no longer the wall.
+        const t0 = Date.now();
+        try {
+          prepared = await ahead;
+        } finally {
+          recordPhase('prep_wait', Date.now() - t0);
+        }
+        if (prepared.forFaceSearch !== faceSearchNow && prepared.kind === 'heif') {
+          prepared = await preparePhoto(photo.file, faceSearchNow);
+        }
+      } else {
+        prepared = await preparePhoto(photo.file, faceSearchNow);
+      }
+      const kind = prepared.kind;
       if (kind === 'other') {
         countEvent('skip_nonimage_n');
         acceptedCount.current = Math.max(0, acceptedCount.current - 1);
@@ -207,16 +281,14 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
           // Measured separately from the no-face path: this asks for the 1600px
           // uncropped frame (~250-400 KB) instead of the 512 square (~30 KB),
           // and adds a browser decode the plain path does not have.
-          const faceJpeg = await timePhase('convert_face', () =>
-            convertHEICtoJPEG(photo.file, false, { face: true })
-          );
+          const faceJpeg = prepared.heicJpeg!;
           const decoded = await timePhase('decode', () =>
             decodePhoto(faceJpeg, { keepBitmap: true })
           );
           thumbnailBlob = decoded.thumbnail;
           faceBitmap = decoded.bitmap;
         } else {
-          thumbnailBlob = await timePhase('convert', () => convertHEICtoJPEG(photo.file, true));
+          thumbnailBlob = prepared.heicJpeg!;
         }
       } else {
         // JPEG/PNG/WebP: thumbnail client-side; createImageBitmap 'from-image'
@@ -322,7 +394,7 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
       // Process next in queue
       processNext();
     }
-  }, [updatePhoto]);
+  }, [updatePhoto, pumpPrefetch]);
 
   const addFiles = useCallback(
     (files: FileList | File[]) => {
@@ -437,11 +509,12 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
 
       // Add to processing queue and start
       processingQueue.current.push(...newPhotos);
+      pumpPrefetch();
       for (let i = 0; i < MAX_CONCURRENT; i++) {
         processNext();
       }
     },
-    [maxPhotos, processNext, t, locale]
+    [maxPhotos, processNext, pumpPrefetch, t, locale]
   );
 
   // Re-process only the photos that failed (e.g. a flaky HEIC conversion).
@@ -456,10 +529,11 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
       prev.map((p) => (p.status === 'error' ? { ...p, status: 'pending' as const, error: null } : p))
     );
     processingQueue.current.push(...reEnqueued);
+    pumpPrefetch();
     for (let i = 0; i < MAX_CONCURRENT; i++) {
       processNext();
     }
-  }, [photos, processNext]);
+  }, [photos, processNext, pumpPrefetch]);
 
   const removePhoto = useCallback((id: string) => {
     setPhotos((prev) => {
@@ -473,6 +547,7 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
     });
     // Remove from queue if still pending
     processingQueue.current = processingQueue.current.filter((p) => p.id !== id);
+    prefetched.current.delete(id);
   }, []);
 
   const clearAll = useCallback(() => {
@@ -481,6 +556,7 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
     });
     setPhotos([]);
     processingQueue.current = [];
+    prefetched.current.clear();
     acceptedCount.current = 0;
     seenKeys.current.clear();
     setError(null);
