@@ -81,7 +81,7 @@ function GermanBody({ withdrawalUrl }: { withdrawalUrl: string }) {
   return (
     <>
       <h1>Nutzungsbedingungen</h1>
-      <p>Stand: 27. August 2026</p>
+      <p>Stand: 22. November 2026</p>
       <h2>1. Anbieter und Geltungsbereich</h2>
       <p>Diese Nutzungsbedingungen gelten für die Nutzung des Fotoauswahldienstes AuswahlBuddy der AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Deutschland („AJ GmbH“, „wir“).</p>
       <p>AuswahlBuddy ist ausschließlich für persönliche, private oder familiäre Zwecke bestimmt. Eine berufliche, gewerbliche oder institutionelle Nutzung ist nicht gestattet.</p>
@@ -174,7 +174,7 @@ function GermanBody({ withdrawalUrl }: { withdrawalUrl: string }) {
       <p>Unterauftragsverarbeiter: Du erteilst eine allgemeine Genehmigung zum Einsatz der in der Datenschutzerklärung und einer dauerhaft abrufbaren Unterauftragsverarbeiterliste genannten Anbieter, insbesondere Google für die KI-Analyse sowie Vercel für Hosting- und Sicherheitsfunktionen. Wesentliche Änderungen werden für zukünftige Vorgänge veröffentlicht. Wer einer Änderung nicht zustimmt, darf danach keine neuen Analysevorgänge starten.</p>
       <p>Nachweise und Kontrolle: AJ GmbH stellt die gesetzlich erforderlichen Informationen zu den getroffenen Schutzmaßnahmen und eingesetzten Unterauftragsverarbeitern bereit. Individuelle Vor-Ort-Prüfungen sind nur zulässig, soweit sie gesetzlich erforderlich und nicht durch geeignete Zertifikate, Prüfberichte oder Dokumentationen ersetzbar sind.</p>
       <p>9.1a Personensuche — vollständig lokale Verarbeitung, keine Auftragsverarbeitung</p>
-      <p>Für die optionale Personensuche gelten die vorstehenden Auftragsverarbeitungsbedingungen nicht: AJ GmbH verarbeitet dabei keine Foto- oder biometrischen Inhalte, weil Referenzfoto, daraus abgeleitete Gesichtsmerkmale, die durchsuchten Fotos und das Ergebnis dein Gerät nie verlassen. Wir stellen dafür ausschließlich die technische Software (Erkennungs- und Vergleichsmodell) bereit; die konkrete Verarbeitung führst allein du auf deinem eigenen Gerät durch.</p>
+      <p>Für die optionale Personensuche gelten die vorstehenden Auftragsverarbeitungsbedingungen nicht: AJ GmbH verarbeitet dabei keine Foto- oder biometrischen Inhalte, weil Referenzfoto, daraus abgeleitete Gesichtsmerkmale und das Ergebnis dein Gerät nie verlassen und der Abgleich ausschließlich dort stattfindet. Die durchsuchten Fotos werden dafür nicht an uns übermittelt; HEIC-Fotos durchlaufen lediglich die technische Umwandlung nach Abschnitt 4.1 der Datenschutzerklärung, bei der weder Gesichter erkannt noch Merkmale gebildet werden. Wir stellen dafür ausschließlich die technische Software (Erkennungs- und Vergleichsmodell) bereit; die konkrete Verarbeitung führst allein du auf deinem eigenen Gerät durch.</p>
       <p>Soweit du die Personensuche im Rahmen persönlicher oder familiärer Tätigkeiten nutzt, ist regelmäßig allein deine eigene Verarbeitung betroffen und fällt unter die Haushaltsausnahme des Art. 2 Abs. 2 Buchst. c DSGVO (Einzelheiten Abschnitt 4.3 der Datenschutzerklärung). Du bist deshalb dafür verantwortlich, dass du zur Verwendung jedes Referenzfotos berechtigt bist und die Personensuche nur im privaten, persönlichen oder familiären Bereich einsetzt — die ausdrücklich untersagten Einsatzzwecke stehen in Abschnitt 8.</p>
       <h2>10. Verfügbarkeit, Änderungen und Einstellung</h2>
       <p>Für die allgemeine Erreichbarkeit der Website und die Möglichkeit, einen neuen Analysevorgang zu starten, schulden wir keine bestimmte Verfügbarkeit. Wartung, Sicherheitsmaßnahmen, Störungen von Internet-, Hosting- oder KI-Diensten sowie höhere Gewalt können zu Unterbrechungen führen.</p>
@@ -220,7 +220,7 @@ function EnglishBody({ withdrawalUrl }: { withdrawalUrl: string }) {
     <>
       <h1>Terms of Service</h1>
       <EnglishNotice contractual />
-      <p>Last updated: 27 August 2026</p>
+      <p>Last updated: 22 November 2026</p>
       <h2>1. Provider and scope</h2>
       <p>These Terms govern use of the ShortlistBuddy photo-selection service provided by AJ GmbH, Danziger Str. 80, 65191 Wiesbaden, Germany (“AJ GmbH”, “we”).</p>
       <p>ShortlistBuddy is intended exclusively for personal, private or family purposes. Professional, commercial or institutional use is not permitted.</p>
@@ -305,7 +305,7 @@ function EnglishBody({ withdrawalUrl }: { withdrawalUrl: string }) {
       <p>Subprocessors: You grant general authorisation for the providers named in the Privacy Policy and a permanently available subprocessor list, in particular Google for AI analysis and Vercel for hosting and security functions. Material changes will be published for future jobs. A user who objects must not start new analysis jobs after the change.</p>
       <p>Evidence and review: AJ GmbH will provide legally required information about safeguards and subprocessors. Individual on-site audits are permitted only where legally required and not reasonably replaceable by suitable certificates, audit reports or documentation.</p>
       <p>9.1a Person search — purely local processing, no data-processing arrangement</p>
-      <p>The supplementary terms above do not apply to the optional person search: AJ GmbH processes no photo or biometric content in this context, because the reference photo, the facial features derived from it, the photos being searched and the result never leave your device. We only provide the technical software (the recognition and matching model); you alone carry out the actual processing on your own device.</p>
+      <p>The supplementary terms above do not apply to the optional person search: AJ GmbH processes no photo or biometric content in this context, because the reference photo, the facial features derived from it and the result never leave your device and the matching takes place only there. The photos being searched are not transmitted to us for this purpose; HEIC photos merely undergo the technical conversion described in section 4.1 of the Privacy Policy, during which no faces are detected and no features are derived. We only provide the technical software (the recognition and matching model); you alone carry out the actual processing on your own device.</p>
       <p>Where you use the person search in the course of personal or household activities, that is regularly your own processing alone and falls within the household exemption in Article 2(2)(c) GDPR (details in section 4.3 of the Privacy Policy). You are therefore responsible for being authorised to use each reference photo and for using the person search only in a private, personal or family context — the expressly prohibited uses are listed in section 8.</p>
       <h2>10. Availability, changes and discontinuation</h2>
       <p>We do not promise a specific availability level for the general reachability of the website or the ability to start a new analysis job. Maintenance, security measures, failures of internet, hosting or AI services, and force majeure may cause interruptions.</p>
