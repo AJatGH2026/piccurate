@@ -126,7 +126,7 @@
     "cloudSourceICloud": "iCloud",
     "cloudIntentComingSoon": "in Arbeit — sag uns Bescheid, wenn du das brauchst",
     "cloudIntentThanks": "Danke, notiert! Wir melden uns, sobald es verfügbar ist.",
-    "etaDependencyNote": "Deine Fotos werden in deinem Browser auf diesem Gerät vorbereitet. HEIC-Fotos (z. B. vom iPhone) schicken wir dafür kurz zur Umwandlung an unseren Server – sie dauern deshalb länger und hängen auch von deiner Upload-Geschwindigkeit ab. Mit Personensuche dauert die Vorbereitung etwa doppelt so lange. Lass diesen Tab bitte geöffnet.",
+    "etaDependencyNote": "Deine Fotos werden in deinem Browser auf diesem Gerät vorbereitet. HEIC-Fotos (z. B. vom iPhone) schicken wir dafür kurz zur Umwandlung an unseren Server – sie dauern deshalb länger und hängen auch von deiner Upload-Geschwindigkeit ab. Mit Personensuche dauert die Vorbereitung etwas länger. Lass diesen Tab bitte geöffnet.",
     "downloadNeedsAccountNote": "Analysieren und das Ergebnis ansehen kannst du ohne Konto. <strong>Für den Download als ZIP brauchst du ein kostenloses Konto — das legst du direkt auf der Ergebnisseite an, ohne deine Auswahl zu verlieren.</strong>",
     "errorNoSupportedFiles": "Keine unterstützten Bilddateien gefunden. Unterstützt werden JPEG, PNG, HEIC und WebP.",
     "errorLimitReached": "Die Grenze von {max} Fotos ist erreicht.",

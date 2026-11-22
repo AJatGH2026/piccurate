@@ -126,7 +126,7 @@
     "cloudSourceICloud": "iCloud",
     "cloudIntentComingSoon": "coming soon — let us know if you need this",
     "cloudIntentThanks": "Thanks, noted! We'll let you know once it's available.",
-    "etaDependencyNote": "Your photos are being prepared in your browser on this device. HEIC photos (e.g. from an iPhone) are briefly sent to our server for conversion – so they take longer and also depend on your upload speed. With person search, preparation takes about twice as long. Please keep this tab open.",
+    "etaDependencyNote": "Your photos are being prepared in your browser on this device. HEIC photos (e.g. from an iPhone) are briefly sent to our server for conversion – so they take longer and also depend on your upload speed. With person search, preparation takes a little longer. Please keep this tab open.",
     "downloadNeedsAccountNote": "Analysing your photos and viewing the result needs no account. <strong>Downloading the selection as a ZIP needs a free account — you create it right on the results page, without losing your selection.</strong>",
     "errorNoSupportedFiles": "No supported image files found. Supported formats: JPEG, PNG, HEIC and WebP.",
     "errorLimitReached": "The limit of {max} photos has been reached.",
