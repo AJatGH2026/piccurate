@@ -32,8 +32,8 @@ const KICKER: Record<'en' | 'de', string> = {
 };
 
 const TAGLINE: Record<'en' | 'de', string> = {
-  en: 'Pick your best photos — in minutes',
-  de: 'Wähle deine schönsten Fotos — in Minuten',
+  en: 'The AI pre-sorts, you pick — in minutes',
+  de: 'Die KI sortiert vor, du wählst — in Minuten',
 };
 
 export function renderOgCard(locale: string) {
