@@ -540,7 +540,7 @@ export async function readUploadTimings(limit = 12, days = 3): Promise<UploadTim
         phases,
         failures: Object.fromEntries(
           Object.entries(props)
-            .filter(([k, v]) => /^(fail|err|conv)_.+_n$/.test(k) && typeof v === 'number')
+            .filter(([k, v]) => /^(fail|err|conv|skip)_.+_n$/.test(k) && typeof v === 'number')
             .map(([k, v]) => [k, v as number])
         ),
         hiddenMs: typeof props.hidden_ms === 'number' ? props.hidden_ms : null,

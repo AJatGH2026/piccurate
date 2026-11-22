@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { v4 as uuidv4 } from 'uuid';
 import type { ClientPhoto } from '@/types/photo';
 import { extractEXIF } from '@/utils/exif';
-import { decodePhoto, isHEIC, convertHEICtoJPEG } from '@/utils/image';
+import { decodePhoto, convertHEICtoJPEG, sniffImageKind, withRealType } from '@/utils/image';
 import { computePHash } from '@/utils/phash';
 import { computeEmbedding } from '@/utils/embedding';
 import { detectFaces, preloadFaceDetector } from '@/utils/faceDetection';
@@ -18,6 +18,7 @@ import {
   logTimingProgress,
   peekTimingSummary,
   recordFailure,
+  countEvent,
 } from '@/utils/upload-timing';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'image/webp'];
@@ -68,6 +69,8 @@ interface UseUploadReturn {
   error: string | null;
   /** Neutral information, e.g. duplicates skipped — not an error. */
   notice: string | null;
+  /** Files skipped because their content is not an image. */
+  skippedNonImages: number;
 }
 
 export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadReturn {
@@ -77,6 +80,9 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
   const [photos, setPhotos] = useState<ClientPhoto[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // Files dropped because their content is not an image at all (edit sidecars,
+  // Live-Photo videos named .HEIC …) — reported apart from real failures.
+  const [skippedNonImages, setSkippedNonImages] = useState(0);
   // name|size of every photo in the list, to skip the same file added twice —
   // seen 2026-11-20/21: the same photo sat in two folders of one family set
   // and was converted, embedded and charged against the allowance twice.
@@ -161,6 +167,20 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
     const photo = processingQueue.current.shift()!;
 
     try {
+      // Step 0: what IS this file? Judged by content, not by name — see
+      // sniffImageKind. Not an image at all → take it off the list quietly
+      // (counted and shown as "skipped", not as a failure) and give its slot
+      // in the allowance back.
+      const kind = await timePhase('sniff', () => sniffImageKind(photo.file));
+      if (kind === 'other') {
+        countEvent('skip_nonimage_n');
+        acceptedCount.current = Math.max(0, acceptedCount.current - 1);
+        seenKeys.current.delete(`${photo.file.name}|${photo.file.size}`);
+        setPhotos((prev) => prev.filter((p) => p.id !== photo.id));
+        setSkippedNonImages((n) => n + 1);
+        return;
+      }
+
       // Step 1: Extract EXIF from original (works for HEIC too)
       updatePhoto(photo.id, { status: 'extracting' });
       const exif = await timePhase('exif', () => extractEXIF(photo.file));
@@ -175,7 +195,7 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
       let thumbnailBlob: Blob;
       let faceBitmap: ImageBitmap | null = null;
 
-      if (isHEIC(photo.file)) {
+      if (kind === 'heif') {
         // HEIC path: small files use the server (sharp handles orientation),
         // large files the browser (heic-to). Both output already-upright pixels.
         updatePhoto(photo.id, { status: 'generating', exif });
@@ -203,7 +223,7 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
         // applies EXIF orientation. No manual rotation (it double-applied).
         updatePhoto(photo.id, { status: 'generating', exif });
         const decoded = await timePhase('decode', () =>
-          decodePhoto(photo.file, { keepBitmap: faceSearchActive })
+          decodePhoto(withRealType(photo.file, kind), { keepBitmap: faceSearchActive })
         );
         thumbnailBlob = decoded.thumbnail;
         faceBitmap = decoded.bitmap;
@@ -465,6 +485,7 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
     seenKeys.current.clear();
     setError(null);
     setNotice(null);
+    setSkippedNonImages(0);
   }, [photos]);
 
   return {
@@ -479,5 +500,6 @@ export function useUpload({ maxPhotos, locale }: UseUploadOptions): UseUploadRet
     clearAll,
     error,
     notice,
+    skippedNonImages,
   };
 }

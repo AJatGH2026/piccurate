@@ -135,7 +135,7 @@ export default function UploadPage() {
   // has to remember to flip separately.
   const personSearchAvailable = currentTier !== 'free' || !salesAreLive();
 
-  const { photos, isProcessing, processedCount, totalCount, addFiles, removePhoto, retryFailed, failedCount, clearAll, error, notice } =
+  const { photos, isProcessing, processedCount, totalCount, addFiles, removePhoto, retryFailed, failedCount, clearAll, error, notice, skippedNonImages } =
     useUpload({ maxPhotos, locale });
   // Photos exist only in this tab: ask before a reload/close throws them away.
   useLeaveGuard(totalCount > 0 || photos.length > 0);
@@ -353,6 +353,11 @@ export default function UploadPage() {
         {notice && (
           <div className="mt-4 p-3 rounded-lg bg-zinc-50 text-zinc-600 text-sm dark:bg-zinc-800/50 dark:text-zinc-300">
             {notice}
+          </div>
+        )}
+        {skippedNonImages > 0 && (
+          <div className="mt-4 p-3 rounded-lg bg-zinc-50 text-zinc-600 text-sm dark:bg-zinc-800/50 dark:text-zinc-300">
+            {t('nonImagesSkipped', { count: skippedNonImages })}
           </div>
         )}
 

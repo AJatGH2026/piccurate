@@ -131,6 +131,7 @@
     "errorNoSupportedFiles": "No supported image files found. Supported formats: JPEG, PNG, HEIC and WebP.",
     "errorLimitReached": "The limit of {max} photos has been reached.",
     "duplicatesSkipped": "{count, plural, one {# duplicate file was} other {# duplicate files were}} skipped (same name and size as a photo already in the list).",
+    "nonImagesSkipped": "{count, plural, one {# file was} other {# files were}} skipped because {count, plural, one {it is not a photo} other {they are not photos}} (e.g. sidecar files or videos with a photo extension).",
     "errorLimitPartial": "Only {added} of {total} photos added – the limit is {max} photos."
   },
   "criteria": {

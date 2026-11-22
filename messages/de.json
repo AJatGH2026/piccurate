@@ -131,6 +131,7 @@
     "errorNoSupportedFiles": "Keine unterstützten Bilddateien gefunden. Unterstützt werden JPEG, PNG, HEIC und WebP.",
     "errorLimitReached": "Die Grenze von {max} Fotos ist erreicht.",
     "duplicatesSkipped": "{count, plural, one {# doppelte Datei wurde} other {# doppelte Dateien wurden}} übersprungen (gleicher Name und gleiche Größe wie ein Foto, das schon in der Liste ist).",
+    "nonImagesSkipped": "{count, plural, one {# Datei wurde} other {# Dateien wurden}} übersprungen, weil {count, plural, one {sie kein Foto ist} other {sie keine Fotos sind}} (z. B. Begleitdateien oder Videos mit Foto-Endung).",
     "errorLimitPartial": "Nur {added} von {total} Fotos übernommen – die Grenze liegt bei {max} Fotos."
   },
   "criteria": {

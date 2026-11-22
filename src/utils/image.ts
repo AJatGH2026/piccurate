@@ -183,6 +183,63 @@ const VERCEL_BODY_LIMIT = Math.max(0, HEIC_SERVER_MAX_MB) * 1024 * 1024;
  */
 let serverConvertUnavailable = false;
 
+// How many server attempts in a row have failed, and after how many the fast
+// path is switched off for the session. One failure is usually a network
+// hiccup; three in a row look like the server or the route is really gone.
+let consecutiveServerFailures = 0;
+const MAX_CONSECUTIVE_SERVER_FAILURES = 3;
+
+function switchServerOff(reason: string): void {
+  if (serverConvertUnavailable) return;
+  serverConvertUnavailable = true;
+  console.warn(`[HEIC] server conversion unavailable (${reason}) — decoding in the browser for the rest of this session.`);
+}
+
+function noteServerFailure(reason: string): void {
+  consecutiveServerFailures++;
+  if (consecutiveServerFailures >= MAX_CONSECUTIVE_SERVER_FAILURES) {
+    switchServerOff(`${consecutiveServerFailures}× in a row, last: ${reason}`);
+  } else {
+    console.warn(`[HEIC] server conversion failed (${reason}) — decoding this photo in the browser.`);
+  }
+}
+
+/** What a file really is, judged by its first bytes — never by its name. */
+export type ImageKind = 'heif' | 'jpeg' | 'png' | 'webp' | 'other';
+
+// HEIF brands (ISO/IEC 23008-12) for still images and sequences.
+const HEIF_BRANDS = new Set(['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'hevm', 'hevs', 'mif1', 'msf1']);
+
+/**
+ * Sniff the image format from the file's first bytes.
+ *
+ * Added 2026-11-22: a real family set (photos gathered from several phones)
+ * held 157 JPEGs named .HEIC, 11 HEICs named .JPG/.PNG, plus edit sidecars
+ * (XML) and a Live-Photo video named .HEIC. Routing by extension sent each of
+ * those down the wrong decoder and they all failed. Costs one 16-byte read.
+ */
+export async function sniffImageKind(file: Blob): Promise<ImageKind> {
+  const b = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpeg';
+  if (b.length >= 4 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'png';
+  const ascii = (from: number, to: number) => String.fromCharCode(...b.slice(from, to));
+  if (b.length >= 12 && ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP') return 'webp';
+  if (b.length >= 12 && ascii(4, 8) === 'ftyp' && HEIF_BRANDS.has(ascii(8, 12))) return 'heif';
+  return 'other';
+}
+
+const KIND_MIME: Record<Exclude<ImageKind, 'heif' | 'other'>, string> = {
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+};
+
+/** The file as a Blob whose MIME type matches its real content. */
+export function withRealType(file: File, kind: Exclude<ImageKind, 'heif' | 'other'>): Blob {
+  const mime = KIND_MIME[kind];
+  return file.type === mime ? file : new Blob([file], { type: mime });
+}
+
 export async function convertHEICtoJPEG(
   file: File,
   thumbnail = true,
@@ -209,27 +266,31 @@ export async function convertHEICtoJPEG(
   try {
     response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': file.type || 'image/heic' },
+      // The caller has checked the CONTENT is HEIF (sniffImageKind), whatever
+      // the file name or the browser's MIME guess says.
+      headers: { 'Content-Type': 'image/heic' },
       body: file,
     });
   } catch {
-    // Unreachable, not "this file failed" — every following photo would hit the
-    // same wall, so stop paying the upload for it.
+    // A network error. Until 2026-11-22 the FIRST one switched the fast path
+    // off for the rest of the session — silently — so one WLAN hiccup turned
+    // every following HEIC into the slow browser decode. Now only a run of
+    // failures in a row does that (noteServerFailure).
     countEvent('conv_fallback_net_n');
-    serverConvertUnavailable = true;
+    noteServerFailure('network error');
     return convertHEICInBrowser(file, thumbnail, opts);
   }
 
   if (!response.ok) {
     countEvent('conv_fallback_http_n');
-    // 5xx means the server itself cannot convert (503: it says so outright).
-    // 413 and 429 are about THIS file or this moment — a smaller file or a
-    // later one can still take the fast path, so those must not latch.
-    if (response.status >= 500) {
-      serverConvertUnavailable = true;
-      console.warn(
-        `[HEIC] server conversion unavailable (${response.status}) — decoding in the browser for the rest of this session.`
-      );
+    // 503: the server says outright it cannot convert — no point retrying.
+    // Other 5xx count towards the run of failures. 413 and 429 are about THIS
+    // file or this moment — a smaller file or a later one can still take the
+    // fast path, so those never switch it off.
+    if (response.status === 503) {
+      switchServerOff(`HTTP ${response.status}`);
+    } else if (response.status >= 500) {
+      noteServerFailure(`HTTP ${response.status}`);
     } else {
       console.warn(
         `[HEIC] server conversion failed (${response.status}) — decoding in the browser instead.`
@@ -238,12 +299,23 @@ export async function convertHEICtoJPEG(
     return convertHEICInBrowser(file, thumbnail, opts);
   }
 
-  const blob = await response.blob();
+  // Reading the body can fail too (connection dropped mid-response). That used
+  // to escape as "TypeError: Failed to fetch" and fail the photo outright —
+  // seen 2026-11-21 on a 1.3 MB HEIC — although the browser could decode it.
+  let blob: Blob;
+  try {
+    blob = await response.blob();
+  } catch {
+    countEvent('conv_fallback_read_n');
+    noteServerFailure('response interrupted');
+    return convertHEICInBrowser(file, thumbnail, opts);
+  }
   // An empty body is a failed conversion too, and just as recoverable.
   if (blob.size === 0) {
     countEvent('conv_fallback_empty_n');
     return convertHEICInBrowser(file, thumbnail, opts);
   }
+  consecutiveServerFailures = 0;
   countEvent('conv_server_n');
   return blob;
 }
