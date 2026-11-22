@@ -132,6 +132,7 @@
     "errorLimitReached": "Die Grenze von {max} Fotos ist erreicht.",
     "duplicatesSkipped": "{count, plural, one {# doppelte Datei wurde} other {# doppelte Dateien wurden}} übersprungen (gleicher Name und gleiche Größe wie ein Foto, das schon in der Liste ist).",
     "nonImagesSkipped": "{count, plural, one {# Datei wurde} other {# Dateien wurden}} übersprungen, weil {count, plural, one {sie kein Foto ist} other {sie keine Fotos sind}} (z. B. Begleitdateien oder Videos mit Foto-Endung).",
+    "mobileKeepOpenUpload": "Lass die App geöffnet, bis alle Fotos bereit sind – wechselst du in eine andere App, pausiert die Vorbereitung. Der Bildschirm bleibt so lange an.",
     "errorLimitPartial": "Nur {added} von {total} Fotos übernommen – die Grenze liegt bei {max} Fotos."
   },
   "criteria": {
@@ -212,6 +213,7 @@
     "waitPanelDuplicatesBodyPlain": "{done} von {total} Fotos verglichen — läuft im Hintergrund, du kannst währenddessen die Kriterien einstellen.",
     "waitPanelAnalysisTitle": "Deine Fotos werden analysiert…",
     "waitPanelBatches": "Stapel {done} von {total}",
+    "mobileKeepOpenAnalysis": "Lass die App geöffnet, bis die Analyse fertig ist – wechselst du in eine andere App, pausiert sie. Der Bildschirm bleibt so lange an.",
     "waitPanelKeepOpen": "Bitte lass diese Seite geöffnet, bis das Ergebnis da ist.",
     "progressAnalysing": "Analyse… {done} von {total} Stapeln",
     "progressSelecting": "Beste Fotos werden ausgewählt…",
@@ -400,7 +402,6 @@
     "stepOf": "Schritt {current} von {total}",
     "optional": "optional",
     "etaCalculating": "Restzeit wird berechnet…",
-    "etaRemaining": "noch ca. {time}",
     "etaRemaining": "noch ca. {time}",
     "etaTotal": "geschätzte Gesamtdauer: ca. {time}",
     "etaSeconds": "{seconds, plural, one {# Sekunde} other {# Sekunden}}",

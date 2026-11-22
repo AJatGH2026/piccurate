@@ -1,5 +1,7 @@
 'use client';
 
+import { useWakeLock } from '@/hooks/useWakeLock';
+import { isMobileDevice } from '@/utils/device';
 import { useTranslations } from 'next-intl';
 import { brandName } from '@/lib/brand';
 import { useCriteria } from '@/hooks/useCriteria';
@@ -160,6 +162,8 @@ export default function ConfigurePage() {
   // the site the user is currently on.
   const supportAddress = locale === 'de' ? 'support@auswahlbuddy.de' : 'support@shortlistbuddy.com';
   const [analyzing, setAnalyzing] = useState(false);
+  // Keep the screen on while the analysis runs — see useWakeLock.
+  useWakeLock(analyzing);
   // Batch counter as React state (the ref below serves the abandon event, not
   // the screen). Drives the visible progress bar added 2026-09-20: a search
   // visitor left 8 s after clicking "Analysieren" while the only sign of life
@@ -1547,7 +1551,9 @@ export default function ConfigurePage() {
             ]
               .filter(Boolean)
               .join(' · ')}
-            note={`${t('waitPanelKeepOpen')} ${t('analysisEtaDependencyNote')}`}
+            note={`${t('waitPanelKeepOpen')} ${t('analysisEtaDependencyNote')}${
+              isMobileDevice() ? ` ${t('mobileKeepOpenAnalysis')}` : ''
+            }`}
             fraction={batchProgress && batchProgress.total > 0 ? batchProgress.done / batchProgress.total : null}
           />
         )}

@@ -6,6 +6,8 @@ import { useUpload } from '@/hooks/useUpload';
 import { useLeaveGuard } from '@/hooks/useLeaveGuard';
 import { DropZone } from '@/components/upload/DropZone';
 import { UploadProgress } from '@/components/upload/UploadProgress';
+import { useWakeLock } from '@/hooks/useWakeLock';
+import { isMobileDevice } from '@/utils/device';
 import { PhotoGrid } from '@/components/upload/PhotoGrid';
 import { DropboxImport } from '@/components/upload/DropboxImport';
 import { CloudIntentPlaceholder } from '@/components/upload/CloudIntentPlaceholder';
@@ -137,6 +139,8 @@ export default function UploadPage() {
 
   const { photos, isProcessing, processedCount, totalCount, addFiles, removePhoto, retryFailed, failedCount, clearAll, error, notice, skippedNonImages } =
     useUpload({ maxPhotos, locale });
+  // Keep the screen on while photos are being prepared — see useWakeLock.
+  useWakeLock(isProcessing);
   // Photos exist only in this tab: ask before a reload/close throws them away.
   useLeaveGuard(totalCount > 0 || photos.length > 0);
   // Only for the background notice below — this does NOT gate "Weiter". The
@@ -353,6 +357,14 @@ export default function UploadPage() {
         {notice && (
           <div className="mt-4 p-3 rounded-lg bg-zinc-50 text-zinc-600 text-sm dark:bg-zinc-800/50 dark:text-zinc-300">
             {notice}
+          </div>
+        )}
+        {/* Phones freeze a page that is not visible — say so while it matters.
+            isProcessing is false during server rendering, so this never
+            causes a hydration mismatch. */}
+        {isProcessing && isMobileDevice() && (
+          <div className="mt-4 p-3 rounded-lg bg-amber-50 text-amber-800 text-sm dark:bg-amber-900/20 dark:text-amber-300">
+            {t('mobileKeepOpenUpload')}
           </div>
         )}
         {skippedNonImages > 0 && (

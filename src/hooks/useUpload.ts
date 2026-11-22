@@ -11,6 +11,7 @@ import { computeEmbedding } from '@/utils/embedding';
 import { detectFaces, preloadFaceDetector } from '@/utils/faceDetection';
 import { computeFaceEmbedding, preloadFaceEmbedder } from '@/utils/faceEmbedding';
 import { usePhotoStore } from '@/hooks/usePhotoStore';
+import { isMobileDevice } from '@/utils/device';
 import { trackEv, mark, msSince, takeMark, photoCountBucket } from '@/lib/events-client';
 import {
   timePhase,
@@ -59,11 +60,6 @@ const MAX_CONCURRENT_FACE_SEARCH = 2;
 // behaviour (0 = no prefetch): their per-tab memory ceiling is far tighter.
 const HEIC_PREFETCH_DESKTOP = 6;
 
-function isMobileDevice(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  const ua = navigator.userAgent;
-  return /iPhone|iPad|iPod|Android/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-}
 
 interface Prepared {
   kind: ImageKind;
