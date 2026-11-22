@@ -309,7 +309,7 @@ export default function ReviewPage() {
                 )}
                 <Link
                   href={`/${locale}/app/configure`}
-                  className="block w-full text-center rounded-full border border-zinc-300 dark:border-zinc-600 px-4 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                  className="block w-full text-center rounded-full border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20 px-4 py-2.5 text-sm font-medium text-amber-900 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
                 >
                   {savedCount > 0 ? t('rerunKeepSaved') : t('rerun')}
                 </Link>

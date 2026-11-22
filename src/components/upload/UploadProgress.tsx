@@ -22,7 +22,11 @@ interface UploadProgressProps {
 // projected across the whole list including the ones already done (158 min).
 // A sliding window forgets a stall once it has scrolled out, and "remaining"
 // counts only what is still to do.
-const WINDOW_MS = 3 * 60 * 1000;
+// 10 minutes since 2026-11-22 (was 3): with 3 minutes the figure swung between
+// 10 and 49 min within one run with person search (product owner). The price:
+// after a real change of pace (a stall, a switch from JPEG to HEIC) the figure
+// needs longer to follow.
+const WINDOW_MS = 10 * 60 * 1000;
 // Below this much evidence inside the window the rate is noise — a handful of
 // small files finishing in one burst looks far faster than the batch really is.
 const MIN_WINDOW_SPAN_MS = 20 * 1000;
@@ -109,11 +113,16 @@ export function UploadProgress({
         />
       </div>
       {isProcessing && (
-        <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-          {etaText ? tc('etaRemaining', { time: etaText }) : tc('etaCalculating')}
-          {' — '}
-          {t('etaDependencyNote')}
-        </p>
+        <>
+          <p className="mt-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            {etaText ? tc('etaRemaining', { time: etaText }) : tc('etaCalculating')}
+          </p>
+          {/* Was a small grey line after the ETA until 2026-11-22; the product
+              owner found it too easy to miss, so it is its own box now. */}
+          <div className="mt-3 p-3 rounded-lg bg-indigo-50 text-indigo-900 text-sm leading-relaxed dark:bg-indigo-900/20 dark:text-indigo-200">
+            {t('etaDependencyNote')}
+          </div>
+        </>
       )}
       {finalizing && (
         <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">

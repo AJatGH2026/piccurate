@@ -569,8 +569,8 @@ export function detectSeries(photos: ProcessedPhoto[], criteria: CriteriaConfig)
  * Run selection. Always collapses each series to one best representative.
  * Then, depending on the sliders:
  *  - One or more motif sliders at MAX (10) → exclusive FILTER: keep only reps
- *    matching ANY of those motifs (OR), and select (nearly) ALL of them —
- *    the selectionPercentage cap is ignored ("≈100% of that motif").
+ *    matching ANY of those motifs (OR), then the best of them up to the
+ *    selectionPercentage cap (counted on all non-saved photos), varied.
  *  - Otherwise → balanced/biased: rank reps by score and take the top N% as a
  *    MAXIMUM (selectionPercentage). Sliders 1–9 bias the ranking toward a motif.
  */
@@ -649,28 +649,33 @@ export function runSelection(
   // persons already left the pool above and are irrelevant here.
   const exclusivePersons = includePersons.filter((p) => p.weight >= 1);
   let selectedIds: Set<string>;
+  let candidates: ProcessedPhoto[] = reps;
+  let limit = cap;
   if (exclusive.length > 0 || exclusiveCustom.length > 0 || exclusivePersons.length > 0) {
-    // Filter mode ("only these"): take EVERY rep matching ANY maxed motif OR
-    // maxed positive custom term OR maxed reference person.
+    // Filter mode ("only these"): only reps matching ANY maxed motif OR maxed
+    // positive custom term OR maxed reference person — then, like the
+    // balanced mode, at most N % and varied (the fill below).
     //
-    // The N%-cap deliberately does NOT apply here. Crucial subtlety: `cap` is
-    // computed on the post-exclusion pool, not the total photo count. When
-    // exclude-mode persons (or negative custom terms) remove most photos, the
-    // pool can shrink to a handful, so `round(pool * 30%)` collapses to 1 — and
-    // that silently truncated obviously-eligible matches (e.g. "only AK"
-    // returning 1 of 3 solo-AK photos on a trip full of the excluded people).
-    // An exclusive slider is an explicit "give me every photo with this" ask,
-    // so we honour all matches. Series-collapse still ran upstream, so bursts
-    // don't flood the result.
-    const eligible = reps.filter(
+    // History: 2026-06-14 the cap was made to apply here (tester wish: "only
+    // this motif, but at most N %"). 2026-07-06 it was dropped again to fix a
+    // real bug: `cap` is computed on the post-exclusion pool, so when
+    // exclude-mode persons or negative terms removed most photos the cap
+    // collapsed to 1 ("only AK" returned 1 of 3 solo-AK photos). That fix
+    // went too far: "only people" at 5 % on a trip full of people gave 28 %
+    // (product owner, 2026-11-22). So the cap is back, but measured on every
+    // photo that is not a locked keeper, BEFORE exclusions — excluding people
+    // no longer shrinks it. Series-collapse still ran upstream.
+    const capBase = photos.filter((p) => !p.saved).length;
+    limit = Math.max(1, Math.round(capBase * (percentage / 100)));
+    candidates = reps.filter(
       (p) =>
         exclusive.some((k) => matchesMotif(p, k)) ||
         exclusiveCustom.some((c) => matchesCustom(p, c.term)) ||
         exclusivePersons.some((person) => matchesPerson(p, person.name))
     );
-    selectedIds = new Set(eligible.map((p) => p.id));
-  } else {
-    // Balanced/biased: top N% of the pool — but varied. Series-collapse only
+  }
+  {
+    // Both modes (filter mode since 2026-11-22): top N % — but varied. Series-collapse only
     // merges photos the detector recognises as one series, and it does not
     // always (measured 2026-10-01: a scene of the demo set came apart into
     // several groups at both ends of the slider). Ranking is by each photo's
@@ -707,8 +712,8 @@ export function runSelection(
         : 0.869 - ((strictness - 8) * (0.869 - 0.82)) / 2;
     const chosen: ProcessedPhoto[] = photos.filter((p) => p.saved && p.embedding);
     const picked: ProcessedPhoto[] = [];
-    for (const p of reps) {
-      if (picked.length >= cap) break;
+    for (const p of candidates) {
+      if (picked.length >= limit) break;
       if (p.embedding && chosen.some((c) => cosineSim(p.embedding, c.embedding) >= diversityTau)) continue;
       picked.push(p);
       chosen.push(p);
